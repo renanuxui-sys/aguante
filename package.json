@@ -2,6 +2,7 @@
   "name": "aguante",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +10,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.104.0",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
     "next": "16.2.4",
+    "node-fetch": "^3.3.2",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },

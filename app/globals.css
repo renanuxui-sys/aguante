@@ -1,26 +1,500 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   AGUANTE — Global Styles + Hover System
+   Todas as classes ag-* são reutilizáveis em qualquer página
+============================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Onest', sans-serif;
+  background: #f5f5f5;
+  color: #282828;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+/* ── Grid container ── */
+.ag-container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+}
+
+/* ============================================================
+   CARD DE PRODUTO
+============================================================ */
+.ag-card {
+  width: 218px;
+  height: 325px;
+  border-radius: 16px;
+  overflow: visible;
+  flex-shrink: 0;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+}
+.ag-card:hover {
+  transform: translateY(-4px);
+}
+
+/* ============================================================
+   BOTÕES PRIMÁRIOS (roxo)
+============================================================ */
+.ag-btn-primary {
+  background: #550fed;
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+  font-weight: 700;
+  transition: background 180ms ease, transform 150ms ease, box-shadow 180ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ag-btn-primary:hover {
+  background: #745cff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(85,15,237,0.25);
+}
+.ag-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ============================================================
+   BOTÕES OUTLINE (borda roxa)
+============================================================ */
+.ag-btn-outline {
+  background: transparent;
+  border: 1px solid #550fed;
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+  font-weight: 700;
+  color: #000;
+  transition: background 180ms ease, border-color 180ms ease, transform 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ag-btn-outline:hover {
+  background: #ebe8f2;
+  border-color: #745cff;
+  transform: translateY(-1px);
+}
+.ag-btn-outline:active {
+  transform: translateY(0);
+}
+
+/* ============================================================
+   LINKS DE TEXTO
+============================================================ */
+.ag-link {
+  color: #62748c;
+  text-decoration: none;
+  transition: color 150ms ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+}
+.ag-link:hover {
+  color: #550fed;
+}
+
+/* Link preto (navbar) */
+.ag-link-black {
+  color: #000;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.ag-link-black:hover {
+  color: #550fed;
+}
+
+/* ============================================================
+   ESCUDOS DOS CLUBES
+============================================================ */
+.ag-clube-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: transform 200ms ease, opacity 200ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ag-clube-btn:hover {
+  transform: scale(1.1);
+  opacity: 0.8;
+}
+
+/* ============================================================
+   SUBMENU ITEM (clubes)
+============================================================ */
+.ag-submenu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0dee7;
+  cursor: pointer;
+  width: 100%;
+  transition: padding-left 150ms ease;
+}
+.ag-submenu-item:hover p {
+  color: #550fed;
+}
+.ag-submenu-item:hover {
+  padding-left: 4px;
+}
+
+/* ============================================================
+   ÍCONES INTERATIVOS (coração, fogo, etc.)
+============================================================ */
+.ag-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 180ms ease;
+}
+.ag-icon-btn:hover {
+  transform: scale(1.12);
+}
+
+/* Coração — fica vermelho no hover */
+.ag-icon-heart:hover img,
+.ag-icon-heart:hover {
+  filter: brightness(0) saturate(100%) invert(27%) sepia(95%) saturate(1500%) hue-rotate(330deg);
+}
+
+/* ============================================================
+   PAGINAÇÃO
+============================================================ */
+.ag-page-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #fff;
+  background: #ecebf0;
+  color: #444;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: -0.12px;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.ag-page-btn:hover {
+  background: #ebe8f2;
+  border-color: #550fed;
+  color: #550fed;
+  transform: translateY(-1px);
+}
+.ag-page-btn.active {
+  background: #550fed;
+  color: #ebe8f2;
+  border-color: #550fed;
+}
+.ag-page-btn.active:hover {
+  background: #745cff;
+  color: #fff;
+}
+
+/* ============================================================
+   BOTÃO VER ANÚNCIO (produto)
+============================================================ */
+.ag-btn-ver-anuncio {
+  background: #550fed;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 48px;
+  text-decoration: none;
+  transition: background 180ms ease, transform 150ms ease, box-shadow 180ms ease;
+}
+.ag-btn-ver-anuncio:hover {
+  background: #745cff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(85,15,237,0.28);
+}
+
+/* ============================================================
+   CARD CRIAR ALERTA (produto)
+============================================================ */
+.ag-btn-alerta {
+  width: 100%;
+  border: 1px solid #550fed;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+  transition: background 180ms ease, border-color 180ms ease, transform 150ms ease;
+}
+.ag-btn-alerta:hover {
+  background: #ebe8f2;
+  border-color: #745cff;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   MERCADOS / FONTES (cards cinzas)
+============================================================ */
+.ag-mercado-card {
+  background: #fff;
+  border: 1px solid #e0dee7;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #282828;
+  cursor: pointer;
+  min-height: 80px;
+  transition: border-color 180ms ease, background 180ms ease, transform 150ms ease, color 180ms ease;
+}
+.ag-mercado-card:hover {
+  border-color: #550fed;
+  background: #ebe8f2;
+  color: #550fed;
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   NAVBAR — search pill
+============================================================ */
+.ag-search-pill {
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.ag-search-pill:focus-within {
+  border-color: #550fed !important;
+  box-shadow: 0 0 0 3px rgba(85,15,237,0.08);
+}
+
+/* ============================================================
+   BOTÃO HAMBURGER MOBILE
+============================================================ */
+.ag-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 150ms ease;
+}
+.ag-hamburger:hover {
+  background: #ebe8f2;
+}
+.ag-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #282828;
+  border-radius: 2px;
+  transition: background 150ms ease;
+}
+
+/* ============================================================
+   INPUTS — focus state consistente
+============================================================ */
+.ag-input {
+  background: #fff;
+  border: 1px solid #e0dee7;
+  border-radius: 16px;
+  padding: 14px 24px;
+  height: 48px;
+  font-size: 14px;
+  outline: none;
+  font-family: 'Onest', sans-serif;
+  box-shadow: 0px 3.52px 4.4px rgba(183,181,203,0.1);
+  width: 100%;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  color: #282828;
+}
+.ag-input:focus {
+  border-color: #550fed;
+  box-shadow: 0 0 0 3px rgba(85,15,237,0.08);
+}
+
+.ag-select {
+  background: #fff;
+  border: 1px solid #e0dee7;
+  border-radius: 16px;
+  padding: 14px 24px;
+  height: 48px;
+  font-size: 14px;
+  outline: none;
+  font-family: 'Onest', sans-serif;
+  box-shadow: 0px 3.52px 4.4px rgba(183,181,203,0.1);
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  color: #282828;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.ag-select:focus {
+  border-color: #550fed;
+  box-shadow: 0 0 0 3px rgba(85,15,237,0.08);
+}
+
+/* ============================================================
+   BOTÃO CADASTRAR (CTA footer)
+============================================================ */
+.ag-btn-cadastrar {
+  background: #550fed;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 14px 24px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  letter-spacing: -0.14px;
+  white-space: nowrap;
+  align-self: flex-end;
+  transition: background 180ms ease, transform 150ms ease, box-shadow 180ms ease;
+}
+.ag-btn-cadastrar:hover {
+  background: #745cff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(85,15,237,0.25);
+}
+
+/* ============================================================
+   BOTÃO BUSCAR (hero)
+============================================================ */
+.ag-btn-buscar {
+  background: #550fed;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 16px 48px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 180ms ease, transform 150ms ease, box-shadow 180ms ease;
+}
+.ag-btn-buscar:hover {
+  background: #745cff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(85,15,237,0.25);
+}
+
+/* ============================================================
+   VOLTAR (arrow link)
+============================================================ */
+.ag-btn-voltar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Onest', sans-serif;
+  border-radius: 8px;
+  padding: 4px 8px 4px 4px;
+  transition: background 150ms ease, transform 150ms ease;
+}
+.ag-btn-voltar:hover {
+  background: #ebe8f2;
+  transform: translateX(-2px);
+}
+
+/* ============================================================
+   GRID RESPONSIVO
+============================================================ */
+.ag-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 218px);
+  gap: 12px;
+}
+.ag-card-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+.ag-mercados {
+  display: grid;
+  grid-template-columns: repeat(6,1fr);
+  gap: 8px;
+}
+.ag-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+.ag-nav-pill-wrap { display: flex; }
+.ag-submenu-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 8px 24px;
+  margin-top: 24px;
+}
+.ag-cta-form {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  width: 100%;
+}
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media (max-width: 768px) {
+  .ag-nav-links { display: none; }
+  .ag-nav-pill-wrap { display: none; }
+  .ag-hamburger { display: flex; }
+  .ag-cards { grid-template-columns: repeat(2,1fr) !important; }
+  .ag-card { width: 100% !important; height: auto !important; }
+  .ag-card-row { display: grid !important; grid-template-columns: repeat(2,1fr); gap: 10px; }
+  .ag-card-row > a { width: 100% !important; height: auto !important; }
+  .ag-mercados { grid-template-columns: repeat(2,1fr) !important; }
+  .ag-cta-form { flex-direction: column !important; }
+  .ag-submenu-grid { grid-template-columns: repeat(2,1fr) !important; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .ag-cards { grid-template-columns: repeat(3, 218px) !important; }
+  .ag-mercados { grid-template-columns: repeat(3,1fr) !important; }
 }
