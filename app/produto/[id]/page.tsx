@@ -7,9 +7,6 @@ import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
 import type { Produto } from '@/types'
 
-export const dynamic = 'force-dynamic'
-export const fetchCache = 'force-no-store'
-
 const imgArrowLeft    = "https://www.figma.com/api/mcp/asset/831e5e5f-8569-4e5b-b098-78cb374b69e4"
 const imgLightning    = "https://www.figma.com/api/mcp/asset/7d7e1469-42a4-4078-be97-1e683db9145c"
 const imgIconNotify   = "https://www.figma.com/api/mcp/asset/ba5c9909-f3ae-47f5-80eb-735928779f1f"
@@ -17,49 +14,51 @@ const imgIconArrowUp  = "https://www.figma.com/api/mcp/asset/ed00e220-3253-48d0-
 const imgChevronRight = "https://www.figma.com/api/mcp/asset/cd20f991-1979-4d24-9e5d-6733cfb02c5b"
 const imgBgHero       = "https://www.figma.com/api/mcp/asset/4a126ff7-6c3a-4b92-8bbe-01319a538714"
 
+type ProdutoComStats = Produto & { views?: number; likes?: number }
 type StatusAlerta = 'idle' | 'loading' | 'success' | 'error'
 
 export default function ProdutoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const [produto, setProduto]           = useState<Produto | null>(null)
+  const [produto, setProduto]           = useState<ProdutoComStats | null>(null)
   const [relacionados, setRelacionados] = useState<Produto[]>([])
   const [alertaAberto, setAlertaAberto] = useState(false)
   const [favoritado, setFavoritado]     = useState(false)
+  const [likes, setLikes]               = useState(0)
   const [nomeAlerta, setNomeAlerta]     = useState('')
   const [emailAlerta, setEmailAlerta]   = useState('')
   const [statusAlerta, setStatusAlerta] = useState<StatusAlerta>('idle')
   const [imgCarregada, setImgCarregada] = useState(false)
   const [loading, setLoading]           = useState(true)
-  const curtidas = 15
-
 
   useEffect(() => {
     setLoading(true)
     setImgCarregada(false)
     setProduto(null)
     setRelacionados([])
+    setFavoritado(false)
 
     async function carregar() {
       const { data: prod } = await supabase
-        .from('produtos')
-        .select('*')
-        .eq('id', id)
-        .single()
+        .from('produtos').select('*').eq('id', id).single()
 
       setProduto(prod)
+      setLikes(prod?.likes || 0)
+
+      // Verifica se já curtiu este produto (controle local por aba)
+      if (typeof window !== 'undefined') {
+        const curtidos = JSON.parse(sessionStorage.getItem('aguante_curtidos') || '[]')
+        setFavoritado(curtidos.includes(id))
+      }
+
       setLoading(false)
 
       if (prod) {
-        const query = supabase
-          .from('produtos')
-          .select('*')
-          .neq('id', id)
-          .eq('ativo', true)
-          .limit(5)
+        // Incrementa views (não bloqueia o render)
+        supabase.rpc('incrementar_views', { produto_id: id })
 
+        const query = supabase.from('produtos').select('*').neq('id', id).eq('ativo', true).limit(5)
         if (prod.clube) query.eq('clube', prod.clube)
-
         const { data: rel } = await query
         setRelacionados(rel || [])
       }
@@ -67,6 +66,32 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
     carregar()
   }, [id])
+
+  async function toggleCurtida() {
+    if (!produto) return
+
+    const novoEstado = !favoritado
+    const delta = novoEstado ? 1 : -1
+
+    // Atualização otimista
+    setFavoritado(novoEstado)
+    setLikes(l => Math.max(0, l + delta))
+
+    // Persiste no banco
+    const { data } = await supabase.rpc('ajustar_likes', { produto_id: id, delta })
+    if (typeof data === 'number') setLikes(data)
+
+    // Salva localmente para evitar duplicação na mesma sessão
+    if (typeof window !== 'undefined') {
+      const curtidos: string[] = JSON.parse(sessionStorage.getItem('aguante_curtidos') || '[]')
+      if (novoEstado && !curtidos.includes(id)) curtidos.push(id)
+      if (!novoEstado) {
+        const idx = curtidos.indexOf(id)
+        if (idx !== -1) curtidos.splice(idx, 1)
+      }
+      sessionStorage.setItem('aguante_curtidos', JSON.stringify(curtidos))
+    }
+  }
 
   async function handleCriarAlerta(e: React.FormEvent) {
     e.preventDefault()
@@ -96,7 +121,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   const diferencaPercent = mediaPreco && produto?.preco ? Math.round(((produto.preco - mediaPreco) / mediaPreco) * 100) : null
   const acimaDaMedia = diferencaPercent !== null && diferencaPercent > 0
 
-  // Loading state — página em branco com spinner
   if (loading) return (
     <main style={{ fontFamily: 'Onest, sans-serif', background: '#f8f8f8', minHeight: '100vh' }}>
       <Navbar />
@@ -107,15 +131,12 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     </main>
   )
 
-  // Produto não encontrado
   if (!produto) return (
     <main style={{ fontFamily: 'Onest, sans-serif', background: '#f8f8f8', minHeight: '100vh' }}>
       <Navbar />
       <div style={{ height: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <p style={{ fontSize: 20, fontWeight: 700, color: '#282828' }}>Produto não encontrado</p>
-        <button onClick={() => router.back()} style={{ background: '#550fed', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 24px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', fontWeight: 700 }}>
-          Voltar
-        </button>
+        <button onClick={() => router.back()} style={{ background: '#550fed', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 24px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', fontWeight: 700 }}>Voltar</button>
       </div>
     </main>
   )
@@ -155,12 +176,9 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
             </button>
 
             <div className="ag-produto-grid" style={{ display: 'flex', gap: 48, alignItems: 'flex-start' }}>
-
-              {/* ── COLUNA ESQUERDA — Imagem ── */}
               <div className="ag-produto-img" style={{ width: 557, flexShrink: 0 }}>
                 <div style={{ width: '100%', height: 625, borderRadius: 16, overflow: 'hidden', background: '#ecebf0', position: 'relative', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
 
-                  {/* Placeholder cinza até imagem carregar */}
                   {!imgCarregada && (
                     <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: '#ecebf0', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {!produto.imagem_url && (
@@ -169,7 +187,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                     </div>
                   )}
 
-                  {/* Imagem real */}
                   {produto.imagem_url && (
                     <img
                       key={produto.imagem_url}
@@ -180,7 +197,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                     />
                   )}
 
-                  {/* Badge alta procura */}
                   {produto.alta_procura && (
                     <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', height: 25, alignItems: 'flex-start', justifyContent: 'center', overflow: 'hidden', borderRadius: 16, boxShadow: '0px 14px 12.6px rgba(161,244,82,0.13), inset 0px -2px 28px rgba(116,216,22,0.51)', width: 'fit-content' }}>
                       <div style={{ background: '#1beaa0', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 15px', height: 28 }}>
@@ -190,18 +206,16 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                     </div>
                   )}
 
-                  {/* Botão favoritar */}
                   <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 3 }}>
-                    <button onClick={() => setFavoritado(f => !f)} style={{ background: '#fff', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 16, boxShadow: '0px 4px 16px rgba(0,0,0,0.25)', padding: 10, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'all 180ms ease' }} onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
+                    <button onClick={toggleCurtida} style={{ background: '#fff', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 16, boxShadow: '0px 4px 16px rgba(0,0,0,0.25)', padding: 10, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'all 180ms ease' }} onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
                       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
                         <path d="M14 24s-9-5.5-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-9 12-9 12z" fill={favoritado ? '#550fed' : 'none'} stroke="#550fed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                      <span style={{ fontWeight: 700, fontSize: 16, color: '#550fed', letterSpacing: '-0.16px', lineHeight: 1.2 }}>{favoritado ? curtidas + 1 : curtidas}</span>
+                      <span style={{ fontWeight: 700, fontSize: 16, color: '#550fed', letterSpacing: '-0.16px', lineHeight: 1.2 }}>{likes}</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Card criar alerta */}
                 <div style={{ background: '#fff', borderRadius: 16, padding: '8px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
                   <p style={{ fontWeight: 300, fontSize: 18, color: '#000', letterSpacing: '-0.9px', lineHeight: 1.2, maxWidth: 264 }}>
                     <strong style={{ fontWeight: 700 }}>Quer ser avisado </strong>quando aparecer outra igual a essa?
@@ -215,7 +229,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
 
-              {/* ── COLUNA DIREITA — Info ── */}
               <div className="ag-produto-info" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 66 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
@@ -250,7 +263,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                   </a>
                 </div>
 
-                {/* Histórico de preço */}
                 <div style={{ background: '#e0dee7', borderRadius: 16, padding: '32px 24px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 21, alignItems: 'flex-end' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>

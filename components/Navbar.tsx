@@ -8,11 +8,10 @@ const imgLogo       = "https://www.figma.com/api/mcp/asset/3246a130-14a7-437c-85
 const imgNavChevron = "https://www.figma.com/api/mcp/asset/8fcccfaa-c506-49db-93ca-b43a8d022ff0"
 const imgNavSearch  = "https://www.figma.com/api/mcp/asset/e71c8759-36e2-4d85-abaa-28f807b894bf"
 
-// Fallback estático para o Footer (select de clubes)
 export const TODOS_CLUBES = [
   'Flamengo','Corinthians','Palmeiras','Atlético-MG','Athletico-PR','Fortaleza',
   'Bahia','Botafogo','Cruzeiro','Fluminense','Grêmio','Internacional',
-  'São Paulo','Vasco','Santos',
+  'São Paulo','Vasco','Santos','Vitória',
 ]
 
 type Clube = {
@@ -23,7 +22,7 @@ type Clube = {
   total_anuncios: number
 }
 
-const LIMITE_INICIAL = 30
+const LIMITE_INICIAL = 8
 
 export default function Navbar() {
   const router = useRouter()
@@ -43,17 +42,6 @@ export default function Navbar() {
 
   useEffect(() => {
     async function carregarClubes() {
-      // Conta anúncios por clube na tabela produtos
-      const { data: contagens } = await supabase
-        .from('produtos')
-        .select('clube')
-        .eq('ativo', true)
-
-      const mapa: Record<string, number> = {}
-      contagens?.forEach(p => {
-        if (p.clube) mapa[p.clube] = (mapa[p.clube] || 0) + 1
-      })
-
       const { data: listaClubes } = await supabase
         .from('clubes')
         .select('id, nome, slug, escudo_url')
@@ -63,15 +51,21 @@ export default function Navbar() {
 
       if (!listaClubes) return
 
-      const clubesComContagem: Clube[] = listaClubes.map(c => ({
-        ...c,
-        total_anuncios: mapa[c.nome] || 0,
-      }))
+      // Conta produtos ativos para cada clube em paralelo
+      const contagens = await Promise.all(
+        listaClubes.map(async (c) => {
+          const { count } = await supabase
+            .from('produtos')
+            .select('*', { count: 'exact', head: true })
+            .eq('clube', c.nome)
+            .eq('ativo', true)
+          return { ...c, total_anuncios: count || 0 }
+        })
+      )
 
-      // Ordena por quantidade de anúncios (maior primeiro), mantém ordem original para empates
-      clubesComContagem.sort((a, b) => b.total_anuncios - a.total_anuncios)
-
-      setClubes(clubesComContagem)
+      // Ordena por quantidade (maior primeiro)
+      contagens.sort((a, b) => b.total_anuncios - a.total_anuncios)
+      setClubes(contagens)
     }
 
     carregarClubes()
@@ -123,19 +117,11 @@ export default function Navbar() {
   return (
     <>
       <nav style={navStyle}>
-
-        {/* Logo */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          <img
-            src={imgLogo}
-            alt="Aguante"
-            style={{ width: scrolled ? 120 : 136, height: scrolled ? 44 : 55, display: 'block', transition: 'all 350ms cubic-bezier(0.4,0,0.2,1)' }}
-          />
+          <img src={imgLogo} alt="Aguante" style={{ width: scrolled ? 120 : 136, height: scrolled ? 44 : 55, display: 'block', transition: 'all 350ms cubic-bezier(0.4,0,0.2,1)' }} />
         </Link>
 
-        {/* Links + search */}
         <div style={{ display: 'flex', alignItems: 'center', gap: scrolled ? 110 : 40 }}>
-
           <div className="ag-nav-links">
             <Link href="/" className="ag-link-black" style={{ fontSize: 12, letterSpacing: '-0.24px', lineHeight: '24px', whiteSpace: 'nowrap' }}>
               Conheça Aguante
@@ -153,7 +139,6 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Search */}
           <div className="ag-nav-pill-wrap">
             <form onSubmit={handleSearch}>
               <div
@@ -180,7 +165,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Hamburger */}
         <button className="ag-hamburger" onClick={() => setMenuMobile(!menuMobile)} aria-label="Menu">
           <span /><span /><span />
         </button>
@@ -201,31 +185,31 @@ export default function Navbar() {
                   key={clube.id}
                   className="ag-submenu-item"
                   onClick={() => { setSubmenu(false); setExpandido(false); router.push(`/search?q=${clube.nome}`) }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', cursor: 'pointer' }}
                 >
                   {clube.escudo_url && (
                     <img src={clube.escudo_url} alt={clube.nome} style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }} />
                   )}
                   <p style={{ fontSize: 16, color: '#282828', letterSpacing: '-0.05em' }}>{clube.nome}</p>
-                  <span style={{ background: '#dfdfdf', borderRadius: 8, padding: '2px 4px', fontSize: 12, color: '#550fed', fontWeight: 700, marginLeft: 'auto' }}>
-                    {clube.total_anuncios}
+                  <span style={{ background: '#dfdfdf', borderRadius: 8, padding: '2px 6px', fontSize: 12, color: '#550fed', fontWeight: 700, marginLeft: 'auto' }}>
+                    {clube.total_anuncios.toLocaleString('pt-BR')}
                   </span>
                 </div>
               ))}
             </div>
 
-            {temMais && !expandido && (
+            {temMais && (
               <button
-                onClick={() => setExpandido(true)}
+                onClick={() => setExpandido(e => !e)}
                 style={{ marginTop: 24, background: 'none', border: '1px solid #e0dee7', borderRadius: 12, padding: '10px 24px', fontSize: 13, color: '#550fed', fontWeight: 700, cursor: 'pointer', fontFamily: 'Onest, sans-serif', letterSpacing: '-0.01em' }}
               >
-                Ver mais clubes ↓
+                {expandido ? 'Ver menos clubes ↑' : `Ver mais ${clubes.length - LIMITE_INICIAL} clubes ↓`}
               </button>
             )}
           </div>
         </div>
       )}
 
-      {/* Menu mobile */}
       {menuMobile && (
         <div
           style={{ position: 'fixed', top: scrolled ? 102 : 60, left: 0, right: 0, background: '#fff', borderBottom: '1px solid #e0dee7', padding: '20px 24px', zIndex: 99, display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
