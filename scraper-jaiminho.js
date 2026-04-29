@@ -1,11 +1,11 @@
 /**
  * Scraper — Jaiminho Camisas (Nuvemshop)
- * Roda com: node scraper-jaiminho.js
+ * Roda com: node scraper-jaiminho-v2.js
  */
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { createClient } from '@supabase/supabase-js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://jaiminhocamisas.lojavirtualnuvem.com.br'
@@ -13,10 +13,7 @@ const FONTE_NOME = 'Jaiminho Camisas'
 const FONTE_URL  = BASE_URL
 const DELAY_MS   = 1500
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
+const supabase = criarSupabase()
 
 const COLECOES = [
   { slug: 'internacional',     clube: 'Internacional' },
@@ -52,54 +49,11 @@ const COLECOES = [
   { slug: 'times-aleatorios',  clube: null },
 ]
 
-const CLUBES_MAP = [
-  { clube: 'Flamengo',      termos: ['flamengo'] },
-  { clube: 'Corinthians',   termos: ['corinthians'] },
-  { clube: 'Palmeiras',     termos: ['palmeiras'] },
-  { clube: 'São Paulo',     termos: ['são paulo', 'sao paulo', 'spfc'] },
-  { clube: 'Grêmio',        termos: ['grêmio', 'gremio'] },
-  { clube: 'Internacional', termos: ['internacional'] },
-  { clube: 'Santos',        termos: ['santos'] },
-  { clube: 'Atlético-MG',   termos: ['atlético mineiro', 'atletico mineiro', 'atlético-mg', 'atletico mg'] },
-  { clube: 'Botafogo',      termos: ['botafogo'] },
-  { clube: 'Fluminense',    termos: ['fluminense'] },
-  { clube: 'Vasco',         termos: ['vasco'] },
-  { clube: 'Cruzeiro',      termos: ['cruzeiro'] },
-  { clube: 'Athletico-PR',  termos: ['athletico', 'atletico pr', 'paranaense'] },
-  { clube: 'Fortaleza',     termos: ['fortaleza'] },
-  { clube: 'Bahia',         termos: ['bahia'] },
-  { clube: 'Vitória',       termos: ['vitória', 'vitoria'] },
-]
-
-function identificarClube(titulo) {
-  const lower = titulo.toLowerCase()
-  for (const { clube, termos } of CLUBES_MAP) {
-    if (termos.some(t => lower.includes(t))) return clube
-  }
-  return null
-}
-
-function extrairAno(titulo) {
-  const match = titulo.match(/\b(19[5-9]\d|20[0-2]\d)\b/)
-  return match ? match[1] : null
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 async function rasparPagina(slug, page) {
   const url = `${BASE_URL}/${slug}/?page=${page}`
-
   try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AguanteBot/1.0)' },
-      timeout: 15000,
-    })
-    if (!res.ok) {
-      console.warn(`  ⚠️  Status ${res.status}`)
-      return []
-    }
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AguanteBot/1.0)' }, timeout: 15000 })
+    if (!res.ok) { console.warn(`  ⚠️  Status ${res.status}`); return [] }
 
     const html = await res.text()
     const $ = cheerio.load(html)
@@ -107,8 +61,6 @@ async function rasparPagina(slug, page) {
 
     $('.js-product-container').each((_, el) => {
       const $el = $(el)
-
-      // Dados principais via data-variants (JSON embutido)
       const variantsRaw = $el.attr('data-variants')
       let preco = null
       let imagem = null
@@ -124,11 +76,9 @@ async function rasparPagina(slug, page) {
         } catch {}
       }
 
-      // Título e link
       const $link = $el.find('a.item-link').first()
       const titulo = $link.attr('title') || $el.find('.js-item-name').text().trim()
       const link   = $link.attr('href') || ''
-
       if (!titulo || !link) return
 
       produtos.push({ titulo, link, preco, imagem })
@@ -141,41 +91,8 @@ async function rasparPagina(slug, page) {
   }
 }
 
-async function salvarProdutos(produtos, clubeFixo) {
-  if (produtos.length === 0) return 0
-
-  const convertidos = produtos.map(p => ({
-    titulo: p.titulo,
-    link_original: p.link,
-    imagem_url: p.imagem,
-    preco: p.preco,
-    clube: clubeFixo || identificarClube(p.titulo),
-    ano: extrairAno(p.titulo),
-    fonte_nome: FONTE_NOME,
-    fonte_url: FONTE_URL,
-    tags: [],
-    de_jogo: p.titulo.toLowerCase().includes('jogo'),
-    novidade: false,
-    alta_procura: false,
-    ativo: true,
-  }))
-
-  const { data, error } = await supabase
-    .from('produtos')
-    .upsert(convertidos, { onConflict: 'link_original', ignoreDuplicates: false })
-    .select('id')
-
-  if (error) {
-    console.error('  ❌ Erro ao salvar:', error.message)
-    return 0
-  }
-
-  return data?.length || 0
-}
-
 async function rasparColecao({ slug, clube }) {
   console.log(`\n⚽ ${clube || slug}`)
-
   let page = 1
   let totalColecao = 0
   let semResultados = 0
@@ -188,7 +105,21 @@ async function rasparColecao({ slug, clube }) {
       if (semResultados >= 2) break
     } else {
       semResultados = 0
-      const salvos = await salvarProdutos(produtos, clube)
+      const convertidos = produtos.map(p => ({
+        titulo: p.titulo,
+        link_original: p.link,
+        imagem_url: p.imagem,
+        preco: p.preco,
+        clube: clube || identificarClube(p.titulo),
+        ano: extrairAno(p.titulo),
+        fonte_nome: FONTE_NOME,
+        fonte_url: FONTE_URL,
+        tags: [],
+        de_jogo: p.titulo.toLowerCase().includes('jogo'),
+        novidade: false,
+        alta_procura: false,
+      }))
+      const salvos = await salvarProdutos(supabase, convertidos)
       totalColecao += salvos
       console.log(`  ✅ Página ${page} — ${salvos} salvos (total: ${totalColecao})`)
     }
@@ -203,15 +134,16 @@ async function rasparColecao({ slug, clube }) {
 async function main() {
   console.log('🚀 Scraper — Jaiminho Camisas\n')
 
-  let totalGeral = 0
+  await desativarProdutosDaFonte(supabase, FONTE_NOME)
 
+  let totalGeral = 0
   for (const colecao of COLECOES) {
-    const total = await rasparColecao(colecao)
-    totalGeral += total
+    totalGeral += await rasparColecao(colecao)
     await sleep(DELAY_MS)
   }
 
-  console.log(`\n🏁 Concluído! Total geral: ${totalGeral} produtos salvos.`)
+  await relatorioFinal(supabase, FONTE_NOME, totalGeral)
+  console.log(`\n🏁 Concluído! Total geral: ${totalGeral} produtos ativos.`)
 }
 
 main().catch(console.error)

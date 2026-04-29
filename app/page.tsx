@@ -141,7 +141,7 @@ export default function Home() {
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(245,245,245,0) 0%, rgba(245,245,245,0) 55%, rgba(245,245,245,0.6) 75%, rgba(245,245,245,1) 90%)' }} />
           </div>
 
-          <div className="ag-container" style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 684, padding: '80px 24px', overflow: 'visible' }}>
+          <div className="ag-container" style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 684, padding: '80px 24px 20 24px', overflow: 'visible' }}>
 
             <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', zIndex: 3, flexShrink: 0 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(200,196,213,0.56)', border: '0.76px solid rgba(255,255,255,0.38)', borderRadius: 55.54, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', padding: '4px 8px', fontSize: 12, fontWeight: 300, color: '#000', letterSpacing: '-0.12px', textTransform: 'uppercase' as const, marginBottom: 20, width: 'fit-content', lineHeight: 1.5 }}>
@@ -221,7 +221,7 @@ export default function Home() {
               <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
                 Os <strong>mais populares</strong> do Brasil
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12 }}>
                 {clubes.map(c => (
                   <button key={c.id} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {c.escudo_url
