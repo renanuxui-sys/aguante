@@ -286,9 +286,9 @@ export default function AdminProdutos() {
                   {/* Métricas */}
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ fontSize: 11, color: '#6B6966', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span>👁 {p.views.toLocaleString('pt-BR')} views</span>
-                      <span>♥ {p.likes.toLocaleString('pt-BR')} likes</span>
-                      <span>↗ {p.cliques_anuncio.toLocaleString('pt-BR')} cliques</span>
+                      <span>👁 {(p.views ?? 0).toLocaleString('pt-BR')} views</span>
+                      <span>♥ {(p.likes ?? 0).toLocaleString('pt-BR')} likes</span>
+                      <span>↗ {(p.cliques_anuncio ?? 0).toLocaleString('pt-BR')} cliques</span>
                     </div>
                   </td>
 
