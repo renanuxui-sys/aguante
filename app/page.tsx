@@ -11,9 +11,9 @@ const imgCamisas       = "https://www.figma.com/api/mcp/asset/37f72976-d9c6-4de3
 const imgBgHero        = "https://www.figma.com/api/mcp/asset/edd4f565-9eae-4473-819e-86ec35f69e85"
 const imgSearchIcon    = "/assets/ico-search.svg"
 const imgIconSearch    = "/assets/search-normal.svg"
-const imgIconMagic     = "https://www.figma.com/api/mcp/asset/88af6305-5c41-4643-bf8f-7279d8f8d38f"
-const imgIconLightning = "https://www.figma.com/api/mcp/asset/6add553f-7b09-4ebe-9bf6-7da4520bad52"
-const imgIconGrid      = "https://www.figma.com/api/mcp/asset/da34006e-ba1b-4195-ab60-fc2cb730fc50"
+const imgIconMagic     = "/assets/vector.svg"
+const imgIconLightning = "/assets/Lightning.svg"
+const imgIconGrid      = "/assets/element-plus.svg"
 
 type Clube = {
   id: string
