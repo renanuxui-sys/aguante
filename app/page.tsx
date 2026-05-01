@@ -11,7 +11,7 @@ const imgCamisas       = "https://www.figma.com/api/mcp/asset/37f72976-d9c6-4de3
 const imgBgHero        = "https://www.figma.com/api/mcp/asset/edd4f565-9eae-4473-819e-86ec35f69e85"
 const imgSearchIcon    = "/assets/ico-search.svg"
 const imgIconSearch    = "/assets/search-normal.svg"
-const imgIconMagic     = "/assets/Magic-star.svg"
+const imgIconMagic     = "/assets/magic-star.svg"
 const imgIconLightning = "/assets/Vector.svg"
 const imgIconGrid      = "/assets/element-plus.svg"
 
