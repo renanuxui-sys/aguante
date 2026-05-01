@@ -193,7 +193,9 @@ export default function Home() {
 
               {/* Stat 1 — novos anúncios hoje (DINÂMICO) */}
               <div style={{ position: 'absolute', left: 56, top: 261, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', background: 'rgba(255,255,255,0.88)', borderTop: '1px solid white', borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 16, boxShadow: '8px 12px 36px rgba(0,0,0,0.08)', zIndex: 10, width: 278 }}>
-                <img src={imgIconLightning} alt="" style={{ width: 52, height: 52, borderRadius: 8, flexShrink: 0 }} />
+                 <div style={{ background: '#745cff', borderRadius: 8, width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <img src={imgIconLightning} alt="" style={{ width: 24, height: 24 }} />
+                </div>
                 <p style={{ fontSize: 14, color: 'rgba(0,0,0,0.6)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
                   <strong style={{ color: '#550fed', fontWeight: 700 }}>{novosFmt} {novosHoje === 1 ? 'novo anúncio' : 'novos anúncios'} </strong>
                   <span style={{ fontWeight: 400 }}>encontrados nas últimas 24h.</span>
