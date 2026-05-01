@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import type { Produto } from '@/types'
 
-const imgIconHeart = "https://www.figma.com/api/mcp/asset/7446d231-d430-4990-aa05-1cef18f05220"
 const imgLightning = "https://www.figma.com/api/mcp/asset/543aa6e3-da03-41b1-83dc-a9d4e433dad1"
 
 type Props = {
@@ -15,7 +14,7 @@ export default function CardProduto({ produto }: Props) {
       className="ag-card"
       style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column' }}
     >
-      {/* Foto com border-radius nos 4 cantos */}
+      {/* Foto */}
       <div style={{
         height: 193,
         borderRadius: 16,
@@ -79,18 +78,15 @@ export default function CardProduto({ produto }: Props) {
         </p>
       </div>
 
-      {/* Preço + coração */}
+      {/* Preço — sem coração */}
       <div style={{ paddingTop: 4 }}>
         <div style={{ height: 1, background: '#e0dee7', marginBottom: 8 }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ color: '#62748c', letterSpacing: '-0.14px' }}>
-            <span style={{ fontSize: 12, fontWeight: 400 }}>R$ </span>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>
-              {produto.preco?.toLocaleString('pt-BR')}
-            </span>
-          </p>
-          <img src={imgIconHeart} alt="Favoritar" style={{ width: 26, height: 26 }} />
-        </div>
+        <p style={{ color: '#62748c', letterSpacing: '-0.14px' }}>
+          <span style={{ fontSize: 12, fontWeight: 400 }}>R$ </span>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>
+            {produto.preco?.toLocaleString('pt-BR')}
+          </span>
+        </p>
       </div>
     </Link>
   )

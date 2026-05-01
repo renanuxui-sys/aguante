@@ -106,7 +106,7 @@ export default function Navbar() {
         border: 'none', borderBottom: '1px solid #e0dee7', borderRadius: 0,
         boxShadow: 'none',
         display: 'flex', alignItems: 'center',
-        padding: '0 calc((100% - 1140px) / 2 + 24px)',
+        padding: '0 max(16px, calc((100% - 1140px) / 2 + 24px))',
         justifyContent: 'space-between',
         zIndex: 100,
         transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)',
