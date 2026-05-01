@@ -67,7 +67,7 @@ export default function CardProduto({ produto }: Props) {
       </div>
 
       {/* Info */}
-      <div style={{ height:'300px', padding: '8px 0 4px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ padding: '8px 0 4px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <p style={{ fontWeight: 700, fontSize: 14, color: '#444', letterSpacing: '-0.14px', lineHeight: 1.2 }}>
           {produto.titulo}
         </p>

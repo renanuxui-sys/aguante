@@ -37,7 +37,7 @@ const CLUBES = [
 
 async function buscarPagina(query, offset) {
   const q = encodeURIComponent(query)
-  const url = `${MEIUKA_URL}/rest/v1/camisas?select=*&status=eq.a_venda&or=%28club.ilike.%25${q}%25%2Ccountry.ilike.%25${q}%25%2Cname.ilike.%25${q}%25%2Cseason.ilike.%25${q}%25%2Ctags.cs.%7B${q}%7D%29&limit=${LIMITE}&offset=${offset}`
+  const url = `${MEIUKA_URL}/rest/v1/camisetas?select=*&status=eq.a_venda&or=%28club.ilike.%25${q}%25%2Ccountry.ilike.%25${q}%25%2Cname.ilike.%25${q}%25%2Cseason.ilike.%25${q}%25%2Ctags.cs.%7B${q}%7D%29&limit=${LIMITE}&offset=${offset}`
   try {
     const res = await fetch(url, {
       headers: { 'apikey': MEIUKA_APIKEY, 'Authorization': `Bearer ${MEIUKA_APIKEY}` },
