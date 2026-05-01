@@ -9,8 +9,8 @@ import type { Produto } from '@/types'
 
 const imgCamisas       = "https://www.figma.com/api/mcp/asset/37f72976-d9c6-4de3-9a14-8898be580edc"
 const imgBgHero        = "https://www.figma.com/api/mcp/asset/edd4f565-9eae-4473-819e-86ec35f69e85"
-const imgSearchIcon    = "https://www.figma.com/api/mcp/asset/6eb29aa3-0804-48ca-8949-6cfeaaaa2ec5"
-const imgIconSearch    = "https://www.figma.com/api/mcp/asset/2fb5de4a-ff51-409e-868a-ee9cc9d110ff"
+const imgSearchIcon    = "/assets/ico-search.svg"
+const imgIconSearch    = "/assets/search-normal.svg"
 const imgIconMagic     = "https://www.figma.com/api/mcp/asset/88af6305-5c41-4643-bf8f-7279d8f8d38f"
 const imgIconLightning = "https://www.figma.com/api/mcp/asset/6add553f-7b09-4ebe-9bf6-7da4520bad52"
 const imgIconGrid      = "https://www.figma.com/api/mcp/asset/da34006e-ba1b-4195-ab60-fc2cb730fc50"

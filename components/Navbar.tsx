@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const imgLogo       = "/assets/logo.svg"
-const imgNavChevron = "https://www.figma.com/api/mcp/asset/8fcccfaa-c506-49db-93ca-b43a8d022ff0"
-const imgNavSearch  = "https://www.figma.com/api/mcp/asset/e71c8759-36e2-4d85-abaa-28f807b894bf"
+const imgNavChevron = "/assets/chevron-down.svg"
+const imgNavSearch  = "/assets/ico-search.svg"
 
 export const TODOS_CLUBES = [
   'Flamengo','Corinthians','Palmeiras','Atlético-MG','Athletico-PR','Fortaleza',
