@@ -116,7 +116,7 @@ export default function Home() {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         .ag-container { max-width: 1140px; margin: 0 auto; padding: 0 24px; width: 100%; }
-        .ag-card { width: 218px; height: 325px; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; }
+        .ag-card { width: 218px; height: 325px; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; margin-bottom:32px }
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cards { display: grid; grid-template-columns: repeat(5, 218px); gap: 12px; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
