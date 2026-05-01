@@ -1,209 +1,305 @@
 # Aguante — Guia de Scrapers
 
+> Última atualização: Abril 2026
+
 ## Stack utilizada em todos os scrapers
+
 - **node-fetch** — requisições HTTP
 - **cheerio** — leitura e extração de HTML
+- **playwright** — browser headless para sites com JavaScript
 - **@supabase/supabase-js** — salvar dados no banco
 - **dotenv** — lê variáveis do `.env`
+- **scraper-utils.js** — utilitários compartilhados (ciclo de vida, funções comuns)
 
 ## Configuração necessária (uma vez só)
+
 ```bash
-npm install node-fetch cheerio dotenv
+npm install node-fetch cheerio dotenv playwright
+npx playwright install chromium
 ```
 
-Adicionar no `package.json`:
+`package.json` deve ter:
 ```json
 "type": "module"
 ```
 
-Criar `.env` na raiz (cópia do `.env.local`):
+`.env` na raiz (cópia do `.env.local`):
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-Rodar qualquer scraper com:
+Rodar qualquer scraper:
 ```bash
 node nome-do-scraper.js
 ```
 
 ---
 
-## Ajustes feitos no banco (necessários antes do primeiro scraper)
+## Ciclo de vida dos scrapers (padrão v2)
+
+Todo scraper segue este fluxo para manter o banco atualizado:
+
+1. **Desativa** todos os produtos da fonte (`ativo = false`)
+2. **Raspa** o site e faz upsert com `ativo = true`
+3. Produtos não encontrados ficam inativos (vendidos/removidos do site de origem)
+4. Views, likes e histórico são **preservados** mesmo para produtos inativos
+
+Funções do `scraper-utils.js`:
+- `criarSupabase()` — cria cliente Supabase a partir do `.env`
+- `desativarProdutosDaFonte(supabase, fonteNome)` — etapa 1
+- `salvarProdutos(supabase, produtos)` — etapa 2 (upsert com ativo: true)
+- `relatorioFinal(supabase, fonteNome, total)` — mostra ativos vs inativos
+- `extrairAno(titulo)` — extrai ano do título (1950–2029)
+- `identificarClube(titulo)` — identifica clube pelo título via CLUBES_MAP
+- `sleep(ms)` — pausa entre requisições
+
+---
+
+## Ajustes de banco necessários (feitos uma vez)
 
 ```sql
--- Coluna que faltava na tabela produtos
-ALTER TABLE produtos ADD COLUMN fonte_url TEXT;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS fonte_url TEXT;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS cliques_anuncio INTEGER DEFAULT 0;
 
--- Constraint para o upsert funcionar sem duplicar
 ALTER TABLE produtos ADD CONSTRAINT produtos_link_original_unique UNIQUE (link_original);
-
--- Desativar RLS em produtos (dados públicos)
 ALTER TABLE produtos DISABLE ROW LEVEL SECURITY;
 
--- Leitura pública de produtos
-CREATE POLICY "leitura publica de produtos"
-ON produtos FOR SELECT TO anon USING (true);
+CREATE INDEX IF NOT EXISTS idx_produtos_fonte_ativo ON produtos(fonte_nome, ativo);
+CREATE INDEX IF NOT EXISTS idx_produtos_views ON produtos(views DESC);
 
--- Leitura pública de clubes
-CREATE POLICY "leitura publica de clubes"
-ON clubes FOR SELECT TO anon USING (true);
+CREATE OR REPLACE FUNCTION incrementar_views(produto_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE produtos SET views = COALESCE(views, 0) + 1 WHERE id = produto_id;
+END;
+$$ LANGUAGE plpgsql;
 
--- Escrita pública em alertas
-CREATE POLICY "permitir insert alertas"
-ON alertas FOR INSERT TO anon WITH CHECK (true);
+CREATE OR REPLACE FUNCTION ajustar_likes(produto_id UUID, delta INTEGER)
+RETURNS INTEGER AS $$
+DECLARE novo_total INTEGER;
+BEGIN
+  UPDATE produtos SET likes = GREATEST(0, COALESCE(likes, 0) + delta)
+  WHERE id = produto_id RETURNING likes INTO novo_total;
+  RETURN novo_total;
+END;
+$$ LANGUAGE plpgsql;
+
+GRANT EXECUTE ON FUNCTION incrementar_views(UUID) TO anon;
+GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 ```
 
 ---
 
-## Scraper 1 — Memórias do Esporte (WooCommerce)
+## Ordem recomendada de execução (rotina diária)
 
-### Arquivos
-- `scraper-memorias.js` — categorias gerais (clubes brasileiros)
-- `scraper-memorias-inter-gremio.js` — Inter e Grêmio (categorias separadas)
-- `fix-imagens.js` — corrige imagens que vieram como placeholder
-
-### URLs rastreadas
-| Arquivo | URL | Páginas | Produtos |
-|---|---|---|---|
-| scraper-memorias.js | `/categoria-produto/futebol/brasil/` | 107 | 962 |
-| scraper-memorias-inter-gremio.js | `/categoria-produto/futebol/internacional/` | 19 | ~150 |
-| scraper-memorias-inter-gremio.js | `/categoria-produto/futebol/gremio/` | 14 | ~141 |
-| **Total** | | | **~1.253** |
-
-### Paginação WooCommerce
-```
-Página 1: /categoria-produto/futebol/brasil/
-Página 2: /categoria-produto/futebol/brasil/page/2/
-Página N: /categoria-produto/futebol/brasil/page/N/
+```bash
+node scraper-memorias.js                # Memórias — Brasil (desativa todos da fonte)
+node scraper-memorias-inter-gremio.js   # Memórias — Inter e Grêmio (complemento)
+node scraper-brecho.js                  # Brechó do Futebol
+node scraper-jaiminho.js                # Jaiminho Camisas
+node scraper-meiuka.js                  # Meiuka
+node scraper-atrox.js                   # Atrox Casual Club (Playwright)
+node scraper-futclassics.js             # Fut Classics (Playwright)
+node scraper-brechofc.js                # Brechó FC
 ```
 
-### Seletores HTML que funcionaram
+**Tempo estimado total:** ~45–60 minutos
+
+**Atenção — Memórias do Esporte:** rodar sempre o `scraper-memorias.js` antes do `scraper-memorias-inter-gremio.js`. O primeiro desativa todos os produtos da fonte. O segundo complementa sem desativar novamente.
+
+---
+
+## Fontes ativas
+
+### 1. Memórias do Esporte (WooCommerce)
+**Site:** `memoriasdoesporteoficial.com.br`
+**Arquivos:** `scraper-memorias.js`, `scraper-memorias-inter-gremio.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** ~1.253
+
+**URLs rastreadas:**
+| Arquivo | Categoria | Páginas |
+|---|---|---|
+| `scraper-memorias.js` | `/categoria-produto/futebol/brasil/` | 107 |
+| `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/internacional/` | 19 |
+| `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/gremio/` | 14 |
+
+**Paginação:** `/{categoria}/page/N/`
+
+**Seletores:**
 ```js
 $('ul.products li.product').each((_, el) => {
-  titulo  = $el.find('h2').text().trim()
+  titulo  = $el.find('h2').text()
   link    = $el.find('a.woocommerce-loop-product__link').attr('href')
   imagem  = $el.find('img').attr('src') || $el.find('img').attr('data-src')
   preco   = $el.find('.price ins .amount, .price .amount').first().text()
 })
 ```
 
-### Problema de imagens (lazy loading)
-O site usa lazy loading — muitas imagens chegam como `data:image/svg+xml` no `src`.
-**Solução:** `fix-imagens.js` visita a página individual de cada produto sem imagem e extrai o `src` real:
-```js
-// Seletores da página de produto individual
-$('div.woocommerce-product-gallery__image img').attr('src')
-$('figure.woocommerce-product-gallery__wrapper img').attr('src')
-$('.wp-post-image').attr('src')
-```
-**Resultado:** 830 de 831 imagens corrigidas.
+**Problema conhecido:** Lazy loading — imagens chegam como `data:image/svg+xml`. Usar `data-src` como fallback. O `fix-imagens.js` corrigiu 830/831 imagens na primeira rodada.
 
-### Identificação automática de clube
-```js
-const CLUBES_MAP = [
-  { clube: 'Flamengo',      termos: ['flamengo'] },
-  { clube: 'Corinthians',   termos: ['corinthians'] },
-  { clube: 'Palmeiras',     termos: ['palmeiras'] },
-  { clube: 'São Paulo',     termos: ['são paulo', 'sao paulo', 'spfc'] },
-  { clube: 'Grêmio',        termos: ['grêmio', 'gremio'] },
-  { clube: 'Internacional', termos: ['internacional', 'inter '] },
-  { clube: 'Santos',        termos: ['santos'] },
-  { clube: 'Atlético-MG',   termos: ['atlético-mg', 'atletico-mg', 'atlético mineiro', 'galo'] },
-  { clube: 'Botafogo',      termos: ['botafogo'] },
-  { clube: 'Fluminense',    termos: ['fluminense'] },
-  { clube: 'Vasco',         termos: ['vasco'] },
-  { clube: 'Cruzeiro',      termos: ['cruzeiro'] },
-  { clube: 'Athletico-PR',  termos: ['athletico', 'atlético-pr', 'paranaense', 'furacão'] },
-  { clube: 'Fortaleza',     termos: ['fortaleza'] },
-  { clube: 'Bahia',         termos: ['bahia'] },
-  { clube: 'Vitória',       termos: ['vitória', 'vitoria'] },
-]
+---
+
+### 2. Brechó do Futebol (Shopify)
+**Site:** `brechodofutebol.com`
+**Arquivo:** `scraper-brecho.js`
+**Abordagem:** API JSON nativa do Shopify (sem scraping de HTML)
+**Produtos:** ~1.846
+
+**Endpoint:**
+```
+GET /collections/{slug}/products.json?limit=250&page=N
 ```
 
-### Extração de ano
+**Coleções rastreadas:**
+- Clubes principais: flamengo, botafogo, fluminense, vasco-da-gama, corinthians, palmeiras, santos, sao-paulo, gremio, internacional, atletico-mineiro, cruzeiro, athletico-paranaense, fortaleza, bahia, vitoria
+- Demais: demais-clubes-da-bahia, demais-clubes-do-rio-de-janeiro, demais-clubes-gauchos, demais-clubes-de-minas-gerais, demais-clubes-parana, demais-clubes-sao-paulo
+
+**Conversão:**
 ```js
-titulo.match(/\b(19[5-9]\d|20[0-2]\d)\b/)
-// Captura anos de 1950 a 2029
+titulo  = produto.title
+link    = `${FONTE_URL}/products/${produto.handle}`
+imagem  = produto.images?.[0]?.src
+preco   = parseFloat(produto.variants?.[0]?.price)
 ```
 
-### Configurações
-```js
-DELAY_MS = 1500   // pausa entre páginas (respeita o servidor)
-timeout  = 15000  // timeout por requisição
-```
+---
 
-### Upsert — evita duplicatas
+### 3. Jaiminho Camisas (Nuvemshop)
+**Site:** `jaiminhocamisas.lojavirtualnuvem.com.br`
+**Arquivo:** `scraper-jaiminho.js`
+**Abordagem:** node-fetch + cheerio (HTML renderizado no servidor)
+**Produtos:** ~500+
+
+**Paginação:** `/{slug}/?page=N`
+
+**Seletores (padrão Nuvemshop):**
 ```js
-supabase.from('produtos').upsert(produtos, {
-  onConflict: 'link_original',
-  ignoreDuplicates: false  // atualiza preço e imagem se já existir
+$('.js-product-container').each((_, el) => {
+  const variants = JSON.parse($el.attr('data-variants'))
+  preco  = variants[0].price_number
+  imagem = `https:${variants[0].image_url.replace('-1024-1024', '-480-0')}`
+  titulo = $el.find('a.item-link').attr('title')
+  link   = $el.find('a.item-link').attr('href')
 })
 ```
 
-### Quando rodar novamente
-- O upsert garante que não duplica — pode rodar a qualquer momento
-- Produtos existentes terão preço e imagem atualizados
-- Novos produtos serão inseridos automaticamente
+**Coleções:** internacional, gremio, flamengo, botafogo, fluminense, vasco, corinthians, palmeiras, santos, sao-paulo, atletico-mg, cruzeiro, atletico-pr, fortaleza, bahia, vitoria, + regionais (chapecoense, avai, criciuma, coritiba, america-mg, goias, atletico-go, nautico, santa-cruz, sport, ceara, selecoes, times-gauchos-interior, times-argentinos, times-aleatorios)
 
 ---
 
-## Próximos scrapers planejados
+### 4. Meiuka (API Supabase pública)
+**Site:** `meiukabr.com`
+**Arquivo:** `scraper-meiuka.js`
+**Abordagem:** API REST do Supabase deles (interceptada do Network)
+**Produtos:** ~189
 
-### Mercado Livre → API oficial
-**Abordagem recomendada:** API pública gratuita
-
+**Endpoint:**
 ```
-GET https://api.mercadolibre.com/sites/MLB/search?q=camisa+futebol+retro&category=MLB1276
+GET https://uhpdwmkqmzbobiuscinm.supabase.co/rest/v1/shirts
+  ?select=*
+  &status=eq.a_venda
+  &or=(club.ilike.%{query}%,...,tags.cs.{query})
+  &limit=50&offset=N
 ```
-Retorna JSON com título, preço, imagem, link e vendedor.
 
-**Passos:**
-1. Criar conta em developers.mercadolivre.com.br
-2. Criar app gratuito → obter `access_token`
-3. Usar endpoint de busca com filtros por categoria
+**Chave anon pública** (sem segredo — visível no Network do Chrome):
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocGR3bWtxbXpib2JpdXNjaW5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzOTQ4MjgsImV4cCI6MjA3NTk3MDgyOH0._nu4px9HG79zwAdt3YhlVkrRDEBjyxint1IT7_IuvGQ
+```
+
+**Campos:** `front_image_url`, `back_image_url`, `min_price`, `club`, `season`, `name`, `model_type`, `tags`
+
+**Nota:** Volume baixo — marketplace com anúncios que vendem e saem constantemente.
 
 ---
 
-### OLX → Playwright (navegador headless)
-A OLX renderiza via JavaScript — `node-fetch` retorna página vazia.
+### 5. Atrox Casual Club (Nuvemshop + Playwright)
+**Site:** `atroxcasualclub.com`
+**Arquivo:** `scraper-atrox.js`
+**Abordagem:** Playwright (scroll devagar para ativar lazy loading)
+**Produtos:** ~305
 
-```bash
-npm install playwright
-npx playwright install chromium
-```
+**URL:** `/clubes/sulamericanos/brasileiros/?page=N`
 
+**Comportamento:**
+- Página 1 carrega ~60 produtos com scroll devagar
+- Páginas 2+ carregam apenas 12 (limitação do site, não tem como contornar)
+- Para automaticamente após 2 páginas vazias consecutivas
+
+**Seletores:** padrão Nuvemshop — `data-variants` com JSON embutido (igual Jaiminho).
+
+---
+
+### 6. Fut Classics (Wix + Playwright)
+**Site:** `futclassics.com.br`
+**Arquivo:** `scraper-futclassics.js`
+**Abordagem:** Playwright — clica em "ver mais" repetidamente
+**Produtos:** ~792 (ignora esgotados)
+
+**URL:** `https://www.futclassics.com.br/clubes-brasileiros` (página única com todos)
+
+**Fluxo:**
+1. Abre a página
+2. Clica em `[data-hook="load-more-button"]` até sumir (~50 cliques)
+3. Filtra esgotados: `[data-hook="product-item-out-of-stock"]`
+4. Deduplica por link via `Set` antes de salvar
+5. Salva em lotes de 100 para evitar conflito no upsert
+
+**Seletores:**
 ```js
-import { chromium } from 'playwright'
-const browser = await chromium.launch()
-const page = await browser.newPage()
-await page.goto('https://www.olx.com.br/esporte-e-lazer?q=camisa+futebol')
-await page.waitForSelector('.olx-ad-card')
-const html = await page.content()
-// aí usa cheerio normalmente
+titulo  = $el.find('[data-hook="product-item-name"]').text()
+link    = $el.find('[data-hook="product-item-container"]').attr('href')
+preco   = $el.find('[data-hook="product-item-price-to-pay"]').attr('data-wix-price')
+// Imagem via JSON no atributo data-image-info da wow-image
+uri     = JSON.parse(wowImage.attr('data-image-info')).imageData.uri
+imagem  = `https://static.wixstatic.com/media/${uri}/v1/fill/w_480,h_480,al_c,q_85,.../${uri}`
 ```
+
+---
+
+### 7. Brechó FC (Shopify)
+**Site:** `brechofc.com`
+**Arquivo:** `scraper-brechofc.js`
+**Abordagem:** API JSON nativa do Shopify
+**Produtos:** ~206
+
+**Endpoint:**
+```
+GET /collections/todos-os-produtos/products.json?limit=250&page=N
+```
+
+**Filtros aplicados:**
+- `variants[0].available === false` → ignora esgotados
+- Tags contendo `internacionais`, `seleção`, `seleções`, `selecoes` → ignora
+
+**Conversão:** igual ao Brechó do Futebol (padrão Shopify).
 
 ---
 
 ## Checklist para novo scraper
 
-- [ ] O site renderiza no servidor (HTML estático) ou no cliente (JavaScript)?
-  - Estático → `node-fetch` + `cheerio`
-  - JavaScript → `playwright`
-- [ ] O site tem API oficial? → usar a API
-- [ ] Qual o padrão de paginação?
-- [ ] Quais seletores CSS identificam cada produto? (inspecionar com F12)
-- [ ] O site tem proteção anti-bot (Cloudflare, CAPTCHA)?
-- [ ] Testar com 1-2 páginas antes de rodar completo
+- [ ] O site renderiza no servidor (HTML) ou no cliente (JavaScript)?
+  - HTML → node-fetch + cheerio
+  - JavaScript → Playwright
+- [ ] Tem API JSON oficial? (Shopify → `.json`, Nuvemshop → `data-variants`, Supabase → REST)
+- [ ] Qual o padrão de paginação? (`?page=N`, cursor, botão "ver mais")
+- [ ] Quais seletores identificam título, preço, imagem e link?
+- [ ] O site tem produtos esgotados? Como identificar no HTML ou API?
+- [ ] Importar funções do `scraper-utils.js`
+- [ ] Testar com 1–2 páginas antes de rodar completo
+- [ ] Cadastrar a fonte na tabela `fontes` via painel admin ou SQL
 
 ---
 
-## Sites cadastrados como fonte
+## Fontes planejadas
 
-| Site | Tipo | Abordagem | Arquivo | Status |
-|---|---|---|---|---|
-| memoriasdoesporteoficial.com.br | WooCommerce | node-fetch + cheerio | scraper-memorias.js | ✅ Ativo |
-| memoriasdoesporteoficial.com.br | WooCommerce | node-fetch + cheerio | scraper-memorias-inter-gremio.js | ✅ Ativo |
-| mercadolivre.com.br | Marketplace | API oficial | — | 🔜 Próximo |
-| olx.com.br | Classificados | Playwright | — | 📋 Planejado |
-| enjoei.com.br | Marketplace | A verificar | — | 📋 Backlog |
+| Site | Tipo | Abordagem | Status |
+|---|---|---|---|
+| mercadolivre.com.br | Marketplace | API oficial (requer certificação) | ⏸️ Bloqueado |
+| olx.com.br | Classificados | Playwright + anti-bot | 📋 Complexo |
+| mundodabolaloja.com.br | Própria | node-fetch + cheerio | 📋 Quando tiver mais categorias |
+| enjoei.com.br | Marketplace | A verificar | 📋 Backlog |

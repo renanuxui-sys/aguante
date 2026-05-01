@@ -1,21 +1,18 @@
 /**
  * Scraper — Internacional e Grêmio (Memórias do Esporte)
- * Roda com: node scraper-inter-gremio.js
+ * Roda com: node scraper-memorias-inter-gremio.js
  */
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { createClient } from '@supabase/supabase-js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME = 'Memórias do Esporte'
 const FONTE_URL  = 'https://memoriasdoesporteoficial.com.br'
 const DELAY_MS   = 1500
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
+const supabase = criarSupabase()
 
 const FONTES = [
   {
@@ -32,11 +29,6 @@ const FONTES = [
   },
 ]
 
-function extrairAno(titulo) {
-  const match = titulo.match(/\b(19[5-9]\d|20[0-2]\d)\b/)
-  return match ? match[1] : null
-}
-
 function limparPreco(texto) {
   if (!texto) return null
   const match = texto.replace(/\./g, '').replace(',', '.').match(/[\d]+\.?\d*/)
@@ -50,23 +42,16 @@ function imagemInvalida(url) {
   return false
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 async function rasparPagina(base, pagina, clube) {
   const url = pagina === 1 ? `${base}/` : `${base}/page/${pagina}/`
-  console.log(`  📄 Página ${pagina}: ${url}`)
+  console.log(`  📄 Página ${pagina}`)
 
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AguanteBot/1.0)' },
       timeout: 15000,
     })
-    if (!res.ok) {
-      console.warn(`  ⚠️  Status ${res.status}, pulando...`)
-      return []
-    }
+    if (!res.ok) { console.warn(`  ⚠️  Status ${res.status}`); return [] }
 
     const html = await res.text()
     const $ = cheerio.load(html)
@@ -96,7 +81,6 @@ async function rasparPagina(base, pagina, clube) {
         de_jogo: titulo.toLowerCase().includes('jogo') || titulo.toLowerCase().includes('match'),
         novidade: false,
         alta_procura: false,
-        ativo: true,
       })
     })
 
@@ -107,37 +91,25 @@ async function rasparPagina(base, pagina, clube) {
   }
 }
 
-async function salvarProdutos(produtos) {
-  if (produtos.length === 0) return 0
-
-  const { data, error } = await supabase
-    .from('produtos')
-    .upsert(produtos, { onConflict: 'link_original', ignoreDuplicates: false })
-    .select('id')
-
-  if (error) {
-    console.error('  ❌ Erro ao salvar:', error.message)
-    return 0
-  }
-
-  return data?.length || 0
-}
-
 async function main() {
-  console.log('🚀 Scraper — Internacional e Grêmio\n')
+  console.log('🚀 Scraper — Internacional e Grêmio (Memórias do Esporte)\n')
+
+  // Nota: NÃO desativa todos os produtos da fonte aqui pois o scraper-memorias.js
+  // já faz isso. Este scraper roda em complemento ao principal.
+  // Para rodar isolado, descomente a linha abaixo:
+  // await desativarProdutosDaFonte(supabase, FONTE_NOME)
 
   let totalGeral = 0
 
   for (const fonte of FONTES) {
-    console.log(`\n⚽ Raspando: ${fonte.nome} (${fonte.paginas} páginas)`)
-
+    console.log(`\n⚽ ${fonte.nome} (${fonte.paginas} páginas)`)
     let totalFonte = 0
 
     for (let pagina = 1; pagina <= fonte.paginas; pagina++) {
       const produtos = await rasparPagina(fonte.base, pagina, fonte.clube)
 
       if (produtos.length > 0) {
-        const salvos = await salvarProdutos(produtos)
+        const salvos = await salvarProdutos(supabase, produtos)
         totalFonte += salvos
         console.log(`  ✅ ${salvos} salvos (total ${fonte.nome}: ${totalFonte})`)
       }
@@ -145,11 +117,12 @@ async function main() {
       if (pagina < fonte.paginas) await sleep(DELAY_MS)
     }
 
-    console.log(`\n  ✅ ${fonte.nome} concluído: ${totalFonte} produtos`)
+    console.log(`  ✅ ${fonte.nome} concluído: ${totalFonte} produtos`)
     totalGeral += totalFonte
   }
 
-  console.log(`\n🏁 Concluído! Total geral: ${totalGeral} produtos novos salvos.`)
+  await relatorioFinal(supabase, FONTE_NOME, totalGeral)
+  console.log(`\n🏁 Concluído! Total geral: ${totalGeral} produtos salvos.`)
 }
 
 main().catch(console.error)
