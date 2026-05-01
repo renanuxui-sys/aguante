@@ -174,9 +174,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       href={produto.link_original}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={async () => {
-        await supabase.from('produtos').update({ cliques_anuncio: (produto.cliques_anuncio || 0) + 1 }).eq('id', produto.id)
-      }}
+      onClick={() => supabase.rpc('incrementar_cliques', { produto_id: produto.id })}
       style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 48px', textDecoration: 'none', width: fullWidth ? '100%' : undefined }}
     >
       <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Ir para o anúncio original</span>
@@ -351,9 +349,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
             href={produto.link_original}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={async () => {
-              await supabase.from('produtos').update({ cliques_anuncio: (produto.cliques_anuncio || 0) + 1 }).eq('id', produto.id)
-            }}
+            onClick={() => supabase.rpc('incrementar_cliques', { produto_id: produto.id })}
             style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}
           >
             <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para o anúncio original</span>
