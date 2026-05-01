@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const imgLogo       = "https://www.figma.com/api/mcp/asset/3246a130-14a7-437c-859c-0a4bfbaab46d"
+const imgLogo       = "../assets/logo.svg"
 const imgNavChevron = "https://www.figma.com/api/mcp/asset/8fcccfaa-c506-49db-93ca-b43a8d022ff0"
 const imgNavSearch  = "https://www.figma.com/api/mcp/asset/e71c8759-36e2-4d85-abaa-28f807b894bf"
 
