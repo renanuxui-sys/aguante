@@ -12,7 +12,7 @@ const imgBgHero        = "https://www.figma.com/api/mcp/asset/edd4f565-9eae-4473
 const imgSearchIcon    = "/assets/ico-search.svg"
 const imgIconSearch    = "/assets/search-normal.svg"
 const imgIconMagic     = "/assets/vector.svg"
-const imgIconLightning = "/assets/Lightning.svg"
+const imgIconLightning = "/assets/vector.svg"
 const imgIconGrid      = "/assets/element-plus.svg"
 
 type Clube = {
