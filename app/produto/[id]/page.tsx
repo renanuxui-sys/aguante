@@ -14,7 +14,7 @@ const imgChevronRight = "/assets/chevron-right.svg"
 const imgBgHero       = "https://www.figma.com/api/mcp/asset/4a126ff7-6c3a-4b92-8bbe-01319a538714"
 const imgExport       = "/assets/export.svg"
 
-type ProdutoComStats = Produto & { views?: number; likes?: number }
+type ProdutoComStats = Produto & { views?: number; likes?: number; cliques_anuncio?: number }
 type StatusAlerta = 'idle' | 'loading' | 'success' | 'error'
 
 export default function ProdutoPage({ params }: { params: Promise<{ id: string }> }) {
