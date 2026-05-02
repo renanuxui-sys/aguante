@@ -53,7 +53,11 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       setLoading(false)
 
       if (prod) {
-        supabase.rpc('incrementar_views', { produto_id: id })
+        fetch('/api/metricas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ produto_id: id, tipo: 'views' }),
+        })
 
         const query = supabase.from('produtos').select('*').neq('id', id).eq('ativo', true).limit(5)
         if (prod.clube) query.eq('clube', prod.clube)
@@ -163,7 +167,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       href={produto.link_original}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => supabase.rpc('incrementar_cliques', { produto_id: produto.id })}
+      onClick={() => fetch('/api/metricas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: produto.id, tipo: 'cliques' }) })}
       style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 48px', textDecoration: 'none', width: fullWidth ? '100%' : undefined }}
     >
       <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Ir para o anúncio original</span>
@@ -296,7 +300,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
         {/* Botão fixo mobile */}
         <div className="ag-btn-fixo-mobile" style={{ position: 'fixed', bottom: 8, left: 16, right: 16, zIndex: 50 }}>
-          <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => supabase.rpc('incrementar_cliques', { produto_id: produto.id })} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
+          <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => fetch('/api/metricas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: produto.id, tipo: 'cliques' }) })} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
             <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para o anúncio original</span>
             <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
           </a>
