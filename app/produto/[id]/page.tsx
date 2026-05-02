@@ -7,8 +7,6 @@ import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
 import type { Produto } from '@/types'
 
-export const dynamic = 'force-dynamic'
-
 const imgArrowLeft    = "/assets/arrow-left.svg"
 const imgLightning    = "https://www.figma.com/api/mcp/asset/7d7e1469-42a4-4078-be97-1e683db9145c"
 const imgIconNotify   = "https://www.figma.com/api/mcp/asset/ba5c9909-f3ae-47f5-80eb-735928779f1f"
@@ -55,10 +53,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       setLoading(false)
 
       if (prod) {
-        if (prod) {
-  console.log('URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)  // ← adiciona aqui
-  supabase.rpc('incrementar_views', { produto_id: id })
-  
         supabase.rpc('incrementar_views', { produto_id: id })
 
         const query = supabase.from('produtos').select('*').neq('id', id).eq('ativo', true).limit(5)
@@ -128,12 +122,9 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     </main>
   )
 
-  // Bloco de informações — reutilizado no desktop e mobile
   const BlocoInfos = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-        {/* Tags — aparecem antes do título se existirem */}
         {produto.tags && produto.tags.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {produto.tags.map((tag: string) => (
@@ -143,26 +134,18 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
             ))}
           </div>
         )}
-
-        {/* Título */}
         <p style={{ fontWeight: 700, fontSize: 32, color: '#000', letterSpacing: '-0.64px', lineHeight: 1 }}>{produto.titulo}</p>
-
-        {/* Ano e preço na mesma linha */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {produto.ano && <p style={{ fontWeight: 300, fontSize: 18, color: '#000', letterSpacing: '-0.36px', lineHeight: 1.2 }}>Ano {produto.ano}</p>}
           {produto.preco && <p style={{ fontWeight: 300, fontSize: 24, color: '#62748c', letterSpacing: '-0.48px', lineHeight: 1.2, textAlign: 'right', marginLeft: 'auto' }}>R$ {produto.preco.toLocaleString('pt-BR')}</p>}
         </div>
-
-        {/* Badge novidade */}
         {produto.novidade && (
           <div style={{ background: '#000', borderRadius: 16, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
             <span style={{ fontWeight: 300, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>novidade</span>
           </div>
         )}
       </div>
-
       <div style={{ height: 1, background: '#e0dee7', width: '100%' }} />
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <p style={{ fontWeight: 700, fontSize: 12, color: '#000', letterSpacing: '-0.12px', lineHeight: 1.2 }}>Resumo do produto</p>
         <p style={{ fontWeight: 300, fontSize: 16, color: '#000', letterSpacing: '-0.16px', lineHeight: 1.2 }}>
@@ -197,12 +180,9 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Desktop */
         .ag-produto-desktop { display: flex; }
         .ag-produto-mobile  { display: none; }
         .ag-btn-fixo-mobile { display: none; }
-
         @media (max-width: 768px) {
           .ag-produto-desktop { display: none !important; }
           .ag-produto-mobile  { display: flex !important; }
@@ -215,26 +195,20 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
       <main style={{ fontFamily: 'Onest, sans-serif', background: '#f8f8f8', minHeight: '100vh' }}>
 
-        {/* ══════════════════════════════════════
-            LAYOUT DESKTOP
-        ══════════════════════════════════════ */}
+        {/* DESKTOP */}
         <div className="ag-produto-desktop" style={{ flexDirection: 'column' }}>
           <Navbar />
-
           <section style={{ paddingTop: 76, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 897, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
               <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 0.4 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 56%, #f8f8f8)' }} />
             </div>
-
             <div className="ag-container" style={{ paddingTop: 75, paddingBottom: 48, position: 'relative', zIndex: 1 }}>
               <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', marginBottom: 24 }}>
                 <img src={imgArrowLeft} alt="" style={{ width: 24, height: 24 }} />
                 <span style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2 }}>voltar</span>
               </button>
-
               <div style={{ display: 'flex', gap: 48, alignItems: 'flex-start' }}>
-                {/* Imagem */}
                 <div style={{ width: 557, flexShrink: 0 }}>
                   <div style={{ width: '100%', height: 625, borderRadius: 16, overflow: 'hidden', background: '#ecebf0', position: 'relative', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     {!imgCarregada && (
@@ -262,7 +236,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                       </button>
                     </div>
                   </div>
-
                   <div style={{ background: '#fff', borderRadius: 16, padding: '8px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
                     <p style={{ fontWeight: 300, fontSize: 18, color: '#000', letterSpacing: '-0.9px', lineHeight: 1.2, maxWidth: 264 }}>
                       <strong style={{ fontWeight: 700 }}>Quer ser avisado </strong>quando aparecer outra igual a essa?
@@ -275,8 +248,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                     </div>
                   </div>
                 </div>
-
-                {/* Infos desktop */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 40 }}>
                   <BlocoInfos />
                   <BotaoAnuncio />
@@ -286,41 +257,21 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
           </section>
         </div>
 
-        {/* ══════════════════════════════════════
-            LAYOUT MOBILE
-        ══════════════════════════════════════ */}
+        {/* MOBILE */}
         <div className="ag-produto-mobile" style={{ flexDirection: 'column' }}>
-          {/* Imagem full width do topo, sem navbar sobreposta */}
           <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', background: '#ecebf0' }}>
             {produto.imagem_url && (
-              <img
-                src={produto.imagem_url}
-                alt={produto.titulo}
-                onLoad={() => setImgCarregada(true)}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }}
-              />
+              <img src={produto.imagem_url} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
             )}
-
-            {/* Botão voltar — canto superior esquerdo */}
-            <button
-              onClick={() => router.back()}
-              style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: 12, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}
-            >
+            <button onClick={() => router.back()} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: 12, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
               <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />
             </button>
-
-            {/* Botão curtir — canto superior direito */}
-            <button
-              onClick={toggleCurtida}
-              style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 12, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}
-            >
+            <button onClick={toggleCurtida} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 12, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
               <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
                 <path d="M14 24s-9-5.5-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-9 12-9 12z" fill={favoritado ? '#550fed' : 'none'} stroke="#550fed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span style={{ fontWeight: 700, fontSize: 14, color: '#550fed' }}>{likes}</span>
             </button>
-
-            {/* Badge alta procura */}
             {produto.alta_procura && (
               <div style={{ position: 'absolute', bottom: 16, left: 16, background: '#1beaa0', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', boxShadow: '0px 14px 12.6px rgba(161,244,82,0.13)' }}>
                 <img src={imgLightning} alt="" style={{ width: 14, height: 14 }} />
@@ -328,15 +279,9 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
               </div>
             )}
           </div>
-
-          {/* Conteúdo abaixo da imagem */}
           <div style={{ padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 32 }}>
             <BlocoInfos />
-
-            {/* Botão anúncio inline (não fixed) */}
             <BotaoAnuncio fullWidth />
-
-            {/* Criar alerta */}
             <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <p style={{ fontWeight: 300, fontSize: 15, color: '#000', lineHeight: 1.3 }}>
                 <strong style={{ fontWeight: 700 }}>Quer ser avisado</strong> quando aparecer outra igual?
@@ -349,15 +294,9 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
           </div>
         </div>
 
-        {/* Botão fixo mobile no bottom */}
+        {/* Botão fixo mobile */}
         <div className="ag-btn-fixo-mobile" style={{ position: 'fixed', bottom: 8, left: 16, right: 16, zIndex: 50 }}>
-          <a
-            href={produto.link_original}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => supabase.rpc('incrementar_cliques', { produto_id: produto.id })}
-            style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}
-          >
+          <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => supabase.rpc('incrementar_cliques', { produto_id: produto.id })} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
             <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para o anúncio original</span>
             <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
           </a>
