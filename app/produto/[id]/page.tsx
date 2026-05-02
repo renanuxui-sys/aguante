@@ -9,9 +9,9 @@ import type { Produto } from '@/types'
 
 const imgArrowLeft    = "/assets/arrow-left.svg"
 const imgLightning    = "https://www.figma.com/api/mcp/asset/7d7e1469-42a4-4078-be97-1e683db9145c"
-const imgIconNotify   = "https://www.figma.com/api/mcp/asset/ba5c9909-f3ae-47f5-80eb-735928779f1f"
+const imgIconNotify   = "/assets/ico-notify.svg"
 const imgChevronRight = "/assets/chevron-right.svg"
-const imgBgHero       = "https://www.figma.com/api/mcp/asset/4a126ff7-6c3a-4b92-8bbe-01319a538714"
+const imgBgHero       = "/assets/img-hero.png"
 const imgExport       = "/assets/export.svg"
 
 type ProdutoComStats = Produto & { views?: number; likes?: number; cliques_anuncio?: number }
@@ -160,6 +160,17 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
         </p>
       </div>
     </div>
+    <div style={{ background: '#fff', borderRadius: 16, padding: '8px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
+                    <p style={{ fontWeight: 300, fontSize: 18, color: '#000', letterSpacing: '-0.9px', lineHeight: 1.2, maxWidth: 264 }}>
+                      <strong style={{ fontWeight: 700 }}>Quer ser avisado </strong>quando aparecer outra igual a essa?
+                    </p>
+                    <div style={{ padding: 8, width: 168, flexShrink: 0 }}>
+                      <button onClick={() => setAlertaAberto(true)} style={{ width: '100%', border: '1px solid #550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 24px', background: 'transparent', cursor: 'pointer', fontFamily: 'Onest, sans-serif' }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.14px', whiteSpace: 'nowrap' }}>criar alerta</span>
+                        <img src={imgIconNotify} alt="" style={{ width: 24, height: 24 }} />
+                      </button>
+                    </div>
+                  </div>
   )
 
   const BotaoAnuncio = ({ fullWidth = false }: { fullWidth?: boolean }) => (
@@ -170,7 +181,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       onClick={() => fetch('/api/metricas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: produto.id, tipo: 'cliques' }) })}
       style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 48px', textDecoration: 'none', width: fullWidth ? '100%' : undefined }}
     >
-      <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Ir para o anúncio original</span>
+      <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Ir para a loja</span>
       <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
     </a>
   )
@@ -207,7 +218,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
               <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 0.4 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 56%, #f8f8f8)' }} />
             </div>
-            <div className="ag-container" style={{ paddingTop: 75, paddingBottom: 48, position: 'relative', zIndex: 1 }}>
+            <div className="ag-container" style={{ paddingTop: 40, paddingBottom: 48, position: 'relative', zIndex: 1 }}>
               <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', marginBottom: 24 }}>
                 <img src={imgArrowLeft} alt="" style={{ width: 24, height: 24 }} />
                 <span style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2 }}>voltar</span>
@@ -237,17 +248,6 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                           <path d="M14 24s-9-5.5-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-9 12-9 12z" fill={favoritado ? '#550fed' : 'none'} stroke="#550fed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         <span style={{ fontWeight: 700, fontSize: 16, color: '#550fed', letterSpacing: '-0.16px', lineHeight: 1.2 }}>{likes}</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div style={{ background: '#fff', borderRadius: 16, padding: '8px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
-                    <p style={{ fontWeight: 300, fontSize: 18, color: '#000', letterSpacing: '-0.9px', lineHeight: 1.2, maxWidth: 264 }}>
-                      <strong style={{ fontWeight: 700 }}>Quer ser avisado </strong>quando aparecer outra igual a essa?
-                    </p>
-                    <div style={{ padding: 8, width: 168, flexShrink: 0 }}>
-                      <button onClick={() => setAlertaAberto(true)} style={{ width: '100%', border: '1px solid #550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 24px', background: 'transparent', cursor: 'pointer', fontFamily: 'Onest, sans-serif' }}>
-                        <span style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.14px', whiteSpace: 'nowrap' }}>criar alerta</span>
-                        <img src={imgIconNotify} alt="" style={{ width: 24, height: 24 }} />
                       </button>
                     </div>
                   </div>
@@ -301,7 +301,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
         {/* Botão fixo mobile */}
         <div className="ag-btn-fixo-mobile" style={{ position: 'fixed', bottom: 8, left: 16, right: 16, zIndex: 50 }}>
           <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => fetch('/api/metricas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: produto.id, tipo: 'cliques' }) })} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
-            <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para o anúncio original</span>
+            <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para a loja</span>
             <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
           </a>
         </div>

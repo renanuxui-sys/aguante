@@ -170,20 +170,20 @@ export default function Home() {
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, #f5f5f5)' }} />
           </div>
 
-          <div className="ag-container" style={{ paddingTop: 75, paddingBottom: 80, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 48, justifyContent: 'space-between' }}>
+          <div className="ag-container" style={{ paddingTop: 75, paddingBottom: 40, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 48, justifyContent: 'space-between' }}>
 
             {/* Coluna esquerda — infos */}
             <div className="ag-hero-infos" style={{ maxWidth: 540 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(200,196,213,0.56)', border: '0.76px solid rgba(255,255,255,0.38)', borderRadius: 55.54, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', padding: '4px 8px', fontSize: 12, fontWeight: 300, color: '#000', letterSpacing: '-0.12px', textTransform: 'uppercase' as const, marginBottom: 20, width: 'fit-content', lineHeight: 1.5 }}>
                 O BUSCADOR DO COLECIONADOR
               </div>
-              <h1 style={{ fontWeight: 300, fontSize: 52, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#282828', marginBottom: 20, fontFamily: 'Onest, sans-serif' }}>
+              <h1 style={{ fontWeight: 300, fontSize: 52, lineHeight: 1.1, letterSpacing: '-0.06em', color: '#282828', marginBottom: 20, fontFamily: 'Onest, sans-serif' }}>
                 Onde a{' '}
                 <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontWeight: 400 }}>paixão</span>
                 {' '}pelo futebol vira{' '}
                 <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontWeight: 400 }}>coleção.</span>
               </h1>
-              <p style={{ fontWeight: 300, fontSize: 16, color: '#62748c', maxWidth: 340, marginBottom: 40, letterSpacing: '-0.01em', lineHeight: 1.5 }}>
+              <p style={{ fontWeight: 300, fontSize: 16, color: '#000000', maxWidth: 340, marginBottom: 40, letterSpacing: '-0.03em', lineHeight: 1.5 }}>
                 A maneira mais inteligente de descobrir camisas de futebol colecionáveis.
               </p>
 
@@ -294,8 +294,7 @@ export default function Home() {
                   </svg>
                   <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
                     Em alta no momento
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="#62748c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </h2>
+                   </h2>
                 </div>
                 <button
                   onClick={() => router.push('/search?ordenar=mais-vistos')}
