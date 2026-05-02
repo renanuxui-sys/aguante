@@ -55,6 +55,10 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       setLoading(false)
 
       if (prod) {
+        if (prod) {
+  console.log('URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)  // ← adiciona aqui
+  supabase.rpc('incrementar_views', { produto_id: id })
+  
         supabase.rpc('incrementar_views', { produto_id: id })
 
         const query = supabase.from('produtos').select('*').neq('id', id).eq('ativo', true).limit(5)
