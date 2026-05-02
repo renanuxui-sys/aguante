@@ -2,7 +2,7 @@ name: Rotina Diária de Scraping
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Todo dia às 03:00 UTC (00:00 horário de Brasília)
+    - cron: '17 0 * * *'  # Todo dia às 00:17 no horário de Brasília
   workflow_dispatch:      # Permite rodar manualmente pelo GitHub
 
 jobs:
