@@ -41,7 +41,6 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 12 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
             {titulo}
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="#62748c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </h2>
           {/* Ver todas — 18px com chevron-right.svg */}
           <button

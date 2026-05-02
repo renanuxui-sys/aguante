@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { TODOS_CLUBES } from './Navbar'
 import { supabase } from '@/lib/supabase'
 
-const imgLogo = "https://www.figma.com/api/mcp/asset/3246a130-14a7-437c-859c-0a4bfbaab46d"
+const imgLogo = "/assets/logo.svg"
 
 type Status = 'idle' | 'loading' | 'success' | 'error' | 'duplicate'
 
