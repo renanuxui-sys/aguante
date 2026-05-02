@@ -11,7 +11,7 @@ const imgArrowLeft    = "/assets/arrow-left.svg"
 const imgLightning    = "https://www.figma.com/api/mcp/asset/7d7e1469-42a4-4078-be97-1e683db9145c"
 const imgIconNotify   = "/assets/ico-notify.svg"
 const imgChevronRight = "/assets/chevron-right.svg"
-const imgBgHero       = "/assets/img-hero.png"
+const imgBgHero       = "/assets/bg-hero.png"
 const imgExport       = "/assets/export.svg"
 
 type ProdutoComStats = Produto & { views?: number; likes?: number; cliques_anuncio?: number }
