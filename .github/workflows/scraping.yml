@@ -1,9 +1,10 @@
 name: Rotina Diária de Scraping
+run-name: Rotina Diária de Scraping (${{ github.event_name }})
 
 on:
   schedule:
-    # GitHub Actions usa UTC. 04:35 UTC = 01:35 em São Paulo/Brasília.
-    - cron: '35 4 * * *'
+    # GitHub Actions usa UTC. 06:23 UTC = 03:23 em São Paulo/Brasília.
+    - cron: '23 6 * * *'
   workflow_dispatch:      # Permite rodar manualmente pelo GitHub
 
 jobs:
