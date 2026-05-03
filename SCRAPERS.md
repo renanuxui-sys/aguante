@@ -34,6 +34,21 @@ Rodar qualquer scraper:
 node nome-do-scraper.js
 ```
 
+Explorar Mercado Livre sem salvar no banco (experimental):
+```bash
+node scraper-mercadolivre.js --clubes=Flamengo,Internacional --max-paginas=1 --dry-run
+```
+
+Explorar Mercado Livre via Apify sem salvar no banco (experimental; gera custo):
+```bash
+node scraper-apify-mercadolivre.js --clubes=Flamengo --max-paginas=1
+```
+
+Salvar só alguns clubes do Mercado Livre, sem desativar anúncios antigos da fonte (experimental):
+```bash
+node scraper-mercadolivre.js --clubes=Palmeiras,Corinthians,Santos --max-paginas=2 --sem-desativar
+```
+
 ---
 
 ## Ciclo de vida dos scrapers (padrão v2)
@@ -104,6 +119,8 @@ node scraper-meiuka.js                  # Meiuka
 node scraper-atrox.js                   # Atrox Casual Club (Playwright)
 node scraper-futclassics.js             # Fut Classics (Playwright)
 node scraper-brechofc.js                # Brechó FC
+# node scraper-mercadolivre.js          # Mercado Livre (experimental; API oficial bloqueada no teste)
+# node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo por resultado)
 ```
 
 **Tempo estimado total:** ~45–60 minutos
@@ -280,6 +297,94 @@ GET /collections/todos-os-produtos/products.json?limit=250&page=N
 
 ---
 
+## Fontes experimentais / pausadas
+
+Estas fontes ficam documentadas, mas não entram na rotina inicial enquanto o custo/qualidade não for validado.
+
+### Mercado Livre (API oficial)
+**Site:** `mercadolivre.com.br`
+**Arquivo:** `scraper-mercadolivre.js`
+**Abordagem:** API oficial do Mercado Livre
+
+**Variáveis necessárias no `.env`:**
+```bash
+ML_ACCESS_TOKEN=...
+```
+
+Ou, para renovar automaticamente um token gerado via Authorization Code:
+
+```bash
+ML_CLIENT_ID=...
+ML_CLIENT_SECRET=...
+ML_REFRESH_TOKEN=...
+```
+
+Ou, se a aplicação tiver permissão para gerar token por credenciais:
+
+```bash
+ML_CLIENT_ID=...
+ML_CLIENT_SECRET=...
+```
+
+**Clubes rastreados:** Flamengo, Corinthians, Palmeiras, São Paulo, Grêmio, Internacional, Santos, Atlético-MG, Botafogo, Fluminense, Vasco, Cruzeiro, Athletico-PR, Fortaleza, Bahia e Vitória.
+
+**Filtro de condição:** somente camisas usadas. O scraper envia `condition=used` para a API e ainda descarta qualquer item retornado com outra condição.
+
+**Execução completa:**
+```bash
+node scraper-mercadolivre.js
+```
+
+**Exploração segura, sem salvar no Supabase:**
+```bash
+node scraper-mercadolivre.js --clubes=Flamengo,Grêmio --max-paginas=1 --dry-run
+```
+
+**Execução parcial salvando no banco:**
+```bash
+node scraper-mercadolivre.js --clubes=Internacional,Grêmio,Palmeiras --max-paginas=3 --sem-desativar
+```
+
+**Flags:**
+- `--clubes=` limita a execução a uma lista separada por vírgula.
+- `--max-paginas=` controla quantas páginas buscar por clube; cada página tem até 50 itens.
+- `--dry-run` mostra resultados no terminal e não salva nada.
+- `--sem-desativar` evita marcar produtos antigos do Mercado Livre como inativos. Use em execuções parciais.
+
+**Observação:** em Maio/2026, chamadas feitas deste ambiente para `api.mercadolibre.com` retornaram `403` com bloqueio de política na borda. O código está preparado para a API oficial, mas a aplicação/ambiente precisa ter permissão para consultar esse recurso.
+
+---
+
+### Mercado Livre via Apify
+**Site:** `mercadolivre.com.br`
+**Arquivo:** `scraper-apify-mercadolivre.js`
+**Actor:** `karamelo/mercadolivre-scraper-brasil-portugues`
+**Abordagem:** Apify Actor com cobrança por resultado
+
+**Variável necessária no `.env`:**
+```bash
+APIFY_TOKEN=...
+```
+
+**Execução de teste, sem salvar no Supabase:**
+```bash
+node scraper-apify-mercadolivre.js
+```
+
+**Execução salvando no banco:**
+```bash
+node scraper-apify-mercadolivre.js --salvar
+```
+
+**Desativar falsos positivos já salvos pela Apify:**
+```bash
+node scraper-apify-mercadolivre.js --limpar-invalidos
+```
+
+**Clubes do recorte inicial:** Internacional, Grêmio, São Paulo, Corinthians, Santos, Palmeiras, Atlético-MG, Cruzeiro, Fluminense, Flamengo, Vasco e Botafogo. O padrão é buscar somente 1 página por clube para controlar custo.
+
+**Observação:** o actor não mostra no formulário um filtro explícito para condição usada. O scraper busca por termos com "usada/usado", valida clube e tipo de produto, e por padrão confia que os resultados retornados por essa busca são usados. Para ativar uma validação local mais rígida por palavra "usado/usada", use `--filtrar-usados`.
+
 ## Checklist para novo scraper
 
 - [ ] O site renderiza no servidor (HTML) ou no cliente (JavaScript)?
@@ -299,7 +404,7 @@ GET /collections/todos-os-produtos/products.json?limit=250&page=N
 
 | Site | Tipo | Abordagem | Status |
 |---|---|---|---|
-| mercadolivre.com.br | Marketplace | API oficial (requer certificação) | ⏸️ Bloqueado |
-| olx.com.br | Classificados | Playwright + anti-bot | 📋 Complexo |
+| mercadolivre.com.br | Marketplace | API oficial | ⚠️ Código pronto; validar permissão/API |
+| olx.com.br | Classificados | Portal oficial cobre anúncios/leads; busca pública bloqueia requisições diretas | 📋 Complexo |
 | mundodabolaloja.com.br | Própria | node-fetch + cheerio | 📋 Quando tiver mais categorias |
 | enjoei.com.br | Marketplace | A verificar | 📋 Backlog |
