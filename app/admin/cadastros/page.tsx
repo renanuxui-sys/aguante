@@ -1,11 +1,5 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Cadastro = {
   id: string; nome: string; email: string; clube: string | null; created_at: string
@@ -22,17 +16,11 @@ export default function AdminCadastros() {
 
   const carregar = useCallback(async () => {
     setCarregando(true)
-    let query = supabase
-      .from('cadastros_cta')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA - 1)
-
-    if (busca) query = query.or(`nome.ilike.%${busca}%,email.ilike.%${busca}%`)
-
-    const { data, count } = await query
-    setCadastros(data || [])
-    setTotal(count || 0)
+    const params = new URLSearchParams({ pagina: String(pagina), busca })
+    const res = await fetch(`/api/admin/cms/cadastros?${params}`, { cache: 'no-store' })
+    const json = await res.json()
+    setCadastros(json.data || [])
+    setTotal(json.total || 0)
     setCarregando(false)
   }, [pagina, busca])
 

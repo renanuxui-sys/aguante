@@ -19,19 +19,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [autenticado, setAutenticado] = useState(false)
 
   useEffect(() => {
-    const ok = document.cookie.includes('admin_session=1')
-    if (!ok && pathname !== '/admin/login') {
-      router.replace('/admin/login')
-    } else {
-      setAutenticado(true)
+    let ativo = true
+
+    async function verificarSessao() {
+      if (pathname === '/admin/login') {
+        if (ativo) setAutenticado(true)
+        return
+      }
+
+      const res = await fetch('/api/admin/session', { cache: 'no-store' })
+      if (!ativo) return
+
+      if (!res.ok) {
+        router.replace('/admin/login')
+      } else {
+        setAutenticado(true)
+      }
     }
+
+    verificarSessao()
+    return () => { ativo = false }
   }, [pathname, router])
 
   if (!autenticado && pathname !== '/admin/login') return null
   if (pathname === '/admin/login') return <>{children}</>
 
-  function handleLogout() {
-    document.cookie = 'admin_session=; max-age=0; path=/'
+  async function handleLogout() {
+    await fetch('/api/admin/login', { method: 'DELETE' })
     router.push('/admin/login')
   }
 

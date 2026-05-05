@@ -1,6 +1,7 @@
 /**
  * Scraper — Memórias do Esporte Oficial
  * Roda com: node scraper-memorias.js
+ * Para automaticamente quando não encontrar produtos por 5 páginas seguidas.
  */
 
 import fetch from 'node-fetch'
@@ -8,11 +9,10 @@ import * as cheerio from 'cheerio'
 import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
-const BASE_URL    = 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/brasil'
-const FONTE_NOME  = 'Memórias do Esporte'
-const FONTE_URL   = 'https://memoriasdoesporteoficial.com.br'
-const TOTAL_PAGINAS = 107
-const DELAY_MS    = 1500
+const BASE_URL   = 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/brasil'
+const FONTE_NOME = 'Memórias do Esporte'
+const FONTE_URL  = 'https://memoriasdoesporteoficial.com.br'
+const DELAY_MS   = 1500
 
 const supabase = criarSupabase()
 
@@ -24,7 +24,7 @@ function limparPreco(texto) {
 
 async function rasparPagina(pagina, clubesMap) {
   const url = pagina === 1 ? `${BASE_URL}/` : `${BASE_URL}/page/${pagina}/`
-  console.log(`  📄 Página ${pagina}/${TOTAL_PAGINAS}`)
+  console.log(`  📄 Página ${pagina}`)
 
   try {
     const res = await fetch(url, {
@@ -74,14 +74,14 @@ async function rasparPagina(pagina, clubesMap) {
 async function main() {
   console.log('🚀 Scraper — Memórias do Esporte\n')
 
-  // 1. Desativa todos os produtos desta fonte antes de começar
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
   const clubesMap = await carregarClubesMap(supabase)
 
   let totalSalvos = 0
+  let pagina = 1
   let erros = 0
 
-  for (let pagina = 1; pagina <= TOTAL_PAGINAS; pagina++) {
+  while (true) {
     const produtos = await rasparPagina(pagina, clubesMap)
 
     if (produtos.length > 0) {
@@ -91,10 +91,14 @@ async function main() {
       erros = 0
     } else {
       erros++
-      if (erros >= 5) { console.log('\n⛔ Muitas páginas com erro. Encerrando.'); break }
+      if (erros >= 5) {
+        console.log(`\n⏹️  Sem produtos por ${erros} páginas. Encerrando.`)
+        break
+      }
     }
 
-    if (pagina < TOTAL_PAGINAS) await sleep(DELAY_MS)
+    pagina++
+    await sleep(DELAY_MS)
   }
 
   await relatorioFinal(supabase, FONTE_NOME, totalSalvos)

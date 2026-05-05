@@ -8,6 +8,7 @@ const imgLogo = '/assets/logo.svg'
 const imgChevronDown = '/assets/chevron-down.svg'
 
 const STORAGE_KEY = 'aguante_clube_preferencia'
+const STORAGE_RECORDED_KEY = 'aguante_clube_preferencia_registrada'
 
 export default function ClubePreferenceModal() {
   const pathname = usePathname()
@@ -18,7 +19,17 @@ export default function ClubePreferenceModal() {
   useEffect(() => {
     if (pathname?.startsWith('/admin')) return
     const salvo = localStorage.getItem(STORAGE_KEY)
-    if (!salvo) setAberto(true)
+    const registrado = localStorage.getItem(STORAGE_RECORDED_KEY)
+    if (!salvo) {
+      setAberto(true)
+      return
+    }
+    if (!registrado) {
+      const acao = salvo === 'nao_escolheu' ? 'entrou_sem_escolher' : 'escolheu'
+      registrarEscolha(salvo, acao)
+        .then(() => localStorage.setItem(STORAGE_RECORDED_KEY, '1'))
+        .catch(error => console.warn('Não foi possível registrar a preferência de clube:', error))
+    }
   }, [pathname])
 
   useEffect(() => {
@@ -53,7 +64,9 @@ export default function ClubePreferenceModal() {
       ? 'entrou_sem_escolher'
       : 'escolheu'
     )
-    registrarEscolha(valor, acaoRegistro).catch(() => {})
+    registrarEscolha(valor, acaoRegistro)
+      .then(() => localStorage.setItem(STORAGE_RECORDED_KEY, '1'))
+      .catch(error => console.warn('Não foi possível registrar a preferência de clube:', error))
   }
 
   if (!aberto) return null

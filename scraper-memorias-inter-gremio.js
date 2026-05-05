@@ -1,11 +1,12 @@
 /**
  * Scraper — Internacional e Grêmio (Memórias do Esporte)
  * Roda com: node scraper-memorias-inter-gremio.js
+ * Para automaticamente quando não encontrar produtos por 3 páginas seguidas.
  */
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, sleep } from './scraper-utils.js'
+import { criarSupabase, salvarProdutos, relatorioFinal, extrairAno, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME = 'Memórias do Esporte'
@@ -19,13 +20,11 @@ const FONTES = [
     nome: 'Internacional',
     clube: 'Internacional',
     base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/internacional',
-    paginas: 19,
   },
   {
     nome: 'Grêmio',
     clube: 'Grêmio',
     base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/gremio',
-    paginas: 14,
   },
 ]
 
@@ -91,34 +90,47 @@ async function rasparPagina(base, pagina, clube) {
   }
 }
 
+async function rasparFonte({ nome, clube, base }) {
+  console.log(`\n⚽ ${nome}`)
+
+  let pagina = 1
+  let totalFonte = 0
+  let erros = 0
+
+  while (true) {
+    const produtos = await rasparPagina(base, pagina, clube)
+
+    if (produtos.length > 0) {
+      const salvos = await salvarProdutos(supabase, produtos)
+      totalFonte += salvos
+      console.log(`  ✅ ${salvos} salvos (total ${nome}: ${totalFonte})`)
+      erros = 0
+    } else {
+      erros++
+      if (erros >= 3) {
+        console.log(`  ⏹️  Sem produtos por ${erros} páginas. Encerrando ${nome}.`)
+        break
+      }
+    }
+
+    pagina++
+    await sleep(DELAY_MS)
+  }
+
+  return totalFonte
+}
+
 async function main() {
   console.log('🚀 Scraper — Internacional e Grêmio (Memórias do Esporte)\n')
 
-  // Nota: NÃO desativa todos os produtos da fonte aqui pois o scraper-memorias.js
-  // já faz isso. Este scraper roda em complemento ao principal.
-  // Para rodar isolado, descomente a linha abaixo:
+  // Nota: NÃO desativa aqui — o scraper-memorias.js já faz isso.
+  // Para rodar isolado, descomente:
   // await desativarProdutosDaFonte(supabase, FONTE_NOME)
 
   let totalGeral = 0
-
   for (const fonte of FONTES) {
-    console.log(`\n⚽ ${fonte.nome} (${fonte.paginas} páginas)`)
-    let totalFonte = 0
-
-    for (let pagina = 1; pagina <= fonte.paginas; pagina++) {
-      const produtos = await rasparPagina(fonte.base, pagina, fonte.clube)
-
-      if (produtos.length > 0) {
-        const salvos = await salvarProdutos(supabase, produtos)
-        totalFonte += salvos
-        console.log(`  ✅ ${salvos} salvos (total ${fonte.nome}: ${totalFonte})`)
-      }
-
-      if (pagina < fonte.paginas) await sleep(DELAY_MS)
-    }
-
-    console.log(`  ✅ ${fonte.nome} concluído: ${totalFonte} produtos`)
-    totalGeral += totalFonte
+    totalGeral += await rasparFonte(fonte)
+    await sleep(DELAY_MS)
   }
 
   await relatorioFinal(supabase, FONTE_NOME, totalGeral)

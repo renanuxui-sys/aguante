@@ -1,6 +1,6 @@
 # Aguante — Guia de Scrapers
 
-> Última atualização: Abril 2026
+> Última atualização: Maio 2026
 
 ## Stack utilizada em todos os scrapers
 
@@ -34,21 +34,6 @@ Rodar qualquer scraper:
 node nome-do-scraper.js
 ```
 
-Explorar Mercado Livre sem salvar no banco (experimental):
-```bash
-node scraper-mercadolivre.js --clubes=Flamengo,Internacional --max-paginas=1 --dry-run
-```
-
-Explorar Mercado Livre via Apify sem salvar no banco (experimental; gera custo):
-```bash
-node scraper-apify-mercadolivre.js --clubes=Flamengo --max-paginas=1
-```
-
-Salvar só alguns clubes do Mercado Livre, sem desativar anúncios antigos da fonte (experimental):
-```bash
-node scraper-mercadolivre.js --clubes=Palmeiras,Corinthians,Santos --max-paginas=2 --sem-desativar
-```
-
 ---
 
 ## Ciclo de vida dos scrapers (padrão v2)
@@ -66,8 +51,37 @@ Funções do `scraper-utils.js`:
 - `salvarProdutos(supabase, produtos)` — etapa 2 (upsert com ativo: true)
 - `relatorioFinal(supabase, fonteNome, total)` — mostra ativos vs inativos
 - `extrairAno(titulo)` — extrai ano do título (1950–2029)
-- `identificarClube(titulo)` — identifica clube pelo título via CLUBES_MAP
+- `identificarClube(titulo, clubesMap?)` — identifica clube pelo título
+- `carregarClubesMap(supabase)` — carrega clubes do banco e mescla com mapa estático
+- `carregarClubesBusca(supabase)` — versão para buscas com aliases
+- `normalizarTexto(texto)` — remove acentos e normaliza
 - `sleep(ms)` — pausa entre requisições
+
+## Padrão de paginação automática
+
+**Todos os scrapers param automaticamente** quando não encontram produtos por N páginas consecutivas — sem número fixo de páginas no código. Quando o site crescer, o scraper pega as novas páginas automaticamente na próxima execução.
+
+```js
+// Padrão para HTML/API com paginação por ?page=N
+let page = 1
+let erros = 0
+while (true) {
+  const produtos = await rasparPagina(page)
+  if (produtos.length > 0) { /* salvar */ erros = 0 }
+  else { erros++; if (erros >= 3) break }
+  page++
+  await sleep(DELAY_MS)
+}
+
+// Padrão para API com offset (Shopify, Meiuka)
+while (true) {
+  const items = await buscarPagina(offset)
+  if (items.length === 0) break
+  /* salvar */
+  if (items.length < LIMITE) break
+  offset += LIMITE
+}
+```
 
 ---
 
@@ -119,11 +133,13 @@ node scraper-meiuka.js                  # Meiuka
 node scraper-atrox.js                   # Atrox Casual Club (Playwright)
 node scraper-futclassics.js             # Fut Classics (Playwright)
 node scraper-brechofc.js                # Brechó FC
-# node scraper-mercadolivre.js          # Mercado Livre (experimental; API oficial bloqueada no teste)
-# node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo por resultado)
+node scraper-mantosagrado.js            # Manto Sagrado Camisas
+node scraper-mundodabola.js             # Mundo da Bola
+# node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
+# node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
 ```
 
-**Tempo estimado total:** ~45–60 minutos
+**Tempo estimado total:** ~60–90 minutos
 
 **Atenção — Memórias do Esporte:** rodar sempre o `scraper-memorias.js` antes do `scraper-memorias-inter-gremio.js`. O primeiro desativa todos os produtos da fonte. O segundo complementa sem desativar novamente.
 
@@ -136,13 +152,14 @@ node scraper-brechofc.js                # Brechó FC
 **Arquivos:** `scraper-memorias.js`, `scraper-memorias-inter-gremio.js`
 **Abordagem:** node-fetch + cheerio
 **Produtos:** ~1.253
+**Paginação automática:** ✅ para após 5 páginas vazias
 
 **URLs rastreadas:**
-| Arquivo | Categoria | Páginas |
-|---|---|---|
-| `scraper-memorias.js` | `/categoria-produto/futebol/brasil/` | 107 |
-| `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/internacional/` | 19 |
-| `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/gremio/` | 14 |
+| Arquivo | Categoria |
+|---|---|
+| `scraper-memorias.js` | `/categoria-produto/futebol/brasil/` |
+| `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/internacional/` |
+| `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/gremio/` |
 
 **Paginação:** `/{categoria}/page/N/`
 
@@ -156,40 +173,29 @@ $('ul.products li.product').each((_, el) => {
 })
 ```
 
-**Problema conhecido:** Lazy loading — imagens chegam como `data:image/svg+xml`. Usar `data-src` como fallback. O `fix-imagens.js` corrigiu 830/831 imagens na primeira rodada.
+**Problema conhecido:** Lazy loading — imagens chegam como `data:image/svg+xml`. Usar `data-src` como fallback.
 
 ---
 
 ### 2. Brechó do Futebol (Shopify)
 **Site:** `brechodofutebol.com`
 **Arquivo:** `scraper-brecho.js`
-**Abordagem:** API JSON nativa do Shopify (sem scraping de HTML)
+**Abordagem:** API JSON nativa do Shopify
 **Produtos:** ~1.846
+**Paginação automática:** ✅ para quando retornar menos que 250 itens
 
-**Endpoint:**
-```
-GET /collections/{slug}/products.json?limit=250&page=N
-```
+**Endpoint:** `/collections/{slug}/products.json?limit=250&page=N`
 
-**Coleções rastreadas:**
-- Clubes principais: flamengo, botafogo, fluminense, vasco-da-gama, corinthians, palmeiras, santos, sao-paulo, gremio, internacional, atletico-mineiro, cruzeiro, athletico-paranaense, fortaleza, bahia, vitoria
-- Demais: demais-clubes-da-bahia, demais-clubes-do-rio-de-janeiro, demais-clubes-gauchos, demais-clubes-de-minas-gerais, demais-clubes-parana, demais-clubes-sao-paulo
-
-**Conversão:**
-```js
-titulo  = produto.title
-link    = `${FONTE_URL}/products/${produto.handle}`
-imagem  = produto.images?.[0]?.src
-preco   = parseFloat(produto.variants?.[0]?.price)
-```
+**Coleções:** flamengo, botafogo, fluminense, vasco-da-gama, corinthians, palmeiras, santos, sao-paulo, gremio, internacional, atletico-mineiro, cruzeiro, athletico-paranaense, fortaleza, bahia, vitoria, demais-clubes-*
 
 ---
 
 ### 3. Jaiminho Camisas (Nuvemshop)
 **Site:** `jaiminhocamisas.lojavirtualnuvem.com.br`
 **Arquivo:** `scraper-jaiminho.js`
-**Abordagem:** node-fetch + cheerio (HTML renderizado no servidor)
+**Abordagem:** node-fetch + cheerio
 **Produtos:** ~500+
+**Paginação automática:** ✅ para após 2 páginas vazias
 
 **Paginação:** `/{slug}/?page=N`
 
@@ -204,7 +210,7 @@ $('.js-product-container').each((_, el) => {
 })
 ```
 
-**Coleções:** internacional, gremio, flamengo, botafogo, fluminense, vasco, corinthians, palmeiras, santos, sao-paulo, atletico-mg, cruzeiro, atletico-pr, fortaleza, bahia, vitoria, + regionais (chapecoense, avai, criciuma, coritiba, america-mg, goias, atletico-go, nautico, santa-cruz, sport, ceara, selecoes, times-gauchos-interior, times-argentinos, times-aleatorios)
+**Coleções:** 16 clubes principais + regionais (chapecoense, avai, criciuma, coritiba, america-mg, goias, atletico-go, nautico, santa-cruz, sport, ceara, selecoes, times-gauchos-interior, times-argentinos, times-aleatorios)
 
 ---
 
@@ -213,24 +219,22 @@ $('.js-product-container').each((_, el) => {
 **Arquivo:** `scraper-meiuka.js`
 **Abordagem:** API REST do Supabase deles (interceptada do Network)
 **Produtos:** ~189
+**Paginação automática:** ✅ via offset, para quando retornar menos que 50 itens
 
 **Endpoint:**
 ```
 GET https://uhpdwmkqmzbobiuscinm.supabase.co/rest/v1/shirts
-  ?select=*
-  &status=eq.a_venda
+  ?select=*&status=eq.a_venda
   &or=(club.ilike.%{query}%,...,tags.cs.{query})
   &limit=50&offset=N
 ```
 
-**Chave anon pública** (sem segredo — visível no Network do Chrome):
+**Chave anon pública** (visível no Network do Chrome):
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocGR3bWtxbXpib2JpdXNjaW5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzOTQ4MjgsImV4cCI6MjA3NTk3MDgyOH0._nu4px9HG79zwAdt3YhlVkrRDEBjyxint1IT7_IuvGQ
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**Campos:** `front_image_url`, `back_image_url`, `min_price`, `club`, `season`, `name`, `model_type`, `tags`
-
-**Nota:** Volume baixo — marketplace com anúncios que vendem e saem constantemente.
+**Nota:** Volume baixo — marketplace com anúncios que vendem e saem constantemente. O endpoint pode ter mudado de `/shirts` para `/camisetas` — verificar na próxima execução.
 
 ---
 
@@ -239,41 +243,41 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocGR3bWt
 **Arquivo:** `scraper-atrox.js`
 **Abordagem:** Playwright (scroll devagar para ativar lazy loading)
 **Produtos:** ~305
+**Paginação automática:** ✅ para após 2 páginas vazias
 
 **URL:** `/clubes/sulamericanos/brasileiros/?page=N`
 
 **Comportamento:**
 - Página 1 carrega ~60 produtos com scroll devagar
 - Páginas 2+ carregam apenas 12 (limitação do site, não tem como contornar)
-- Para automaticamente após 2 páginas vazias consecutivas
 
-**Seletores:** padrão Nuvemshop — `data-variants` com JSON embutido (igual Jaiminho).
+**Seletores:** padrão Nuvemshop — `data-variants` com JSON embutido.
 
 ---
 
 ### 6. Fut Classics (Wix + Playwright)
 **Site:** `futclassics.com.br`
 **Arquivo:** `scraper-futclassics.js`
-**Abordagem:** Playwright — clica em "ver mais" repetidamente
-**Produtos:** ~792 (ignora esgotados)
+**Abordagem:** Playwright — clica em "ver mais" até sumir
+**Produtos:** ~792
+**Paginação automática:** ✅ clica até não ter mais botão
 
-**URL:** `https://www.futclassics.com.br/clubes-brasileiros` (página única com todos)
+**URL:** `https://www.futclassics.com.br/clubes-brasileiros` (página única)
 
 **Fluxo:**
 1. Abre a página
 2. Clica em `[data-hook="load-more-button"]` até sumir (~50 cliques)
 3. Filtra esgotados: `[data-hook="product-item-out-of-stock"]`
-4. Deduplica por link via `Set` antes de salvar
-5. Salva em lotes de 100 para evitar conflito no upsert
+4. Deduplica por link via `Set`
+5. Salva em lotes de 100
 
 **Seletores:**
 ```js
 titulo  = $el.find('[data-hook="product-item-name"]').text()
 link    = $el.find('[data-hook="product-item-container"]').attr('href')
 preco   = $el.find('[data-hook="product-item-price-to-pay"]').attr('data-wix-price')
-// Imagem via JSON no atributo data-image-info da wow-image
 uri     = JSON.parse(wowImage.attr('data-image-info')).imageData.uri
-imagem  = `https://static.wixstatic.com/media/${uri}/v1/fill/w_480,h_480,al_c,q_85,.../${uri}`
+imagem  = `https://static.wixstatic.com/media/${uri}/v1/fill/w_480,h_480,.../${uri}`
 ```
 
 ---
@@ -283,107 +287,97 @@ imagem  = `https://static.wixstatic.com/media/${uri}/v1/fill/w_480,h_480,al_c,q_
 **Arquivo:** `scraper-brechofc.js`
 **Abordagem:** API JSON nativa do Shopify
 **Produtos:** ~206
+**Paginação automática:** ✅ para quando retornar menos que 250 itens
 
-**Endpoint:**
-```
-GET /collections/todos-os-produtos/products.json?limit=250&page=N
-```
+**Endpoint:** `/collections/todos-os-produtos/products.json?limit=250&page=N`
 
-**Filtros aplicados:**
+**Filtros:**
 - `variants[0].available === false` → ignora esgotados
-- Tags contendo `internacionais`, `seleção`, `seleções`, `selecoes` → ignora
+- Tags com `internacionais`, `seleção`, `seleções` → ignora
 
-**Conversão:** igual ao Brechó do Futebol (padrão Shopify).
+---
+
+### 8. Manto Sagrado Camisas (Loja Integrada)
+**Site:** `mantosagradocamisas.com`
+**Arquivo:** `scraper-mantosagrado.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** ~265
+**Paginação automática:** ✅ para após 3 páginas vazias por coleção
+
+**Paginação:** `/{slug}?page=N`
+
+**Coleções:** gremio (clube fixo: Grêmio), inter (clube fixo: Internacional), nacionais (identificação automática)
+
+**Seletores:**
+```js
+$('div.listagem-item').each((_, el) => {
+  // Ignora indisponíveis
+  if ($el.hasClass('indisponivel')) return
+  titulo    = $el.find('a.nome-produto').text()
+  link      = $el.find('a.produto-sobrepor').attr('href')
+  imagem    = $el.find('img.imagem-principal').attr('src')
+  preco     = $el.find('strong.preco-promocional').attr('data-sell-price')
+})
+```
+
+**Produto indisponível:** classe `indisponivel` no container + `span.bandeira-indisponivel` visível.
+
+---
+
+### 9. Mundo da Bola (plataforma própria)
+**Site:** `mundodabolaloja.com.br`
+**Arquivo:** `scraper-mundodabola.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** ~243
+**Paginação automática:** ✅ para após 3 páginas sem clube identificado
+
+**URL:** `/futebol-nacional?pg=N` (atenção: usa `pg=` não `page=`)
+
+**Seletores:**
+```js
+$('div.product').each((_, el) => {
+  titulo = $el.attr('data-ga4-name')
+  preco  = $el.attr('data-ga4-price')
+  link   = $el.find('a.space-image').attr('href')
+  imagem = $el.find('img.lazyload').attr('src')
+})
+```
+
+**Filtro:** só salva produtos cujo clube foi identificado no `CLUBES_MAP` — internacionais e seleções são ignorados automaticamente.
 
 ---
 
 ## Fontes experimentais / pausadas
 
-Estas fontes ficam documentadas, mas não entram na rotina inicial enquanto o custo/qualidade não for validado.
-
 ### Mercado Livre (API oficial)
-**Site:** `mercadolivre.com.br`
 **Arquivo:** `scraper-mercadolivre.js`
-**Abordagem:** API oficial do Mercado Livre
+**Status:** ⚠️ Código pronto; chamadas retornam 403 — validar permissão da aplicação
 
-**Variáveis necessárias no `.env`:**
-```bash
-ML_ACCESS_TOKEN=...
+**Variáveis necessárias:**
 ```
-
-Ou, para renovar automaticamente um token gerado via Authorization Code:
-
-```bash
 ML_CLIENT_ID=...
 ML_CLIENT_SECRET=...
+ML_ACCESS_TOKEN=...
 ML_REFRESH_TOKEN=...
 ```
 
-Ou, se a aplicação tiver permissão para gerar token por credenciais:
-
-```bash
-ML_CLIENT_ID=...
-ML_CLIENT_SECRET=...
-```
-
-**Clubes rastreados:** Flamengo, Corinthians, Palmeiras, São Paulo, Grêmio, Internacional, Santos, Atlético-MG, Botafogo, Fluminense, Vasco, Cruzeiro, Athletico-PR, Fortaleza, Bahia e Vitória.
-
-**Filtro de condição:** somente camisas usadas. O scraper envia `condition=used` para a API e ainda descarta qualquer item retornado com outra condição.
-
-**Execução completa:**
-```bash
-node scraper-mercadolivre.js
-```
-
-**Exploração segura, sem salvar no Supabase:**
-```bash
-node scraper-mercadolivre.js --clubes=Flamengo,Grêmio --max-paginas=1 --dry-run
-```
-
-**Execução parcial salvando no banco:**
-```bash
-node scraper-mercadolivre.js --clubes=Internacional,Grêmio,Palmeiras --max-paginas=3 --sem-desativar
-```
+**Filtro:** somente camisas `condition=used`.
 
 **Flags:**
-- `--clubes=` limita a execução a uma lista separada por vírgula.
-- `--max-paginas=` controla quantas páginas buscar por clube; cada página tem até 50 itens.
-- `--dry-run` mostra resultados no terminal e não salva nada.
-- `--sem-desativar` evita marcar produtos antigos do Mercado Livre como inativos. Use em execuções parciais.
-
-**Observação:** em Maio/2026, chamadas feitas deste ambiente para `api.mercadolibre.com` retornaram `403` com bloqueio de política na borda. O código está preparado para a API oficial, mas a aplicação/ambiente precisa ter permissão para consultar esse recurso.
+- `--clubes=` limita a execução
+- `--max-paginas=` controla páginas por clube
+- `--dry-run` mostra resultados sem salvar
+- `--sem-desativar` evita marcar produtos antigos como inativos
 
 ---
 
 ### Mercado Livre via Apify
-**Site:** `mercadolivre.com.br`
 **Arquivo:** `scraper-apify-mercadolivre.js`
-**Actor:** `karamelo/mercadolivre-scraper-brasil-portugues`
-**Abordagem:** Apify Actor com cobrança por resultado
+**Status:** 📋 Experimental — gera custo por resultado
 
-**Variável necessária no `.env`:**
-```bash
-APIFY_TOKEN=...
-```
+**Variável necessária:** `APIFY_TOKEN=...`
 
-**Execução de teste, sem salvar no Supabase:**
-```bash
-node scraper-apify-mercadolivre.js
-```
-
-**Execução salvando no banco:**
-```bash
-node scraper-apify-mercadolivre.js --salvar
-```
-
-**Desativar falsos positivos já salvos pela Apify:**
-```bash
-node scraper-apify-mercadolivre.js --limpar-invalidos
-```
-
-**Clubes do recorte inicial:** Internacional, Grêmio, São Paulo, Corinthians, Santos, Palmeiras, Atlético-MG, Cruzeiro, Fluminense, Flamengo, Vasco e Botafogo. O padrão é buscar somente 1 página por clube para controlar custo.
-
-**Observação:** o actor não mostra no formulário um filtro explícito para condição usada. O scraper busca por termos com "usada/usado", valida clube e tipo de produto, e por padrão confia que os resultados retornados por essa busca são usados. Para ativar uma validação local mais rígida por palavra "usado/usada", use `--filtrar-usados`.
+---
 
 ## Checklist para novo scraper
 
@@ -391,12 +385,12 @@ node scraper-apify-mercadolivre.js --limpar-invalidos
   - HTML → node-fetch + cheerio
   - JavaScript → Playwright
 - [ ] Tem API JSON oficial? (Shopify → `.json`, Nuvemshop → `data-variants`, Supabase → REST)
-- [ ] Qual o padrão de paginação? (`?page=N`, cursor, botão "ver mais")
+- [ ] Qual o padrão de paginação? (`?page=N`, `?pg=N`, offset, botão "ver mais")
 - [ ] Quais seletores identificam título, preço, imagem e link?
-- [ ] O site tem produtos esgotados? Como identificar no HTML ou API?
+- [ ] O site tem produtos esgotados/indisponíveis? Como identificar?
+- [ ] Usar paginação automática (while + contador de erros) — sem número fixo de páginas
 - [ ] Importar funções do `scraper-utils.js`
 - [ ] Testar com 1–2 páginas antes de rodar completo
-- [ ] Cadastrar a fonte na tabela `fontes` via painel admin ou SQL
 
 ---
 
@@ -404,7 +398,7 @@ node scraper-apify-mercadolivre.js --limpar-invalidos
 
 | Site | Tipo | Abordagem | Status |
 |---|---|---|---|
-| mercadolivre.com.br | Marketplace | API oficial | ⚠️ Código pronto; validar permissão/API |
-| olx.com.br | Classificados | Portal oficial cobre anúncios/leads; busca pública bloqueia requisições diretas | 📋 Complexo |
-| mundodabolaloja.com.br | Própria | node-fetch + cheerio | 📋 Quando tiver mais categorias |
+| mercadolivre.com.br | Marketplace | API oficial | ⚠️ Código pronto; validar permissão |
+| olx.com.br | Classificados | Playwright + anti-bot | 📋 Complexo |
+| futclassics.com.br | Wix | Playwright | ✅ Ativo |
 | enjoei.com.br | Marketplace | A verificar | 📋 Backlog |

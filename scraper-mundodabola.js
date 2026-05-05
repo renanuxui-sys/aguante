@@ -1,11 +1,12 @@
 /**
  * Scraper — Mundo da Bola Loja
  * Roda com: node scraper-mundodabola.js
+ * Para automaticamente quando não encontrar produtos por 3 páginas seguidas.
  */
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.mundodabolaloja.com.br'
@@ -15,22 +16,8 @@ const DELAY_MS   = 1500
 
 const supabase = criarSupabase()
 
-const COLECOES = [
-  { slug: 'futebol-nacional/cariocas' },
-  { slug: 'futebol-nacional/baianos' },
-  { slug: 'camisas-de-futebol/gauchos' },
-  { slug: 'futebol-nacional/catarinenses' },
-  { slug: 'futebol-nacional/cearenses' },
-  { slug: 'futebol-nacional/goianos' },
-  { slug: 'futebol-nacional/mineiros' },
-  { slug: 'futebol-nacional/mato-grossense' },
-  { slug: 'futebol-nacional/paranaenses' },
-  { slug: 'futebol-nacional/paulistas' },
-  { slug: 'futebol-nacional/pernambucanos' },
-]
-
-async function rasparPagina(slug, page, clubesMap) {
-  const url = `${BASE_URL}/${slug}/?page=${page}`
+async function rasparPagina(page) {
+  const url = `${BASE_URL}/futebol-nacional?pg=${page}`
   console.log(`  📄 Página ${page}`)
 
   try {
@@ -38,10 +25,7 @@ async function rasparPagina(slug, page, clubesMap) {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AguanteBot/1.0)' },
       timeout: 15000,
     })
-    if (!res.ok) {
-      console.warn(`  ⚠️  Status ${res.status}`)
-      return []
-    }
+    if (!res.ok) { console.warn(`  ⚠️  Status ${res.status}`); return [] }
 
     const html = await res.text()
     const $ = cheerio.load(html)
@@ -57,7 +41,7 @@ async function rasparPagina(slug, page, clubesMap) {
       if (!titulo || !link) return
 
       // Só salva se identificar clube brasileiro
-      const clube = identificarClube(titulo, clubesMap)
+      const clube = identificarClube(titulo)
       if (!clube) return
 
       produtos.push({
@@ -83,47 +67,37 @@ async function rasparPagina(slug, page, clubesMap) {
   }
 }
 
-async function rasparColecao({ slug }, clubesMap) {
-  console.log(`\n⚽ ${slug}`)
+async function main() {
+  console.log('🚀 Scraper — Mundo da Bola\n')
 
+  await desativarProdutosDaFonte(supabase, FONTE_NOME)
+
+  let totalSalvos = 0
   let page = 1
-  let totalColecao = 0
-  let paginasVazias = 0
+  let erros = 0
 
   while (true) {
-    const produtos = await rasparPagina(slug, page, clubesMap)
+    const produtos = await rasparPagina(page)
 
-    if (produtos.length === 0) {
-      paginasVazias++
-      if (paginasVazias >= 2) break
-    } else {
-      paginasVazias = 0
+    if (produtos.length > 0) {
       const salvos = await salvarProdutos(supabase, produtos)
-      totalColecao += salvos
-      console.log(`  ✅ ${salvos} salvos (total: ${totalColecao})`)
+      totalSalvos += salvos
+      console.log(`  ✅ ${salvos} salvos (total: ${totalSalvos})`)
+      erros = 0
+    } else {
+      erros++
+      if (erros >= 3) {
+        console.log(`\n⏹️  Sem produtos por ${erros} páginas seguidas. Encerrando.`)
+        break
+      }
     }
 
     page++
     await sleep(DELAY_MS)
   }
 
-  return totalColecao
-}
-
-async function main() {
-  console.log('🚀 Scraper — Mundo da Bola\n')
-
-  await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
-
-  let totalGeral = 0
-  for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao, clubesMap)
-    await sleep(DELAY_MS)
-  }
-
-  await relatorioFinal(supabase, FONTE_NOME, totalGeral)
-  console.log(`\n🏁 Concluído! Total geral: ${totalGeral} produtos salvos.`)
+  await relatorioFinal(supabase, FONTE_NOME, totalSalvos)
+  console.log(`\n🏁 Concluído! Total geral: ${totalSalvos} produtos salvos.`)
 }
 
 main().catch(console.error)

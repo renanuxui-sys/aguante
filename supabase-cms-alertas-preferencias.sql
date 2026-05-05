@@ -28,6 +28,20 @@ alter table alertas add column if not exists created_at timestamptz default now(
 create index if not exists alertas_created_at_idx on alertas(created_at desc);
 create index if not exists alertas_clube_ano_idx on alertas(clube, ano);
 
+alter table alertas enable row level security;
+
+drop policy if exists "alertas_insert_publico" on alertas;
+create policy "alertas_insert_publico"
+on alertas for insert
+to anon
+with check (true);
+
+drop policy if exists "alertas_select_cms" on alertas;
+create policy "alertas_select_cms"
+on alertas for select
+to anon
+using (true);
+
 create table if not exists clubes_preferencias (
   id uuid default gen_random_uuid() primary key,
   clube text,
@@ -40,3 +54,31 @@ create table if not exists clubes_preferencias (
 create index if not exists clubes_preferencias_created_at_idx on clubes_preferencias(created_at desc);
 create index if not exists clubes_preferencias_clube_idx on clubes_preferencias(clube);
 create index if not exists clubes_preferencias_acao_idx on clubes_preferencias(acao);
+
+alter table clubes_preferencias enable row level security;
+
+drop policy if exists "clubes_preferencias_insert_publico" on clubes_preferencias;
+create policy "clubes_preferencias_insert_publico"
+on clubes_preferencias for insert
+to anon
+with check (true);
+
+drop policy if exists "clubes_preferencias_select_cms" on clubes_preferencias;
+create policy "clubes_preferencias_select_cms"
+on clubes_preferencias for select
+to anon
+using (true);
+
+alter table cadastros_cta enable row level security;
+
+drop policy if exists "cadastros_cta_insert_publico" on cadastros_cta;
+create policy "cadastros_cta_insert_publico"
+on cadastros_cta for insert
+to anon
+with check (true);
+
+drop policy if exists "cadastros_cta_select_cms" on cadastros_cta;
+create policy "cadastros_cta_select_cms"
+on cadastros_cta for select
+to anon
+using (true);

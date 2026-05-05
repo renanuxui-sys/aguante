@@ -1,11 +1,5 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Alerta = {
   id: string
@@ -34,20 +28,12 @@ export default function AdminAlertas() {
     setCarregando(true)
     setErro('')
 
-    let query = supabase
-      .from('alertas')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA - 1)
-
-    if (busca) {
-      query = query.or(`nome.ilike.%${busca}%,email.ilike.%${busca}%,clube.ilike.%${busca}%,ano.ilike.%${busca}%,produto_titulo.ilike.%${busca}%`)
-    }
-
-    const { data, count, error } = await query
-    if (error) setErro(error.message)
-    setAlertas(data || [])
-    setTotal(count || 0)
+    const params = new URLSearchParams({ pagina: String(pagina), busca })
+    const res = await fetch(`/api/admin/cms/alertas?${params}`, { cache: 'no-store' })
+    const json = await res.json()
+    if (!res.ok) setErro(json.error || 'Erro ao carregar alertas.')
+    setAlertas(json.data || [])
+    setTotal(json.total || 0)
     setCarregando(false)
   }, [pagina, busca])
 

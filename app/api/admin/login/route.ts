@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { criarSessaoAdmin } from '@/lib/admin-auth'
 
 export async function POST(req: NextRequest) {
   const { senha } = await req.json()
@@ -13,13 +14,25 @@ export async function POST(req: NextRequest) {
   }
 
   const res = NextResponse.json({ ok: true })
-  res.cookies.set('admin_session', '1', {
-    httpOnly: false, // precisa ser false para document.cookie funcionar no client
+  res.cookies.set('admin_session', criarSessaoAdmin(), {
+    httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 60 * 60 * 8, // 8 horas
     path: '/',
   })
 
+  return res
+}
+
+export async function DELETE() {
+  const res = NextResponse.json({ ok: true })
+  res.cookies.set('admin_session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+  })
   return res
 }
