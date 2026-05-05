@@ -4,221 +4,376 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const imgLogo       = "/assets/logo.svg"
-const imgNavChevron = "/assets/chevron-down.svg"
-const imgNavSearch  = "/assets/ico-search.svg"
+const imgLogo      = "/assets/logo.svg"
+const imgChevron   = "/assets/chevron-down.svg"
+const imgNavSearch = "/assets/ico-search.svg"
+const imgMenu      = "/assets/menu.svg"
+const imgClose     = "/assets/close.svg"
 
-export const TODOS_CLUBES = [
-  'Flamengo','Corinthians','Palmeiras','Atlético-MG','Athletico-PR','Fortaleza',
-  'Bahia','Botafogo','Cruzeiro','Fluminense','Grêmio','Internacional',
-  'São Paulo','Vasco','Santos','Vitória',
+export const CLUBES_BRASILEIROS = [
+  'Palmeiras','Flamengo','Fluminense','São Paulo','Athletico-PR','Bahia',
+  'Coritiba','Botafogo','Bragantino','Vasco da Gama','Grêmio','Cruzeiro',
+  'Vitória','Corinthians','Atlético-MG','Internacional','Santos','Mirassol',
+  'Remo','Chapecoense','Vila Nova','Fortaleza','São Bernardo','Criciúma',
+  'Juventude','Ceará SC','Sport Recife','Náutico','Operário','Botafogo SP',
+  'Avaí','Novorizontino','Athletic','Atlético-GO','Ponte Preta','Goiás',
+  'Cuiabá','Londrina','CRB','América-MG',
 ]
+export const TODOS_CLUBES = CLUBES_BRASILEIROS
 
-type Clube = {
-  id: string
-  nome: string
-  slug: string
-  escudo_url: string | null
-  total_anuncios: number
+const ORDEM_CATS = ['Clubes Brasileiros','Clubes Sulamericanos','Clubes Europeus','Seleções','Outros']
+const LABEL_MOBILE: Record<string,string> = {
+  'Clubes Brasileiros': 'Clubes Brasileiros',
+  'Clubes Sulamericanos': 'América do Sul',
+  'Clubes Europeus': 'Europa',
+  'Seleções': 'Seleções',
+  'Outros': 'Outros',
 }
 
-const LIMITE_INICIAL = 8
+type ClubeDB = {
+  id: string; nome: string; slug: string
+  categoria: string; escudo_url: string | null; total_anuncios: number
+}
+type Categoria = { key: string; label: string; labelMobile: string; clubes: ClubeDB[] }
 
 export default function Navbar() {
   const router = useRouter()
-  const [scrolled, setScrolled]       = useState(false)
-  const [submenu, setSubmenu]         = useState(false)
-  const [menuMobile, setMenuMobile]   = useState(false)
-  const [query, setQuery]             = useState('')
-  const [clubes, setClubes]           = useState<Clube[]>([])
-  const [expandido, setExpandido]     = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [submenu, setSubmenu]       = useState(false)
+  const [catAtiva, setCatAtiva]     = useState('Clubes Brasileiros') // aba ativa no submenu desktop
+  const [menuMobile, setMenuMobile] = useState(false)
+  const [catMobile, setCatMobile]   = useState('Clubes Brasileiros') // accordion mobile
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [query, setQuery]           = useState('')
+  const [buscaMobile, setBuscaMobile] = useState(false)
+  const inputRef     = useRef<HTMLInputElement>(null)
+  const mobileInput  = useRef<HTMLInputElement>(null)
+  const leaveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // ── Carrega clubes do Supabase ──
   useEffect(() => {
-    function onScroll() { setScrolled(window.scrollY > 80) }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    async function carregar() {
+      const { data } = await supabase
+        .from('clubes').select('id,nome,slug,categoria,escudo_url')
+        .eq('ativo', true).order('ordem', { ascending: true })
+      if (!data?.length) return
 
-  useEffect(() => {
-    async function carregarClubes() {
-      const { data: listaClubes } = await supabase
-        .from('clubes')
-        .select('id, nome, slug, escudo_url')
-        .eq('pais', 'Brasil')
-        .eq('ativo', true)
-        .order('ordem', { ascending: true })
+      const comContagem = await Promise.all(data.map(async c => {
+        const { count } = await supabase.from('produtos')
+          .select('*', { count: 'exact', head: true })
+          .eq('clube', c.nome).eq('ativo', true)
+        return { ...c, total_anuncios: count || 0 }
+      }))
 
-      if (!listaClubes) return
+      const grupos: Record<string, ClubeDB[]> = {}
+      comContagem.forEach(c => {
+        const cat = c.categoria || 'Outros'
+        if (!grupos[cat]) grupos[cat] = []
+        grupos[cat].push(c)
+      })
 
-      // Conta produtos ativos para cada clube em paralelo
-      const contagens = await Promise.all(
-        listaClubes.map(async (c) => {
-          const { count } = await supabase
-            .from('produtos')
-            .select('*', { count: 'exact', head: true })
-            .eq('clube', c.nome)
-            .eq('ativo', true)
-          return { ...c, total_anuncios: count || 0 }
-        })
-      )
-
-      // Ordena por quantidade (maior primeiro)
-      contagens.sort((a, b) => b.total_anuncios - a.total_anuncios)
-      setClubes(contagens)
+      const result = ORDEM_CATS
+        .filter(k => grupos[k]?.length)
+        .map(k => ({ key: k, label: k, labelMobile: LABEL_MOBILE[k] || k, clubes: grupos[k] }))
+      setCategorias(result)
     }
-
-    carregarClubes()
+    carregar()
   }, [])
+
+  // Fallback com lista local
+  const cats: Categoria[] = categorias.length > 0 ? categorias : [{
+    key: 'Clubes Brasileiros', label: 'Clubes Brasileiros', labelMobile: 'Clubes Brasileiros',
+    clubes: CLUBES_BRASILEIROS.map((nome, i) => ({
+      id: String(i), nome, slug: nome.toLowerCase().replace(/[\s/]/g,'-'),
+      categoria: 'Clubes Brasileiros', escudo_url: null, total_anuncios: 0,
+    }))
+  }]
+
+  const catAtivaData = cats.find(c => c.key === catAtiva) || cats[0]
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`)
-      setQuery('')
-      inputRef.current?.blur()
-    }
+    const q = query.trim()
+    if (q) { router.push(`/search?q=${encodeURIComponent(q)}`); setQuery(''); setMenuMobile(false); setBuscaMobile(false) }
   }
 
-  const clubesVisiveis = expandido ? clubes : clubes.slice(0, LIMITE_INICIAL)
-  const temMais = clubes.length > LIMITE_INICIAL
+  function navegar(nome: string) {
+    setSubmenu(false); setMenuMobile(false)
+    router.push(`/search?q=${encodeURIComponent(nome)}`)
+  }
 
-  const navStyle: React.CSSProperties = scrolled
-    ? {
-        position: 'fixed', top: 16,
-        left: '50%', transform: 'translateX(-50%)',
-        width: 'calc(100% - 80px)', maxWidth: 1060,
-        height: 70,
-        background: 'rgba(255,255,255,0.7)',
-        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
-        border: '1px solid rgba(255,255,255,0.8)',
-        borderRadius: 24,
-        boxShadow: '0 4px 32px rgba(0,0,0,0.08)',
-        display: 'flex', alignItems: 'center',
-        padding: '0 24px', justifyContent: 'space-between',
-        zIndex: 100,
-        transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)',
-      }
-    : {
-        position: 'fixed', top: 0, left: 0, right: 0, width: '100%',
+  function onSubmenuEnter() {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current)
+    setSubmenu(true)
+  }
+  function onSubmenuLeave() {
+    leaveTimer.current = setTimeout(() => setSubmenu(false), 150)
+  }
+
+  // Bloqueia scroll do body quando menu mobile aberto
+  useEffect(() => {
+    document.body.style.overflow = menuMobile ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [menuMobile])
+
+  return (
+    <>
+      {/* ════════════════════════════════════════
+          NAVBAR DESKTOP
+      ════════════════════════════════════════ */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0,
         height: 76,
-        background: 'transparent',
-        border: 'none', borderBottom: '1px solid #e0dee7', borderRadius: 0,
-        boxShadow: 'none',
+        background: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center',
         padding: '0 max(16px, calc((100% - 1140px) / 2 + 24px))',
         justifyContent: 'space-between',
         zIndex: 100,
-        transition: 'all 350ms cubic-bezier(0.4, 0, 0.2, 1)',
-      }
+      }}>
 
-  const submenuTop = scrolled ? 16 + 70 + 8 : 76
-
-  return (
-    <>
-      <nav style={navStyle}>
+        {/* Logo */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          <img src={imgLogo} alt="Aguante" style={{ width: scrolled ? 120 : 136, height: scrolled ? 44 : 55, display: 'block', transition: 'all 350ms cubic-bezier(0.4,0,0.2,1)' }} />
+          <img src={imgLogo} alt="Aguante" style={{ width: 136, height: 55, display: 'block' }} />
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: scrolled ? 110 : 40 }}>
-          <div className="ag-nav-links">
-            <Link href="/" className="ag-link-black" style={{ fontSize: 12, letterSpacing: '-0.24px', lineHeight: '24px', whiteSpace: 'nowrap' }}>
-              Conheça Aguante
-            </Link>
+        {/* Links desktop — Explore / Conheça / Sua loja / Contato */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="ag-nav-links">
 
-            <div style={{ position: 'relative' }} onMouseEnter={() => setSubmenu(true)} onMouseLeave={() => setSubmenu(false)}>
-              <button
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#000', fontSize: 12, letterSpacing: '-0.24px', display: 'flex', alignItems: 'center', gap: 2, fontFamily: 'Onest, sans-serif', padding: '26px 0', whiteSpace: 'nowrap', transition: 'color 150ms ease' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#550fed')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#000')}
-              >
-                Explore camisas
-                <img src={imgNavChevron} alt="" style={{ width: 18, height: 18, transition: 'transform 200ms ease' }} />
-              </button>
-            </div>
+          {/* Explore camisas com submenu */}
+          <div style={{ position: 'relative' }} onMouseEnter={onSubmenuEnter} onMouseLeave={onSubmenuLeave}>
+            <button style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: submenu ? '#550fed' : '#000',
+              fontSize: 13, letterSpacing: '-0.01em',
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontFamily: 'Onest, sans-serif', padding: '28px 0',
+              fontWeight: 700,
+              transition: 'color 150ms ease',
+            }}>
+              Explore camisas
+              <img src={imgChevron} alt="" style={{ width: 16, height: 16, transition: 'transform 200ms ease', transform: submenu ? 'rotate(180deg)' : 'rotate(0)' }} />
+            </button>
           </div>
 
-          <div className="ag-nav-pill-wrap">
-            <form onSubmit={handleSearch}>
-              <div
-                className="ag-search-pill"
-                style={{ display: 'flex', alignItems: 'center', background: '#f5f5f5', border: '1px solid #e0dee7', borderRadius: scrolled ? 12 : 16, padding: scrolled ? '8px 12px' : '11px 16px', width: 286, cursor: 'text', gap: 8 }}
-                onClick={() => inputRef.current?.focus()}
-              >
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder="O que você procura?"
-                  style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 12, fontWeight: 300, color: '#444', letterSpacing: '-0.12px', fontFamily: 'Onest, sans-serif', minWidth: 0 }}
-                />
-                <button type="submit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'transform 150ms ease' }}
-                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')}
-                  onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-                >
-                  <img src={imgNavSearch} alt="Buscar" style={{ width: 20, height: 20 }} />
-                </button>
-              </div>
-            </form>
-          </div>
+          <Link href="/sobre" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
+            onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
+            onMouseLeave={e => (e.currentTarget.style.color='#000')}>
+            Conheça Aguante
+          </Link>
+
+          <Link href="/anuncie" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
+            onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
+            onMouseLeave={e => (e.currentTarget.style.color='#000')}>
+            Sua loja aqui
+          </Link>
+
+          <Link href="/contato" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
+            onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
+            onMouseLeave={e => (e.currentTarget.style.color='#000')}>
+            Contato
+          </Link>
         </div>
 
-        <button className="ag-hamburger" onClick={() => setMenuMobile(!menuMobile)} aria-label="Menu">
-          <span /><span /><span />
-        </button>
+        {/* Search pill desktop */}
+        <form onSubmit={handleSearch} className="ag-nav-pill-wrap" style={{ display: 'flex' }}>
+          <div
+            className="ag-search-pill"
+            style={{ display: 'flex', alignItems: 'center', background: '#f5f5f5', border: '1px solid #e0dee7', borderRadius: 16, padding: '10px 16px', width: 260, cursor: 'text', gap: 8 }}
+            onClick={() => inputRef.current?.focus()}
+          >
+            <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="O que você procura?"
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 300, color: '#444', fontFamily: 'Onest, sans-serif', minWidth: 0 }} />
+            <button type="submit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexShrink: 0, transition: 'transform 150ms ease' }}
+              onMouseEnter={e => (e.currentTarget.style.transform='scale(1.12)')}
+              onMouseLeave={e => (e.currentTarget.style.transform='scale(1)')}>
+              <img src={imgNavSearch} alt="Buscar" style={{ width: 20, height: 20 }} />
+            </button>
+          </div>
+        </form>
+
+        {/* Botões mobile — lupa + hamburguer */}
+        <div style={{ display: 'none', alignItems: 'center', gap: 8 }} className="ag-mobile-btns">
+          <button onClick={() => { setBuscaMobile(b => !b); setMenuMobile(false) }}
+            style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', border: '1px solid #e0dee7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={imgNavSearch} alt="Buscar" style={{ width: 20, height: 20 }} />
+          </button>
+          <button onClick={() => { setMenuMobile(m => !m); setBuscaMobile(false) }}
+            aria-label={menuMobile ? 'Fechar menu' : 'Abrir menu'}
+            style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', border: '1px solid #e0dee7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={menuMobile ? imgClose : imgMenu} alt="" style={{ width: 22, height: 22 }} />
+          </button>
+        </div>
       </nav>
 
-      {/* Submenu */}
+      {/* ════════════════════════════════════════
+          SUBMENU DESKTOP — abas + grid 4 colunas
+      ════════════════════════════════════════ */}
       {submenu && (
         <div
-          style={{ position: 'fixed', top: submenuTop, left: 0, right: 0, background: '#fff', boxShadow: '0 20px 68px rgba(0,0,0,0.1)', zIndex: 99, padding: '32px 0 40px', transition: 'top 350ms cubic-bezier(0.4,0,0.2,1)' }}
-          onMouseEnter={() => setSubmenu(true)}
-          onMouseLeave={() => { setSubmenu(false); setExpandido(false) }}
+          style={{ position: 'fixed', top: 76, left: 0, right: 0, background: '#fff', boxShadow: '0 20px 68px rgba(0,0,0,0.1)', zIndex: 99, paddingBottom: 40 }}
+          onMouseEnter={onSubmenuEnter}
+          onMouseLeave={onSubmenuLeave}
         >
-          <div className="ag-container">
-            <p style={{ fontWeight: 700, fontSize: 32, color: '#282828', letterSpacing: '-0.05em', marginBottom: 24 }}>Clubes Brasileiros</p>
-            <div className="ag-submenu-grid">
-              {clubesVisiveis.map(clube => (
-                <div
-                  key={clube.id}
-                  className="ag-submenu-item"
-                  onClick={() => { setSubmenu(false); setExpandido(false); router.push(`/search?q=${clube.nome}`) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', cursor: 'pointer' }}
+          {/* Abas das categorias */}
+          <div style={{ borderBottom: '1px solid #e0dee7', padding: '0 max(16px, calc((100% - 1140px) / 2 + 24px))' }}>
+            <div style={{ display: 'flex', gap: 32, paddingTop: 24 }}>
+              {cats.map(cat => (
+                <button
+                  key={cat.key}
+                  onClick={() => setCatAtiva(cat.key)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontFamily: 'Onest, sans-serif',
+                    fontSize: 20, letterSpacing: '-0.02em',
+                    fontWeight: catAtiva === cat.key ? 700 : 400,
+                    color: catAtiva === cat.key ? '#000' : '#aaa',
+                    paddingBottom: 16,
+                    borderBottom: catAtiva === cat.key ? '2px solid #000' : '2px solid transparent',
+                    transition: 'color 150ms ease',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
-                  {clube.escudo_url && (
-                    <img src={clube.escudo_url} alt={clube.nome} style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }} />
-                  )}
-                  <p style={{ fontSize: 16, color: '#282828', letterSpacing: '-0.05em' }}>{clube.nome}</p>
-                  <span style={{ background: '#dfdfdf', borderRadius: 8, padding: '2px 6px', fontSize: 12, color: '#550fed', fontWeight: 700, marginLeft: 'auto' }}>
-                    {clube.total_anuncios.toLocaleString('pt-BR')}
-                  </span>
-                </div>
+                  {cat.label}
+                </button>
               ))}
             </div>
+          </div>
 
-            {temMais && (
-              <button
-                onClick={() => setExpandido(e => !e)}
-                style={{ marginTop: 24, background: 'none', border: '1px solid #e0dee7', borderRadius: 12, padding: '10px 24px', fontSize: 13, color: '#550fed', fontWeight: 700, cursor: 'pointer', fontFamily: 'Onest, sans-serif', letterSpacing: '-0.01em' }}
-              >
-                {expandido ? 'Ver menos clubes ↑' : `Ver mais ${clubes.length - LIMITE_INICIAL} clubes ↓`}
-              </button>
+          {/* Grid 4 colunas da categoria ativa */}
+          <div style={{ padding: '24px max(16px, calc((100% - 1140px) / 2 + 24px)) 0' }}>
+            {catAtivaData && catAtivaData.clubes.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0 40px' }}>
+                {catAtivaData.clubes.map(clube => (
+                  <div
+                    key={clube.id}
+                    onClick={() => navegar(clube.nome)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e0dee7', cursor: 'pointer', transition: 'padding-left 150ms ease' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '6px'; (e.currentTarget.firstChild as HTMLElement).style.color = '#550fed' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '0'; (e.currentTarget.firstChild as HTMLElement).style.color = '#000' }}
+                  >
+                    <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em', lineHeight: 1.2, transition: 'color 150ms ease' }}>{clube.nome}</span>
+                    <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 12 }}>
+                      {clube.total_anuncios.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 14, color: '#aaa', padding: '16px 0' }}>Nenhum clube cadastrado nesta categoria.</p>
             )}
           </div>
         </div>
       )}
 
-      {menuMobile && (
-        <div
-          style={{ position: 'fixed', top: scrolled ? 102 : 60, left: 0, right: 0, background: '#fff', borderBottom: '1px solid #e0dee7', padding: '20px 24px', zIndex: 99, display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
-          onClick={() => setMenuMobile(false)}
-        >
-          <Link href="/" className="ag-link-black" style={{ fontSize: 16, fontWeight: 700 }}>Conheça Aguante</Link>
-          <Link href="/search" className="ag-link-black" style={{ fontSize: 16, fontWeight: 700 }}>Explore camisas</Link>
+      {/* ════════════════════════════════════════
+          BUSCA MOBILE (expande abaixo do nav)
+      ════════════════════════════════════════ */}
+      {buscaMobile && (
+        <div style={{ position: 'fixed', top: 64, left: 0, right: 0, background: '#fff', zIndex: 98, padding: '12px 16px', borderBottom: '1px solid #e0dee7', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+          <form onSubmit={handleSearch}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#f5f5f5', border: '1px solid #e0dee7', borderRadius: 12, padding: '10px 16px', gap: 8 }}>
+              <input ref={mobileInput} autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="O que você procura?"
+                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#444', fontFamily: 'Onest, sans-serif' }} />
+              <button type="submit" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                <img src={imgNavSearch} alt="" style={{ width: 20, height: 20 }} />
+              </button>
+            </div>
+          </form>
         </div>
       )}
+
+      {/* ════════════════════════════════════════
+          MENU MOBILE ABERTO — full screen
+      ════════════════════════════════════════ */}
+      {menuMobile && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: '#fff', zIndex: 200,
+          overflowY: 'auto', display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Header — logo + fechar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 64, flexShrink: 0 }}>
+            <button onClick={() => setMenuMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
+              <img src={imgClose} alt="Fechar" style={{ width: 24, height: 24 }} />
+            </button>
+          </div>
+
+          {/* Conteúdo scrollável */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+
+            {/* Categorias — accordion */}
+            <div style={{ padding: '0 20px' }}>
+              {cats.map(cat => {
+                const aberta = catMobile === cat.key
+                return (
+                  <div key={cat.key}>
+                    <button
+                      onClick={() => setCatMobile(aberta ? '' : cat.key)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif' }}
+                    >
+                      <span style={{ fontWeight: 700, fontSize: 18, color: '#000', letterSpacing: '-0.02em' }}>
+                        {cat.labelMobile}
+                      </span>
+                      <img src={imgChevron} alt="" style={{ width: 20, height: 20, transition: 'transform 200ms ease', transform: aberta ? 'rotate(180deg)' : 'rotate(0)' }} />
+                    </button>
+
+                    {aberta && cat.clubes.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px', paddingBottom: 16 }}>
+                        {cat.clubes.map(clube => (
+                          <button
+                            key={clube.id}
+                            onClick={() => navegar(clube.nome)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', background: 'none', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'Onest, sans-serif', width: '100%', textAlign: 'left' }}
+                          >
+                            <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em' }}>{clube.nome}</span>
+                            <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>
+                              {clube.total_anuncios.toLocaleString('pt-BR')}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {aberta && cat.clubes.length === 0 && (
+                      <p style={{ fontSize: 13, color: '#aaa', paddingBottom: 16 }}>Nenhum clube cadastrado.</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Divisor 
+            <div style={{ height: 1, background: '#e0dee7', margin: '8px 20px' }} /> */}
+
+            {/* Links institucionais */}
+            <div style={{ padding: '0 20px 40px' }}>
+              {[
+                { href: '/sobre', label: 'Sobre Aguante' },
+                { href: '/contato', label: 'Fale conosco' },
+                { href: '/anuncie', label: 'Sua loja aqui' },
+              ].map(l => (
+                <Link key={l.href} href={l.href} onClick={() => setMenuMobile(false)}
+                  style={{ display: 'block', fontSize: 16, color: '#000', textDecoration: 'none', padding: '16px 0', letterSpacing: '-0.01em' }}>
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSS responsivo */}
+      <style>{`
+        @media (max-width: 768px) {
+          .ag-nav-links      { display: none !important; }
+          .ag-nav-pill-wrap  { display: none !important; }
+          .ag-mobile-btns    { display: flex !important; }
+        }
+        .ag-nav-links a:hover,
+        .ag-nav-links button:hover { color: #550fed; }
+      `}</style>
     </>
   )
 }
