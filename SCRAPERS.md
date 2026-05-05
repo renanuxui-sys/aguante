@@ -135,6 +135,7 @@ node scraper-futclassics.js             # Fut Classics (Playwright)
 node scraper-brechofc.js                # Brechó FC
 node scraper-mantosagrado.js            # Manto Sagrado Camisas
 node scraper-mundodabola.js             # Mundo da Bola
+node scraper-copero.js                  # Copero Brechó
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
 ```
@@ -344,6 +345,36 @@ $('div.product').each((_, el) => {
 ```
 
 **Filtro:** só salva produtos cujo clube foi identificado no `CLUBES_MAP` — internacionais e seleções são ignorados automaticamente.
+
+---
+
+### 10. Copero Brechó (Nuvemshop HTML)
+**Site:** `coperobrecho.net`
+**Arquivo:** `scraper-copero.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** ~226 na coleção Grêmio
+**Paginação automática:** ✅ para após 2 páginas vazias
+
+**URL:** `/gremio/` e `/gremio/page/N/`
+
+**Comandos:**
+```bash
+node scraper-copero.js --dry-run        # testa sem salvar no banco
+node scraper-copero.js                  # desativa antigos da fonte e salva ativos
+node scraper-copero.js --sem-desativar  # salva sem desativar antigos
+```
+
+**Seletores:**
+```js
+$('.js-item-product').each((_, el) => {
+  titulo = JSON-LD name || $el.find('.js-item-name').text()
+  link   = JSON-LD offers.url || $el.find('a[href*="/produtos/"]').attr('href')
+  preco  = $el.find('.js-price-display').first().text()
+  imagem = JSON-LD image || data-srcset/src da imagem principal
+})
+```
+
+**Observação:** a loja usa imagens lazy-load; quando o `src` vem como `data:image`, o scraper usa o JSON-LD ou o maior item do `data-srcset`.
 
 ---
 

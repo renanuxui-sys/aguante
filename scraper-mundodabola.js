@@ -16,6 +16,25 @@ const DELAY_MS   = 1500
 
 const supabase = criarSupabase()
 
+function urlAbsoluta(url) {
+  if (!url) return null
+  if (url.startsWith('//')) return `https:${url}`
+  if (url.startsWith('http')) return url
+  return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`
+}
+
+function extrairImagem($el) {
+  const $img = $el.find('img.lazyload, img').first()
+  const imagem = $img.attr('data-src') ||
+    $img.attr('data-original') ||
+    $img.attr('data-lazy') ||
+    $img.attr('src') ||
+    null
+
+  if (!imagem || imagem.includes('/empty.png')) return null
+  return urlAbsoluta(imagem)
+}
+
 async function rasparPagina(page) {
   const url = `${BASE_URL}/futebol-nacional?pg=${page}`
   console.log(`  📄 Página ${page}`)
@@ -27,7 +46,7 @@ async function rasparPagina(page) {
     })
     if (!res.ok) { console.warn(`  ⚠️  Status ${res.status}`); return [] }
 
-    const html = await res.text()
+    const html = Buffer.from(await res.arrayBuffer()).toString('latin1')
     const $ = cheerio.load(html)
     const produtos = []
 
@@ -36,7 +55,7 @@ async function rasparPagina(page) {
       const titulo = $el.attr('data-ga4-name') || ''
       const preco  = parseFloat($el.attr('data-ga4-price') || '0') || null
       const link   = $el.find('a.space-image').attr('href') || ''
-      const imagem = $el.find('img.lazyload').attr('src') || null
+      const imagem = extrairImagem($el)
 
       if (!titulo || !link) return
 
@@ -46,7 +65,7 @@ async function rasparPagina(page) {
 
       produtos.push({
         titulo,
-        link_original: link.startsWith('http') ? link : `${BASE_URL}${link}`,
+        link_original: urlAbsoluta(link),
         imagem_url: imagem,
         preco,
         clube,
