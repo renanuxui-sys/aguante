@@ -112,10 +112,91 @@ export const CLUBES_MAP = [
   { clube: 'Vitória',       termos: ['vitória', 'vitoria'] },
 ]
 
-export function identificarClube(titulo) {
-  const lower = (titulo || '').toLowerCase()
-  for (const { clube, termos } of CLUBES_MAP) {
-    if (termos.some(t => lower.includes(t))) return clube
+export function normalizarTexto(texto) {
+  return (texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function termoComBorda(termo) {
+  return new RegExp(`(^|[^a-z0-9])${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`)
+}
+
+function termosBaseClube(clube) {
+  const nome = clube?.nome || clube?.clube || ''
+  const slug = clube?.slug || ''
+  return [nome, slug, normalizarTexto(nome), normalizarTexto(slug).replace(/-/g, ' ')]
+    .map(t => String(t || '').replace(/-/g, ' ').trim())
+    .filter(Boolean)
+}
+
+export async function carregarClubesMap(supabase) {
+  const { data, error } = await supabase
+    .from('clubes')
+    .select('nome, slug')
+    .eq('ativo', true)
+    .order('nome', { ascending: true })
+
+  if (error || !data?.length) {
+    if (error) console.warn('  ⚠️  Não foi possível carregar clubes do banco:', error.message)
+    return CLUBES_MAP
   }
-  return null
+
+  const porClube = new Map()
+
+  for (const clube of data) {
+    const chave = normalizarTexto(clube.nome)
+    porClube.set(chave, { clube: clube.nome, termos: new Set(termosBaseClube(clube)) })
+  }
+
+  for (const clubePadrao of CLUBES_MAP) {
+    const termosPadrao = termosBaseClube(clubePadrao).concat(clubePadrao.termos)
+    const clubeDoBanco = Array.from(porClube.values()).find(item => {
+      const nome = normalizarTexto(item.clube)
+      return normalizarTexto(clubePadrao.clube) === nome ||
+        termosPadrao.some(termo => {
+          const termoNormalizado = normalizarTexto(termo)
+          return nome === termoNormalizado || nome.includes(termoNormalizado)
+        })
+    })
+    const atual = clubeDoBanco || { clube: clubePadrao.clube, termos: new Set() }
+    termosPadrao.forEach(termo => atual.termos.add(termo))
+    porClube.set(normalizarTexto(atual.clube), atual)
+  }
+
+  return Array.from(porClube.values()).map(({ clube, termos }) => ({
+    clube,
+    termos: Array.from(termos)
+      .map(termo => termo.trim())
+      .filter(Boolean),
+  }))
+}
+
+export async function carregarClubesBusca(supabase, { usado = false } = {}) {
+  const clubesMap = await carregarClubesMap(supabase)
+  return clubesMap.map(({ clube, termos }) => ({
+    clube,
+    query: `camisa ${clube}${usado ? ' usada' : ''}`,
+    termos,
+    aliases: termos.filter(termo => normalizarTexto(termo) !== normalizarTexto(clube)),
+  }))
+}
+
+export function identificarClube(titulo, clubesMap = CLUBES_MAP) {
+  const texto = normalizarTexto(titulo)
+  let melhor = null
+
+  for (const { clube, termos } of clubesMap) {
+    for (const termo of termos) {
+      const termoNormalizado = normalizarTexto(termo)
+      if (!termoNormalizado || !termoComBorda(termoNormalizado).test(texto)) continue
+      if (!melhor || termoNormalizado.length > melhor.tamanho) {
+        melhor = { clube, tamanho: termoNormalizado.length }
+      }
+    }
+  }
+
+  return melhor?.clube || null
 }

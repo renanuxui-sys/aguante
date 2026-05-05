@@ -4,7 +4,7 @@
  */
 
 import fetch from 'node-fetch'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME = 'Brechó do Futebol'
@@ -52,7 +52,7 @@ async function buscarPagina(slug, page) {
   }
 }
 
-function converterProduto(produto, clubeFixo) {
+function converterProduto(produto, clubeFixo, clubesMap) {
   const titulo   = produto.title || ''
   const link     = `${FONTE_URL}/products/${produto.handle}`
   const imagem   = produto.images?.[0]?.src || null
@@ -63,7 +63,7 @@ function converterProduto(produto, clubeFixo) {
     link_original: link,
     imagem_url: imagem,
     preco,
-    clube: clubeFixo || identificarClube(titulo),
+    clube: clubeFixo || identificarClube(titulo, clubesMap),
     ano: extrairAno(titulo),
     fonte_nome: FONTE_NOME,
     fonte_url: FONTE_URL,
@@ -74,7 +74,7 @@ function converterProduto(produto, clubeFixo) {
   }
 }
 
-async function rasparColecao({ slug, clube }) {
+async function rasparColecao({ slug, clube }, clubesMap) {
   console.log(`\n⚽ ${clube || slug}`)
   let page = 1
   let totalColecao = 0
@@ -83,7 +83,7 @@ async function rasparColecao({ slug, clube }) {
     const produtos = await buscarPagina(slug, page)
     if (produtos.length === 0) break
 
-    const convertidos = produtos.map(p => converterProduto(p, clube))
+    const convertidos = produtos.map(p => converterProduto(p, clube, clubesMap))
     const salvos = await salvarProdutos(supabase, convertidos)
     totalColecao += salvos
     console.log(`  ✅ Página ${page} — ${salvos} salvos (total: ${totalColecao})`)
@@ -100,10 +100,11 @@ async function main() {
   console.log('🚀 Scraper — Brechó do Futebol\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao)
+    totalGeral += await rasparColecao(colecao, clubesMap)
     await sleep(DELAY_MS)
   }
 

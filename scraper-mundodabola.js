@@ -5,7 +5,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.mundodabolaloja.com.br'
@@ -29,7 +29,7 @@ const COLECOES = [
   { slug: 'futebol-nacional/pernambucanos' },
 ]
 
-async function rasparPagina(slug, page) {
+async function rasparPagina(slug, page, clubesMap) {
   const url = `${BASE_URL}/${slug}/?page=${page}`
   console.log(`  📄 Página ${page}`)
 
@@ -57,7 +57,7 @@ async function rasparPagina(slug, page) {
       if (!titulo || !link) return
 
       // Só salva se identificar clube brasileiro
-      const clube = identificarClube(titulo)
+      const clube = identificarClube(titulo, clubesMap)
       if (!clube) return
 
       produtos.push({
@@ -83,7 +83,7 @@ async function rasparPagina(slug, page) {
   }
 }
 
-async function rasparColecao({ slug }) {
+async function rasparColecao({ slug }, clubesMap) {
   console.log(`\n⚽ ${slug}`)
 
   let page = 1
@@ -91,7 +91,7 @@ async function rasparColecao({ slug }) {
   let paginasVazias = 0
 
   while (true) {
-    const produtos = await rasparPagina(slug, page)
+    const produtos = await rasparPagina(slug, page, clubesMap)
 
     if (produtos.length === 0) {
       paginasVazias++
@@ -114,10 +114,11 @@ async function main() {
   console.log('🚀 Scraper — Mundo da Bola\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao)
+    totalGeral += await rasparColecao(colecao, clubesMap)
     await sleep(DELAY_MS)
   }
 

@@ -5,7 +5,7 @@
 
 import { chromium } from 'playwright'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.atroxcasualclub.com'
@@ -113,7 +113,7 @@ async function rasparPagina(page, slug, pagina) {
   }
 }
 
-async function rasparColecao(browser, { slug, clube }) {
+async function rasparColecao(browser, { slug, clube }, clubesMap) {
   console.log(`\n⚽ ${clube || slug}`)
 
   const page = await browser.newPage()
@@ -137,7 +137,7 @@ async function rasparColecao(browser, { slug, clube }) {
         link_original: p.link,
         imagem_url: imagemValida(p.imagem) ? p.imagem : null,
         preco: p.preco,
-        clube: clube || identificarClube(p.titulo),
+        clube: clube || identificarClube(p.titulo, clubesMap),
         ano: extrairAno(p.titulo),
         fonte_nome: FONTE_NOME,
         fonte_url: FONTE_URL,
@@ -164,6 +164,7 @@ async function main() {
   console.log('🚀 Scraper — Atrox Casual Club (Playwright)\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   const browser = await chromium.launch({ headless: true })
 
@@ -171,7 +172,7 @@ async function main() {
 
   try {
     for (const colecao of COLECOES) {
-      totalGeral += await rasparColecao(browser, colecao)
+      totalGeral += await rasparColecao(browser, colecao, clubesMap)
       await sleep(DELAY_MS)
     }
   } finally {

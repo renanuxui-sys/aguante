@@ -25,6 +25,8 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   const [alertaAberto, setAlertaAberto] = useState(false)
   const [favoritado, setFavoritado]     = useState(false)
   const [likes, setLikes]               = useState(0)
+  const [clubeAlerta, setClubeAlerta]   = useState('')
+  const [anoAlerta, setAnoAlerta]       = useState('')
   const [nomeAlerta, setNomeAlerta]     = useState('')
   const [emailAlerta, setEmailAlerta]   = useState('')
   const [statusAlerta, setStatusAlerta] = useState<StatusAlerta>('idle')
@@ -45,6 +47,8 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
       setProduto(prod)
       setLikes(prod?.likes || 0)
+      setClubeAlerta(prod?.clube || '')
+      setAnoAlerta(prod?.ano || '')
 
       if (typeof window !== 'undefined') {
         const curtidos = JSON.parse(sessionStorage.getItem('aguante_curtidos') || '[]')
@@ -95,12 +99,21 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
   async function handleCriarAlerta(e: React.FormEvent) {
     e.preventDefault()
-    if (!nomeAlerta.trim() || !emailAlerta.trim() || !produto) return
+    if (!clubeAlerta.trim() || !anoAlerta.trim() || !nomeAlerta.trim() || !emailAlerta.trim() || !produto) return
     setStatusAlerta('loading')
-    const { error } = await supabase.from('alertas').insert({
-      email: emailAlerta.trim(), clube: produto.clube,
-      palavra_chave: produto.titulo, ativo: true,
-    })
+    const alertaBase = {
+      email: emailAlerta.trim(),
+      clube: clubeAlerta.trim(),
+      palavra_chave: `${clubeAlerta.trim()} ${anoAlerta.trim()}`,
+      ativo: true,
+    }
+    const alertaCompleto = { ...alertaBase, nome: nomeAlerta.trim(), ano: anoAlerta.trim() }
+
+    let { error } = await supabase.from('alertas').insert(alertaCompleto)
+    if (error) {
+      const fallback = await supabase.from('alertas').insert(alertaBase)
+      error = fallback.error
+    }
     if (error) { setStatusAlerta('error'); return }
     setStatusAlerta('success')
     setNomeAlerta('')
@@ -110,6 +123,8 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   function fecharAlerta() {
     setAlertaAberto(false)
     setStatusAlerta('idle')
+    setClubeAlerta(produto?.clube || '')
+    setAnoAlerta(produto?.ano || '')
     setNomeAlerta('')
     setEmailAlerta('')
   }
@@ -183,6 +198,18 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     </a>
   )
 
+  const CardAlerta = () => (
+    <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <p style={{ fontWeight: 300, fontSize: 15, color: '#000', lineHeight: 1.3 }}>
+        <strong style={{ fontWeight: 700 }}>Quer ser avisado</strong> quando aparecer outra igual?
+      </p>
+      <button onClick={() => setAlertaAberto(true)} style={{ border: '1px solid #550fed', borderRadius: 12, padding: '12px 16px', background: 'transparent', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: '#000', whiteSpace: 'nowrap' }}>criar alerta</span>
+        <img src={imgIconNotify} alt="" style={{ width: 20, height: 20 }} />
+      </button>
+    </div>
+  )
+
   return (
     <>
       <style>{`
@@ -248,21 +275,11 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                       </button>
                     </div>
                   </div>
-                  <div style={{ background: '#fff', borderRadius: 16, padding: '8px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
-                    <p style={{ fontWeight: 300, fontSize: 18, color: '#000', letterSpacing: '-0.9px', lineHeight: 1.2, maxWidth: 264 }}>
-                      <strong style={{ fontWeight: 700 }}>Quer ser avisado </strong>quando aparecer outra igual a essa?
-                    </p>
-                    <div style={{ padding: 8, width: 168, flexShrink: 0 }}>
-                      <button onClick={() => setAlertaAberto(true)} style={{ width: '100%', border: '1px solid #550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 24px', background: 'transparent', cursor: 'pointer', fontFamily: 'Onest, sans-serif' }}>
-                        <span style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.14px', whiteSpace: 'nowrap' }}>criar alerta</span>
-                        <img src={imgIconNotify} alt="" style={{ width: 24, height: 24 }} />
-                      </button>
-                    </div>
-                  </div>
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 40 }}>
                   <BlocoInfos />
                   <BotaoAnuncio />
+                  <CardAlerta />
                 </div>
               </div>
             </div>
@@ -294,15 +311,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
           <div style={{ padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 32 }}>
             <BlocoInfos />
             <BotaoAnuncio fullWidth />
-            <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <p style={{ fontWeight: 300, fontSize: 15, color: '#000', lineHeight: 1.3 }}>
-                <strong style={{ fontWeight: 700 }}>Quer ser avisado</strong> quando aparecer outra igual?
-              </p>
-              <button onClick={() => setAlertaAberto(true)} style={{ border: '1px solid #550fed', borderRadius: 12, padding: '12px 16px', background: 'transparent', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <span style={{ fontWeight: 700, fontSize: 13, color: '#000', whiteSpace: 'nowrap' }}>criar alerta</span>
-                <img src={imgIconNotify} alt="" style={{ width: 20, height: 20 }} />
-              </button>
-            </div>
+            <CardAlerta />
           </div>
         </div>
 
@@ -350,11 +359,19 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                 <p style={{ fontWeight: 700, fontSize: 24, color: '#000', letterSpacing: '-0.48px', lineHeight: 1.2, marginBottom: 32 }}>{produto.titulo}{produto.ano ? ` ${produto.ano}` : ''}</p>
                 <form onSubmit={handleCriarAlerta} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <label style={{ fontSize: 14, color: '#62748c', letterSpacing: '-0.14px', lineHeight: 1.2 }}>Qual o seu nome?</label>
+                    <label style={{ fontSize: 14, color: '#62748c', letterSpacing: '-0.14px', lineHeight: 1.2 }}>Clube</label>
+                    <input type="text" value={clubeAlerta} onChange={e => setClubeAlerta(e.target.value)} required style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 16, padding: '14px 24px', height: 48, fontSize: 14, outline: 'none', fontFamily: 'Onest, sans-serif', width: '100%' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={{ fontSize: 14, color: '#62748c', letterSpacing: '-0.14px', lineHeight: 1.2 }}>Ano</label>
+                    <input type="text" value={anoAlerta} onChange={e => setAnoAlerta(e.target.value)} required style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 16, padding: '14px 24px', height: 48, fontSize: 14, outline: 'none', fontFamily: 'Onest, sans-serif', width: '100%' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={{ fontSize: 14, color: '#62748c', letterSpacing: '-0.14px', lineHeight: 1.2 }}>Nome</label>
                     <input type="text" value={nomeAlerta} onChange={e => setNomeAlerta(e.target.value)} required style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 16, padding: '14px 24px', height: 48, fontSize: 14, outline: 'none', fontFamily: 'Onest, sans-serif', width: '100%' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <label style={{ fontSize: 14, color: '#62748c', letterSpacing: '-0.14px', lineHeight: 1.2 }}>Digite o seu melhor e-mail</label>
+                    <label style={{ fontSize: 14, color: '#62748c', letterSpacing: '-0.14px', lineHeight: 1.2 }}>E-mail</label>
                     <input type="email" value={emailAlerta} onChange={e => setEmailAlerta(e.target.value)} required style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 16, padding: '14px 24px', height: 48, fontSize: 14, outline: 'none', fontFamily: 'Onest, sans-serif', width: '100%' }} />
                   </div>
                   {statusAlerta === 'error' && <p style={{ fontSize: 12, color: '#e05', fontFamily: 'Onest, sans-serif' }}>Erro ao criar alerta. Tente novamente.</p>}

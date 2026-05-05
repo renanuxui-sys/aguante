@@ -36,7 +36,7 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
   const router = useRouter()
   if (produtos.length === 0) return null
   return (
-    <section style={{ background: '#f5f5f5', paddingBottom: 112 }}>
+    <section style={{ background: '#f5f5f5', paddingBottom: 56 }}>
       <div className="ag-container">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 12 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -113,7 +113,6 @@ export default function Home() {
 
   const quantidadeDestaques = isMobile ? 6 : 5
   const emAltaVisiveis = emAlta.slice(0, isMobile ? 6 : 10)
-  const clubesVisiveis = isMobile ? [...clubes, ...clubes] : clubes
 
   const totalFmt = totalProdutos !== null ? totalProdutos.toLocaleString('pt-BR') : '...'
   const novosFmt = novosHoje !== null ? novosHoje.toLocaleString('pt-BR') : '...'
@@ -131,6 +130,7 @@ export default function Home() {
         .ag-hero-stats-inline { display: none; }
         .ag-hero-blocos { display: flex; }
         .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .ag-clubes-mobile-track { display: none; }
         .ag-ver-todas-txt { display: inline; }
         @keyframes ag-clubes-slide {
           from { transform: translateX(0); }
@@ -157,17 +157,23 @@ export default function Home() {
             overflow: hidden !important;
           }
           .ag-clubes-grid {
-            flex-wrap: nowrap !important;
-            overflow: visible !important;
-            justify-content: flex-start !important;
-            gap: 16px !important;
-            padding: 0 24px 8px !important;
-            width: max-content !important;
-            animation: ag-clubes-slide 36s linear infinite !important;
-            scrollbar-width: none !important;
+            display: none !important;
           }
-          .ag-clubes-grid::-webkit-scrollbar { display: none; }
-          .ag-clubes-grid button { flex-shrink: 0 !important; }
+          .ag-clubes-mobile-track {
+            display: flex !important;
+            width: max-content !important;
+            animation: ag-clubes-slide 32s linear infinite !important;
+            will-change: transform;
+          }
+          .ag-clubes-mobile-set {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 0 8px 8px 24px;
+            flex-shrink: 0;
+          }
+          .ag-clubes-mobile-set + .ag-clubes-mobile-set { padding-left: 8px; }
+          .ag-clubes-mobile-set button { flex-shrink: 0 !important; }
         }
 
         @media (min-width: 769px) and (max-width: 1024px) {
@@ -274,20 +280,34 @@ export default function Home() {
 
         {/* ══ CLUBES ══ */}
         {clubes.length > 0 && (
-          <section style={{ background: '#f5f5f5', paddingTop: 50, paddingBottom: 50 }}>
+          <section style={{ background: '#f5f5f5', paddingTop: 24, paddingBottom: 88 }}>
             <div className="ag-container">
               <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
                 Os <strong>mais populares</strong> do Brasil
               </p>
               <div className="ag-clubes-wrapper">
                 <div className="ag-clubes-grid">
-                  {clubesVisiveis.map((c, index) => (
-                    <button key={`${c.id}-${index}`} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} aria-hidden={index >= clubes.length ? true : undefined} tabIndex={index >= clubes.length ? -1 : undefined} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {clubes.map(c => (
+                    <button key={c.id} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {c.escudo_url
                         ? <img src={c.escudo_url} alt={c.nome} style={{ width: 48, height: 48, objectFit: 'contain' }} />
                         : <span style={{ fontSize: 12, color: '#62748c', fontFamily: 'Onest, sans-serif' }}>{c.nome}</span>
                       }
                     </button>
+                  ))}
+                </div>
+                <div className="ag-clubes-mobile-track">
+                  {[0, 1].map(copia => (
+                    <div key={copia} className="ag-clubes-mobile-set" aria-hidden={copia === 1 ? true : undefined}>
+                      {clubes.map(c => (
+                        <button key={`${c.id}-${copia}`} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} tabIndex={copia === 1 ? -1 : undefined} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {c.escudo_url
+                            ? <img src={c.escudo_url} alt={c.nome} style={{ width: 48, height: 48, objectFit: 'contain' }} />
+                            : <span style={{ fontSize: 12, color: '#62748c', fontFamily: 'Onest, sans-serif' }}>{c.nome}</span>
+                          }
+                        </button>
+                      ))}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -300,7 +320,7 @@ export default function Home() {
 
         {/* Em alta */}
         {emAlta.length > 0 && (
-          <section style={{ background: '#f5f5f5', paddingBottom: 112 }}>
+          <section style={{ background: '#f5f5f5', paddingBottom: 80 }}>
             <div className="ag-container">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

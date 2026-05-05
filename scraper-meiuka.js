@@ -4,7 +4,7 @@
  */
 
 import fetch from 'node-fetch'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, carregarClubesBusca, normalizarTexto, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME    = 'Meiuka'
@@ -96,9 +96,17 @@ async function main() {
   console.log('🚀 Scraper — Meiuka\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesDinamicos = await carregarClubesBusca(supabase)
+  const clubes = clubesDinamicos.map(clubeDinamico => {
+    const padrao = CLUBES.find(item => normalizarTexto(item.clube) === normalizarTexto(clubeDinamico.clube))
+    return {
+      clube: clubeDinamico.clube,
+      query: padrao?.query || normalizarTexto(clubeDinamico.clube),
+    }
+  })
 
   let totalGeral = 0
-  for (const fonte of CLUBES) {
+  for (const fonte of clubes) {
     totalGeral += await rasparClube(fonte)
     await sleep(DELAY_MS)
   }

@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TODOS_CLUBES } from './Navbar'
 import { supabase } from '@/lib/supabase'
 
 const imgLogo = "/assets/logo.svg"
+const imgChevronDown = "/assets/chevron-down.svg"
 
 type Status = 'idle' | 'loading' | 'success' | 'error' | 'duplicate'
 
@@ -12,6 +13,26 @@ export default function Footer() {
   const [clube, setClube] = useState('')
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>('idle')
+  const [clubes, setClubes] = useState<string[]>([])
+
+  useEffect(() => {
+    async function carregarClubes() {
+      const { data } = await supabase
+        .from('clubes')
+        .select('nome')
+        .eq('ativo', true)
+        .order('nome', { ascending: true })
+
+      const nomes = data?.map(c => c.nome).filter(Boolean) || TODOS_CLUBES
+      const unicos = Array.from(new Set(nomes)).filter(nome => nome !== 'Outro').sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      setClubes([...unicos, 'Outro'])
+    }
+
+    carregarClubes()
+
+    const clubeSalvo = localStorage.getItem('aguante_clube_preferencia')
+    if (clubeSalvo && clubeSalvo !== 'nao_escolheu') setClube(clubeSalvo)
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -78,14 +99,18 @@ export default function Footer() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                   <label style={{ fontSize: 14, color: '#62748c', letterSpacing: '-0.14px', lineHeight: 1.2 }}>Qual o seu clube de coração?</label>
-                  <select
-                    className="ag-select"
-                    value={clube}
-                    onChange={e => setClube(e.target.value)}
-                  >
-                    <option value="">selecione</option>
-                    {TODOS_CLUBES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <select
+                      className="ag-select"
+                      value={clube}
+                      onChange={e => setClube(e.target.value)}
+                      style={{ paddingRight: 52 }}
+                    >
+                      <option value="">selecione</option>
+                      {clubes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <img src={imgChevronDown} alt="" style={{ position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, pointerEvents: 'none' }} />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>

@@ -491,6 +491,8 @@ body {
   .ag-card-row > a { width: 100% !important; height: auto !important; }
   .ag-mercados { grid-template-columns: repeat(2,1fr) !important; }
   .ag-cta-form { flex-direction: column !important; }
+  .ag-cta-form > div { width: 100% !important; align-self: stretch !important; }
+  .ag-cta-form .ag-btn-cadastrar { width: 100%; justify-content: center; }
   .ag-submenu-grid { grid-template-columns: repeat(2,1fr) !important; }
 }
 

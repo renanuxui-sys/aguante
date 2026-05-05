@@ -5,7 +5,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL    = 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/brasil'
@@ -22,7 +22,7 @@ function limparPreco(texto) {
   return match ? parseFloat(match[0]) : null
 }
 
-async function rasparPagina(pagina) {
+async function rasparPagina(pagina, clubesMap) {
   const url = pagina === 1 ? `${BASE_URL}/` : `${BASE_URL}/page/${pagina}/`
   console.log(`  📄 Página ${pagina}/${TOTAL_PAGINAS}`)
 
@@ -53,7 +53,7 @@ async function rasparPagina(pagina) {
         link_original: link,
         imagem_url: imagem,
         preco: limparPreco(precoTxt),
-        clube: identificarClube(titulo),
+        clube: identificarClube(titulo, clubesMap),
         ano: extrairAno(titulo),
         fonte_nome: FONTE_NOME,
         fonte_url: FONTE_URL,
@@ -76,12 +76,13 @@ async function main() {
 
   // 1. Desativa todos os produtos desta fonte antes de começar
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   let totalSalvos = 0
   let erros = 0
 
   for (let pagina = 1; pagina <= TOTAL_PAGINAS; pagina++) {
-    const produtos = await rasparPagina(pagina)
+    const produtos = await rasparPagina(pagina, clubesMap)
 
     if (produtos.length > 0) {
       const salvos = await salvarProdutos(supabase, produtos)

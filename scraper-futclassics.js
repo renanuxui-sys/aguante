@@ -5,7 +5,7 @@
 
 import { chromium } from 'playwright'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const URL_BRASILEIROS = 'https://www.futclassics.com.br/clubes-brasileiros'
@@ -30,6 +30,7 @@ async function main() {
   console.log('🚀 Scraper — Fut Classics\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
@@ -89,7 +90,7 @@ async function main() {
       link_original: linkFull,
       imagem_url: imagem,
       preco: isNaN(preco) ? null : preco,
-      clube: identificarClube(titulo),
+      clube: identificarClube(titulo, clubesMap),
       ano: extrairAno(titulo),
       fonte_nome: FONTE_NOME,
       fonte_url: FONTE_URL,

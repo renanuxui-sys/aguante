@@ -5,7 +5,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://jaiminhocamisas.lojavirtualnuvem.com.br'
@@ -91,7 +91,7 @@ async function rasparPagina(slug, page) {
   }
 }
 
-async function rasparColecao({ slug, clube }) {
+async function rasparColecao({ slug, clube }, clubesMap) {
   console.log(`\n⚽ ${clube || slug}`)
   let page = 1
   let totalColecao = 0
@@ -110,7 +110,7 @@ async function rasparColecao({ slug, clube }) {
         link_original: p.link,
         imagem_url: p.imagem,
         preco: p.preco,
-        clube: clube || identificarClube(p.titulo),
+        clube: clube || identificarClube(p.titulo, clubesMap),
         ano: extrairAno(p.titulo),
         fonte_nome: FONTE_NOME,
         fonte_url: FONTE_URL,
@@ -135,10 +135,11 @@ async function main() {
   console.log('🚀 Scraper — Jaiminho Camisas\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao)
+    totalGeral += await rasparColecao(colecao, clubesMap)
     await sleep(DELAY_MS)
   }
 

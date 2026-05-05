@@ -5,7 +5,7 @@
  */
 
 import fetch from 'node-fetch'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, carregarClubesBusca, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME = 'Mercado Livre'
@@ -65,10 +65,25 @@ function parseArgs() {
   return { clubesSelecionados, maxPaginas, dryRun, semDesativar }
 }
 
-function filtrarClubes(clubesSelecionados) {
-  if (clubesSelecionados.length === 0) return CLUBES
+async function carregarClubesDisponiveis() {
+  const dinamicos = await carregarClubesBusca(supabase)
 
-  return CLUBES.filter(({ clube, aliases = [] }) => {
+  return dinamicos.map(clubeDinamico => {
+    const padrao = CLUBES.find(item => normalizarTexto(item.clube) === normalizarTexto(clubeDinamico.clube))
+    const aliases = Array.from(new Set([...(padrao?.aliases || []), ...(clubeDinamico.aliases || [])]))
+
+    return {
+      clube: clubeDinamico.clube,
+      query: padrao?.query || clubeDinamico.query,
+      aliases,
+    }
+  })
+}
+
+function filtrarClubes(clubesSelecionados, clubesDisponiveis) {
+  if (clubesSelecionados.length === 0) return clubesDisponiveis
+
+  return clubesDisponiveis.filter(({ clube, aliases = [] }) => {
     const nomes = [clube, ...aliases].map(normalizarTexto)
     return clubesSelecionados.some(clubeSelecionado => nomes.includes(clubeSelecionado))
   })
@@ -234,7 +249,8 @@ async function main() {
   console.log('🚀 Scraper — Mercado Livre\n')
 
   const options = parseArgs()
-  const clubesParaRaspar = filtrarClubes(options.clubesSelecionados)
+  const clubesDisponiveis = await carregarClubesDisponiveis()
+  const clubesParaRaspar = filtrarClubes(options.clubesSelecionados, clubesDisponiveis)
 
   if (clubesParaRaspar.length === 0) {
     throw new Error('Nenhum clube encontrado para o filtro informado.')
