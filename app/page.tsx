@@ -68,8 +68,14 @@ export default function Home() {
   const [clubes, setClubes]       = useState<Clube[]>([])
   const [totalProdutos, setTotalProdutos] = useState<number | null>(null)
   const [novosHoje, setNovosHoje] = useState<number | null>(null)
+  const [isMobile, setIsMobile]   = useState(false)
 
   useEffect(() => {
+    const media = window.matchMedia('(max-width: 768px)')
+    const updateMobile = () => setIsMobile(media.matches)
+    updateMobile()
+    media.addEventListener('change', updateMobile)
+
     supabase.from('produtos').select('*', { count: 'exact', head: true }).eq('ativo', true)
       .then(({ count }) => setTotalProdutos(count))
 
@@ -80,7 +86,7 @@ export default function Home() {
 
     supabase.from('produtos').select('*').eq('ativo', true)
       .order('created_at', { ascending: false }).limit(30)
-      .then(({ data }) => { if (data) setNovidades(embaralhar(data).slice(0, 5)) })
+      .then(({ data }) => { if (data) setNovidades(embaralhar(data).slice(0, 6)) })
 
     supabase.from('produtos').select('*').eq('ativo', true)
       .order('views', { ascending: false, nullsFirst: false })
@@ -90,12 +96,14 @@ export default function Home() {
 
     supabase.from('produtos').select('*').eq('ativo', true)
       .gte('ano', '1980').lte('ano', '1989').limit(20)
-      .then(({ data }) => { if (data) setAnos80(embaralhar(data).slice(0, 5)) })
+      .then(({ data }) => { if (data) setAnos80(embaralhar(data).slice(0, 6)) })
 
     supabase.from('clubes').select('id, nome, slug, escudo_url')
       .eq('pais', 'Brasil').eq('destaque', true).eq('ativo', true)
       .order('ordem', { ascending: true })
       .then(({ data }) => { if (data) setClubes(data) })
+
+    return () => media.removeEventListener('change', updateMobile)
   }, [])
 
   function handleSearch(e: React.FormEvent) {
@@ -103,8 +111,9 @@ export default function Home() {
     if (query.trim()) router.push(`/search?q=${encodeURIComponent(query.trim())}`)
   }
 
-  const emAltaLinha1 = emAlta.slice(0, 5)
-  const emAltaLinha2 = emAlta.slice(5, 10)
+  const quantidadeDestaques = isMobile ? 6 : 5
+  const emAltaVisiveis = emAlta.slice(0, isMobile ? 6 : 10)
+  const clubesVisiveis = isMobile ? [...clubes, ...clubes] : clubes
 
   const totalFmt = totalProdutos !== null ? totalProdutos.toLocaleString('pt-BR') : '...'
   const novosFmt = novosHoje !== null ? novosHoje.toLocaleString('pt-BR') : '...'
@@ -114,15 +123,19 @@ export default function Home() {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         .ag-container { max-width: 1140px; margin: 0 auto; padding: 0 24px; width: 100%; }
-        .ag-card { width: 218px; height: 325px; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; margin-bottom: 32px; }
+        .ag-card { width: 100%; height: 325px; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; margin-bottom: 32px; }
         .ag-card:hover { transform: translateY(-3px); }
-        .ag-cards { display: grid; grid-template-columns: repeat(5, 218px); gap: 12px; }
+        .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         .ag-hero-img { display: block; }
         .ag-hero-stats-inline { display: none; }
         .ag-hero-blocos { display: flex; }
         .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
         .ag-ver-todas-txt { display: inline; }
+        @keyframes ag-clubes-slide {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
 
         @media (max-width: 768px) {
           .ag-ver-todas-txt { display: none !important; }
@@ -141,13 +154,16 @@ export default function Home() {
           /* Clubes em scroll horizontal */
           .ag-clubes-wrapper {
             margin: 0 -24px !important;
+            overflow: hidden !important;
           }
           .ag-clubes-grid {
             flex-wrap: nowrap !important;
-            overflow-x: auto !important;
+            overflow: visible !important;
             justify-content: flex-start !important;
             gap: 16px !important;
             padding: 0 24px 8px !important;
+            width: max-content !important;
+            animation: ag-clubes-slide 36s linear infinite !important;
             scrollbar-width: none !important;
           }
           .ag-clubes-grid::-webkit-scrollbar { display: none; }
@@ -155,7 +171,7 @@ export default function Home() {
         }
 
         @media (min-width: 769px) and (max-width: 1024px) {
-          .ag-cards { grid-template-columns: repeat(3, 218px) !important; }
+          .ag-cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
         }
       `}</style>
 
@@ -199,10 +215,10 @@ export default function Home() {
 
               {/* Stats inline — só mobile */}
               <div className="ag-hero-stats-inline" style={{ flexDirection: 'column', gap: 8, marginTop: 20 }}>
-                <p style={{ fontSize: 14, color: '#282828', letterSpacing: '-0.01em', lineHeight: 1.4 }}>
+                <p style={{ textAlign:'center', fontSize: 14, color: '#282828', letterSpacing: '-0.01em', lineHeight: 1.4 }}>
                   <strong style={{ color: '#550fed', fontWeight: 700 }}>{novosFmt} {novosHoje === 1 ? 'novo anúncio' : 'novos anúncios'}</strong> encontrados hoje.
                 </p>
-                <p style={{ fontSize: 14, color: '#282828', letterSpacing: '-0.01em', lineHeight: 1.4 }}>
+                <p style={{ textAlign:'center', fontSize: 14, color: '#282828', letterSpacing: '-0.01em', lineHeight: 1.4 }}>
                   <strong style={{ color: '#550fed', fontWeight: 700 }}>{totalFmt} camisas</strong> encontradas em diversos sites.
                 </p>
               </div>
@@ -265,8 +281,8 @@ export default function Home() {
               </p>
               <div className="ag-clubes-wrapper">
                 <div className="ag-clubes-grid">
-                  {clubes.map(c => (
-                    <button key={c.id} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {clubesVisiveis.map((c, index) => (
+                    <button key={`${c.id}-${index}`} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} aria-hidden={index >= clubes.length ? true : undefined} tabIndex={index >= clubes.length ? -1 : undefined} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {c.escudo_url
                         ? <img src={c.escudo_url} alt={c.nome} style={{ width: 48, height: 48, objectFit: 'contain' }} />
                         : <span style={{ fontSize: 12, color: '#62748c', fontFamily: 'Onest, sans-serif' }}>{c.nome}</span>
@@ -279,8 +295,8 @@ export default function Home() {
           </section>
         )}
 
-        <SecaoCards titulo="Novidades encontradas" produtos={novidades} linkTodas="/search" />
-        <SecaoCards titulo="Camisas dos anos 80" produtos={anos80} linkTodas="/search?decada=80" />
+        <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search" />
+        <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 
         {/* Em alta */}
         {emAlta.length > 0 && (
@@ -304,14 +320,9 @@ export default function Home() {
                   <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
-              <div className="ag-cards" style={{ marginBottom: 12 }}>
-                {emAltaLinha1.map(p => <CardProduto key={`h1-${p.id}`} produto={p} />)}
+              <div className="ag-cards">
+                {emAltaVisiveis.map(p => <CardProduto key={`alta-${p.id}`} produto={p} />)}
               </div>
-              {emAltaLinha2.length > 0 && (
-                <div className="ag-cards">
-                  {emAltaLinha2.map(p => <CardProduto key={`h2-${p.id}`} produto={p} />)}
-                </div>
-              )}
             </div>
           </section>
         )}

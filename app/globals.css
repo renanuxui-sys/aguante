@@ -29,7 +29,7 @@ body {
    CARD DE PRODUTO
 ============================================================ */
 .ag-card {
-  width: 218px;
+  width: 100%;
   height: 325px;
   border-radius: 16px;
   overflow: visible;
@@ -446,7 +446,7 @@ body {
 ============================================================ */
 .ag-cards {
   display: grid;
-  grid-template-columns: repeat(5, 218px);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 .ag-card-row {
@@ -486,7 +486,7 @@ body {
   .ag-nav-pill-wrap { display: none; }
   .ag-hamburger { display: flex; }
   .ag-cards { grid-template-columns: repeat(2,1fr) !important; }
-  .ag-card { width: 100% !important; height: auto !important; }
+  .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
   .ag-card-row { display: grid !important; grid-template-columns: repeat(2,1fr); gap: 10px; }
   .ag-card-row > a { width: 100% !important; height: auto !important; }
   .ag-mercados { grid-template-columns: repeat(2,1fr) !important; }
@@ -495,6 +495,6 @@ body {
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
-  .ag-cards { grid-template-columns: repeat(3, 218px) !important; }
+  .ag-cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .ag-mercados { grid-template-columns: repeat(3,1fr) !important; }
 }

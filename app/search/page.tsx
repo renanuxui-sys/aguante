@@ -8,10 +8,27 @@ import { supabase } from '@/lib/supabase'
 import type { Produto } from '@/types'
 
 const imgBgHero      = "https://www.figma.com/api/mcp/asset/edd4f565-9eae-4473-819e-86ec35f69e85"
-const imgArrowLeft   = "https://www.figma.com/api/mcp/asset/3fd80195-aaa1-496d-8fe9-004e1e8272cf"
-const imgChevronDown = "https://www.figma.com/api/mcp/asset/c5b80643-ab70-4381-94cd-3496ac846c89"
+const imgArrowLeft   = "/assets/arrow-left.svg"
+const imgChevronDown = "/assets/chevron-down.svg"
+const imgFire        = "/assets/fire-alt-solid.svg"
 
 const POR_PAGINA = 20
+
+type FiltroBusca = {
+  label: string
+  params: Record<string, string>
+  icon?: string
+}
+
+const filtros: FiltroBusca[] = [
+  { label: 'em alta', params: { ordenar: 'mais-vistos' }, icon: imgFire },
+  { label: 'Anos 70', params: { decada: '70' } },
+  { label: 'Anos 80', params: { decada: '80' } },
+  { label: 'Anos 90', params: { decada: '90' } },
+  { label: 'Anos 2000', params: { decada: '2000' } },
+  { label: 'De jogo', params: { de_jogo: 'true' } },
+]
+const filtroKeys = ['ordenar', 'decada', 'de_jogo']
 
 function SearchContent() {
   const searchParams = useSearchParams()
@@ -19,6 +36,7 @@ function SearchContent() {
   const q       = searchParams.get('q') || ''
   const decada  = searchParams.get('decada')
   const ordenar = searchParams.get('ordenar')
+  const deJogo  = searchParams.get('de_jogo') === 'true'
 
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [total, setTotal]       = useState(0)
@@ -29,7 +47,7 @@ function SearchContent() {
   useEffect(() => {
     setLoading(true)
     setPagina(1)
-  }, [q, decada, ordenar])
+  }, [q, decada, ordenar, deJogo])
 
   useEffect(() => {
     setLoading(true)
@@ -52,6 +70,10 @@ function SearchContent() {
       query = query.gte('ano', String(inicio)).lte('ano', String(fim))
     }
 
+    if (deJogo) {
+      query = query.eq('de_jogo', true)
+    }
+
     // Ordenação
     if (ordem === 'menor preço') {
       query = query.order('preco', { ascending: true, nullsFirst: false })
@@ -69,13 +91,9 @@ function SearchContent() {
         setTotal(count || 0)
         setLoading(false)
       })
-  }, [q, decada, ordenar, ordem, pagina])
+  }, [q, decada, ordenar, deJogo, ordem, pagina])
 
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
-
-  // Divide em linhas de 5
-  const rows: Produto[][] = []
-  for (let i = 0; i < produtos.length; i += 5) rows.push(produtos.slice(i, i + 5))
 
   // Título da página dependendo do contexto
   const tituloContexto = decada
@@ -94,19 +112,54 @@ function SearchContent() {
   const paginasExib = paginasParaExibir()
   const mostrarReticencias = totalPaginas > 5 && paginasExib[paginasExib.length - 1] < totalPaginas
 
+  function aplicarFiltro(params: Record<string, string>) {
+    const next = new URLSearchParams(searchParams.toString())
+    const ativo = filtroAtivo(params)
+    filtroKeys.forEach(key => next.delete(key))
+    if (!ativo) {
+      Object.entries(params).forEach(([key, value]) => next.set(key, value))
+    }
+    next.delete('pagina')
+    const qs = next.toString()
+    router.push(qs ? `/search?${qs}` : '/search')
+  }
+
+  function filtroAtivo(params: Record<string, string>) {
+    return Object.entries(params).every(([key, value]) => searchParams.get(key) === value)
+  }
+
   return (
     <>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         .ag-container { max-width: 1140px; margin: 0 auto; padding: 0 24px; width: 100%; }
-        .ag-card { width: 218px; height: 325px; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; }
+        .ag-card { width: 100%; height: 325px; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; }
         .ag-card:hover { transform: translateY(-3px); }
-        .ag-card-row { display: flex; gap: 12px; margin-bottom: 40px; }
+        .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 40px; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
+        .ag-listing-head { display: flex; align-items: flex-start; flex-direction: column; gap: 28px; }
+        .ag-title-row { display: flex; align-items: center; gap: 28px; }
+        .ag-filter-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; width: 100%; }
+        .ag-filter-tags-wrap { max-width: 100%; min-width: 0; position: relative; }
+        .ag-filter-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .ag-filter-tag { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 12px; border-radius: 8px; border: none; background: #fff; color: #000; font: 400 14px/1.2 Onest, sans-serif; letter-spacing: -0.14px; cursor: pointer; }
+        .ag-filter-tag-active { background: #550fed; color: #fff; }
         @media (max-width: 768px) {
-          .ag-card-row { display: grid !important; grid-template-columns: repeat(2,1fr); gap: 10px; }
-          .ag-card-row > a { width: 100% !important; height: auto !important; }
+          .ag-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; }
+          .ag-card { height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
+          .ag-title-row { gap: 12px; }
+          .ag-title-row p { font-size: 26px !important; white-space: normal !important; }
+          .ag-result-summary { font-size: 18px !important; }
+          .ag-filter-row { align-items: flex-start; flex-direction: column; }
+          .ag-filter-tags-wrap { width: 100%; }
+          .ag-filter-tags-wrap::after { content: ""; position: absolute; top: 0; right: 0; bottom: 4px; width: 44px; pointer-events: none; background: linear-gradient(to right, rgba(245,245,245,0), rgba(245,245,245,1)); }
+          .ag-filter-tags { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+          .ag-filter-tags::-webkit-scrollbar { display: none; }
+          .ag-filter-tag { flex-shrink: 0; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .ag-cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
         }
       `}</style>
 
@@ -120,17 +173,18 @@ function SearchContent() {
           </div>
 
           <div className="ag-container" style={{ position: 'relative', zIndex: 2, paddingTop: 86, paddingBottom: 40 }}>
-            <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', marginBottom: 16 }}>
-              <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' as const }}>
+            <div className="ag-listing-head">
               <div>
-                <p style={{ fontWeight: 700, fontSize: 32, color: '#000', letterSpacing: '-0.64px', whiteSpace: 'nowrap' as const }}>
-                  {tituloContexto}
-                </p>
+                <div className="ag-title-row">
+                  <button onClick={() => router.back()} aria-label="Voltar" style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+                    <img src={imgArrowLeft} alt="" style={{ width: 24, height: 24 }} />
+                  </button>
+                  <p style={{ fontWeight: 700, fontSize: 32, color: '#000', letterSpacing: '-0.64px', whiteSpace: 'nowrap' as const }}>
+                    {tituloContexto}
+                  </p>
+                </div>
                 {!loading && (
-                  <p style={{ fontWeight: 300, fontSize: 24, color: '#000', letterSpacing: '-0.48px', lineHeight: 1.2, marginTop: 4 }}>
+                  <p className="ag-result-summary" style={{ fontWeight: 300, fontSize: 24, color: '#000', letterSpacing: '-0.48px', lineHeight: 1.2, marginTop: 40 }}>
                     {total > 0 ? (
                       <>
                         Encontramos <strong style={{ fontWeight: 700 }}>{total.toLocaleString('pt-BR')} {total === 1 ? 'camisa' : 'camisas'}</strong>
@@ -146,22 +200,45 @@ function SearchContent() {
                 )}
               </div>
 
-              {total > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  <p style={{ fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2, whiteSpace: 'nowrap' as const }}>Ordenar por</p>
-                  <div style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', cursor: 'pointer', position: 'relative' as const }}>
-                    <select
-                      value={ordem}
-                      onChange={e => setOrdem(e.target.value)}
-                      style={{ fontWeight: 700, fontSize: 12, color: '#62748c', letterSpacing: '-0.24px', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', appearance: 'none' as const, paddingRight: 20 }}
-                    >
-                      <option>mais recente</option>
-                      <option>menor preço</option>
-                      <option>maior preço</option>
-                      <option>mais vistos</option>
-                    </select>
-                    <img src={imgChevronDown} alt="" style={{ width: 14, height: 14, position: 'absolute' as const, right: 8, pointerEvents: 'none' as const }} />
+              {!loading && (
+                <div className="ag-filter-row">
+                  <div className="ag-filter-tags-wrap">
+                    <div className="ag-filter-tags" aria-label="Filtros de produtos">
+                      {filtros.map(filtro => {
+                        const ativo = filtroAtivo(filtro.params)
+                        return (
+                          <button
+                            key={filtro.label}
+                            type="button"
+                            onClick={() => aplicarFiltro(filtro.params)}
+                            className={`ag-filter-tag${ativo ? ' ag-filter-tag-active' : ''}`}
+                            aria-pressed={ativo}
+                          >
+                            {filtro.icon && <img src={filtro.icon} alt="" style={{ width: 16, height: 16, filter: ativo ? 'brightness(0) invert(1)' : undefined }} />}
+                            {filtro.label}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
+                  {total > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                      <p style={{ fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2, whiteSpace: 'nowrap' as const }}>Ordenar por</p>
+                      <div style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', cursor: 'pointer', position: 'relative' as const }}>
+                        <select
+                          value={ordem}
+                          onChange={e => setOrdem(e.target.value)}
+                          style={{ fontWeight: 700, fontSize: 12, color: '#62748c', letterSpacing: '-0.24px', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', appearance: 'none' as const, paddingRight: 24 }}
+                        >
+                          <option>mais recente</option>
+                          <option>menor preço</option>
+                          <option>maior preço</option>
+                          <option>mais vistos</option>
+                        </select>
+                        <img src={imgChevronDown} alt="" style={{ width: 16, height: 16, position: 'absolute' as const, right: 8, pointerEvents: 'none' as const }} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -171,9 +248,9 @@ function SearchContent() {
         <section style={{ background: '#f5f5f5', paddingBottom: 40 }}>
           <div className="ag-container">
             {loading ? (
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' as const, marginBottom: 40 }}>
+              <div className="ag-cards">
                 {Array.from({ length: 10 }).map((_, i) => (
-                  <div key={i} style={{ width: 218, height: 325, background: '#ecebf0', borderRadius: 16 }} />
+                  <div key={i} style={{ width: '100%', height: 325, background: '#ecebf0', borderRadius: 16 }} />
                 ))}
               </div>
             ) : produtos.length === 0 ? (
@@ -183,11 +260,9 @@ function SearchContent() {
                 </p>
               </div>
             ) : (
-              rows.map((row, ri) => (
-                <div key={ri} className="ag-card-row">
-                  {row.map(p => <CardProduto key={p.id} produto={p} />)}
-                </div>
-              ))
+              <div className="ag-cards">
+                {produtos.map(p => <CardProduto key={p.id} produto={p} />)}
+              </div>
             )}
 
             {/* Paginação dinâmica */}

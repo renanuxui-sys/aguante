@@ -30,6 +30,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   const [statusAlerta, setStatusAlerta] = useState<StatusAlerta>('idle')
   const [imgCarregada, setImgCarregada] = useState(false)
   const [loading, setLoading]           = useState(true)
+  const [mostrarBotaoFixo, setMostrarBotaoFixo] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -68,6 +69,13 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
     carregar()
   }, [id])
+
+  useEffect(() => {
+    const atualizarBotaoFixo = () => setMostrarBotaoFixo(window.scrollY > 160)
+    atualizarBotaoFixo()
+    window.addEventListener('scroll', atualizarBotaoFixo, { passive: true })
+    return () => window.removeEventListener('scroll', atualizarBotaoFixo)
+  }, [])
 
   async function toggleCurtida() {
     if (!produto) return
@@ -190,7 +198,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
         @media (max-width: 768px) {
           .ag-produto-desktop { display: none !important; }
           .ag-produto-mobile  { display: flex !important; }
-          .ag-btn-fixo-mobile { display: flex !important; }
+          .ag-btn-fixo-mobile.visivel { display: flex !important; }
           .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
           .ag-relacionados { grid-template-columns: repeat(2,1fr) !important; }
@@ -299,7 +307,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
         </div>
 
         {/* Botão fixo mobile */}
-        <div className="ag-btn-fixo-mobile" style={{ position: 'fixed', bottom: 8, left: 16, right: 16, zIndex: 50 }}>
+        <div className={`ag-btn-fixo-mobile${mostrarBotaoFixo ? ' visivel' : ''}`} style={{ position: 'fixed', bottom: 8, left: 16, right: 16, zIndex: 50 }}>
           <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => fetch('/api/metricas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: produto.id, tipo: 'cliques' }) })} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
             <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para a loja</span>
             <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
