@@ -38,18 +38,17 @@ type Categoria = { key: string; label: string; labelMobile: string; clubes: Club
 
 export default function Navbar() {
   const router = useRouter()
-  const [submenu, setSubmenu]       = useState(false)
-  const [catAtiva, setCatAtiva]     = useState('Clubes Brasileiros') // aba ativa no submenu desktop
-  const [menuMobile, setMenuMobile] = useState(false)
-  const [catMobile, setCatMobile]   = useState('Clubes Brasileiros') // accordion mobile
-  const [categorias, setCategorias] = useState<Categoria[]>([])
-  const [query, setQuery]           = useState('')
+  const [submenu, setSubmenu]         = useState(false)
+  const [catAtiva, setCatAtiva]       = useState('Clubes Brasileiros')
+  const [menuMobile, setMenuMobile]   = useState(false)
+  const [catMobile, setCatMobile]     = useState('Clubes Brasileiros')
+  const [categorias, setCategorias]   = useState<Categoria[]>([])
+  const [query, setQuery]             = useState('')
   const [buscaMobile, setBuscaMobile] = useState(false)
-  const inputRef     = useRef<HTMLInputElement>(null)
-  const mobileInput  = useRef<HTMLInputElement>(null)
-  const leaveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef    = useRef<HTMLInputElement>(null)
+  const mobileInput = useRef<HTMLInputElement>(null)
+  const leaveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Carrega clubes do Supabase ──
   useEffect(() => {
     async function carregar() {
       const { data } = await supabase
@@ -64,8 +63,13 @@ export default function Navbar() {
         return { ...c, total_anuncios: count || 0 }
       }))
 
+      // Remove zerados e ordena por quantidade decrescente
+      const comProdutos = comContagem
+        .filter(c => c.total_anuncios > 0)
+        .sort((a, b) => b.total_anuncios - a.total_anuncios)
+
       const grupos: Record<string, ClubeDB[]> = {}
-      comContagem.forEach(c => {
+      comProdutos.forEach(c => {
         const cat = c.categoria || 'Outros'
         if (!grupos[cat]) grupos[cat] = []
         grupos[cat].push(c)
@@ -79,7 +83,7 @@ export default function Navbar() {
     carregar()
   }, [])
 
-  // Fallback com lista local
+  // Fallback com lista local — sem zerados (oculta badge quando 0)
   const cats: Categoria[] = categorias.length > 0 ? categorias : [{
     key: 'Clubes Brasileiros', label: 'Clubes Brasileiros', labelMobile: 'Clubes Brasileiros',
     clubes: CLUBES_BRASILEIROS.map((nome, i) => ({
@@ -109,7 +113,6 @@ export default function Navbar() {
     leaveTimer.current = setTimeout(() => setSubmenu(false), 150)
   }
 
-  // Bloqueia scroll do body quando menu mobile aberto
   useEffect(() => {
     document.body.style.overflow = menuMobile ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -117,9 +120,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ════════════════════════════════════════
-          NAVBAR DESKTOP
-      ════════════════════════════════════════ */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0,
         height: 76,
@@ -130,16 +130,11 @@ export default function Navbar() {
         justifyContent: 'space-between',
         zIndex: 100,
       }}>
-
-        {/* Logo */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           <img src={imgLogo} alt="Aguante" style={{ width: 136, height: 55, display: 'block' }} />
         </Link>
 
-        {/* Links desktop — Explore / Conheça / Sua loja / Contato */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="ag-nav-links">
-
-          {/* Explore camisas com submenu */}
           <div style={{ position: 'relative' }} onMouseEnter={onSubmenuEnter} onMouseLeave={onSubmenuLeave}>
             <button style={{
               background: 'none', border: 'none', cursor: 'pointer',
@@ -147,8 +142,7 @@ export default function Navbar() {
               fontSize: 13, letterSpacing: '-0.01em',
               display: 'flex', alignItems: 'center', gap: 4,
               fontFamily: 'Onest, sans-serif', padding: '28px 0',
-              fontWeight: 700,
-              transition: 'color 150ms ease',
+              fontWeight: 700, transition: 'color 150ms ease',
             }}>
               Explore camisas
               <img src={imgChevron} alt="" style={{ width: 16, height: 16, transition: 'transform 200ms ease', transform: submenu ? 'rotate(180deg)' : 'rotate(0)' }} />
@@ -160,13 +154,11 @@ export default function Navbar() {
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
             Conheça Aguante
           </Link>
-
           <Link href="/anuncie" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
             Sua loja aqui
           </Link>
-
           <Link href="/contato" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
@@ -174,13 +166,10 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Search pill desktop */}
         <form onSubmit={handleSearch} className="ag-nav-pill-wrap" style={{ display: 'flex' }}>
-          <div
-            className="ag-search-pill"
+          <div className="ag-search-pill"
             style={{ display: 'flex', alignItems: 'center', background: '#f5f5f5', border: '1px solid #e0dee7', borderRadius: 16, padding: '10px 16px', width: 260, cursor: 'text', gap: 8 }}
-            onClick={() => inputRef.current?.focus()}
-          >
+            onClick={() => inputRef.current?.focus()}>
             <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
               placeholder="O que você procura?"
               style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 300, color: '#444', fontFamily: 'Onest, sans-serif', minWidth: 0 }} />
@@ -192,7 +181,6 @@ export default function Navbar() {
           </div>
         </form>
 
-        {/* Botões mobile — lupa + hamburguer */}
         <div style={{ display: 'none', alignItems: 'center', gap: 8 }} className="ag-mobile-btns">
           <button onClick={() => { setBuscaMobile(b => !b); setMenuMobile(false) }}
             style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', border: '1px solid #e0dee7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -206,69 +194,52 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ════════════════════════════════════════
-          SUBMENU DESKTOP — abas + grid 4 colunas
-      ════════════════════════════════════════ */}
+      {/* SUBMENU DESKTOP */}
       {submenu && (
-        <div
-          style={{ position: 'fixed', top: 76, left: 0, right: 0, background: '#fff', boxShadow: '0 20px 68px rgba(0,0,0,0.1)', zIndex: 99, paddingBottom: 40 }}
-          onMouseEnter={onSubmenuEnter}
-          onMouseLeave={onSubmenuLeave}
-        >
-          {/* Abas das categorias */}
+        <div style={{ position: 'fixed', top: 76, left: 0, right: 0, background: '#fff', boxShadow: '0 20px 68px rgba(0,0,0,0.1)', zIndex: 99, paddingBottom: 40 }}
+          onMouseEnter={onSubmenuEnter} onMouseLeave={onSubmenuLeave}>
           <div style={{ borderBottom: '1px solid #e0dee7', padding: '0 max(16px, calc((100% - 1140px) / 2 + 24px))' }}>
             <div style={{ display: 'flex', gap: 32, paddingTop: 24 }}>
               {cats.map(cat => (
-                <button
-                  key={cat.key}
-                  onClick={() => setCatAtiva(cat.key)}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontFamily: 'Onest, sans-serif',
-                    fontSize: 20, letterSpacing: '-0.02em',
-                    fontWeight: catAtiva === cat.key ? 700 : 400,
-                    color: catAtiva === cat.key ? '#000' : '#aaa',
-                    paddingBottom: 16,
-                    borderBottom: catAtiva === cat.key ? '2px solid #000' : '2px solid transparent',
-                    transition: 'color 150ms ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <button key={cat.key} onClick={() => setCatAtiva(cat.key)} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'Onest, sans-serif', fontSize: 20, letterSpacing: '-0.02em',
+                  fontWeight: catAtiva === cat.key ? 700 : 400,
+                  color: catAtiva === cat.key ? '#000' : '#aaa',
+                  paddingBottom: 16,
+                  borderBottom: catAtiva === cat.key ? '2px solid #000' : '2px solid transparent',
+                  transition: 'color 150ms ease', whiteSpace: 'nowrap',
+                }}>
                   {cat.label}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Grid 4 colunas da categoria ativa */}
           <div style={{ padding: '24px max(16px, calc((100% - 1140px) / 2 + 24px)) 0' }}>
             {catAtivaData && catAtivaData.clubes.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0 40px' }}>
                 {catAtivaData.clubes.map(clube => (
-                  <div
-                    key={clube.id}
-                    onClick={() => navegar(clube.nome)}
+                  <div key={clube.id} onClick={() => navegar(clube.nome)}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e0dee7', cursor: 'pointer', transition: 'padding-left 150ms ease' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '6px'; (e.currentTarget.firstChild as HTMLElement).style.color = '#550fed' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '0'; (e.currentTarget.firstChild as HTMLElement).style.color = '#000' }}
-                  >
+                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '0'; (e.currentTarget.firstChild as HTMLElement).style.color = '#000' }}>
                     <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em', lineHeight: 1.2, transition: 'color 150ms ease' }}>{clube.nome}</span>
-                    <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 12 }}>
-                      {clube.total_anuncios.toLocaleString('pt-BR')}
-                    </span>
+                    {clube.total_anuncios > 0 && (
+                      <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 12 }}>
+                        {clube.total_anuncios.toLocaleString('pt-BR')}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p style={{ fontSize: 14, color: '#aaa', padding: '16px 0' }}>Nenhum clube cadastrado nesta categoria.</p>
+              <p style={{ fontSize: 14, color: '#aaa', padding: '16px 0' }}>Nenhum clube com anúncios nesta categoria.</p>
             )}
           </div>
         </div>
       )}
 
-      {/* ════════════════════════════════════════
-          BUSCA MOBILE (expande abaixo do nav)
-      ════════════════════════════════════════ */}
+      {/* BUSCA MOBILE */}
       {buscaMobile && (
         <div style={{ position: 'fixed', top: 64, left: 0, right: 0, background: '#fff', zIndex: 98, padding: '12px 16px', borderBottom: '1px solid #e0dee7', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
           <form onSubmit={handleSearch}>
@@ -284,70 +255,51 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════
-          MENU MOBILE ABERTO — full screen
-      ════════════════════════════════════════ */}
+      {/* MENU MOBILE */}
       {menuMobile && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: '#fff', zIndex: 200,
-          overflowY: 'auto', display: 'flex', flexDirection: 'column',
-        }}>
-          {/* Header — logo + fechar */}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#fff', zIndex: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 64, flexShrink: 0 }}>
             <button onClick={() => setMenuMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
               <img src={imgClose} alt="Fechar" style={{ width: 24, height: 24 }} />
             </button>
           </div>
 
-          {/* Conteúdo scrollável */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
-
-            {/* Categorias — accordion */}
             <div style={{ padding: '0 20px' }}>
               {cats.map(cat => {
                 const aberta = catMobile === cat.key
                 return (
                   <div key={cat.key}>
-                    <button
-                      onClick={() => setCatMobile(aberta ? '' : cat.key)}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif' }}
-                    >
-                      <span style={{ fontWeight: 700, fontSize: 18, color: '#000', letterSpacing: '-0.02em' }}>
-                        {cat.labelMobile}
-                      </span>
+                    <button onClick={() => setCatMobile(aberta ? '' : cat.key)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif' }}>
+                      <span style={{ fontWeight: 700, fontSize: 18, color: '#000', letterSpacing: '-0.02em' }}>{cat.labelMobile}</span>
                       <img src={imgChevron} alt="" style={{ width: 20, height: 20, transition: 'transform 200ms ease', transform: aberta ? 'rotate(180deg)' : 'rotate(0)' }} />
                     </button>
 
                     {aberta && cat.clubes.length > 0 && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px', paddingBottom: 16 }}>
                         {cat.clubes.map(clube => (
-                          <button
-                            key={clube.id}
-                            onClick={() => navegar(clube.nome)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', background: 'none', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'Onest, sans-serif', width: '100%', textAlign: 'left' }}
-                          >
+                          <button key={clube.id} onClick={() => navegar(clube.nome)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', background: 'none', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'Onest, sans-serif', width: '100%', textAlign: 'left' }}>
                             <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em' }}>{clube.nome}</span>
-                            <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>
-                              {clube.total_anuncios.toLocaleString('pt-BR')}
-                            </span>
+                            {clube.total_anuncios > 0 && (
+                              <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>
+                                {clube.total_anuncios.toLocaleString('pt-BR')}
+                              </span>
+                            )}
                           </button>
                         ))}
                       </div>
                     )}
 
                     {aberta && cat.clubes.length === 0 && (
-                      <p style={{ fontSize: 13, color: '#aaa', paddingBottom: 16 }}>Nenhum clube cadastrado.</p>
+                      <p style={{ fontSize: 13, color: '#aaa', paddingBottom: 16 }}>Nenhum clube com anúncios.</p>
                     )}
                   </div>
                 )
               })}
             </div>
 
-            {/* Divisor 
-            <div style={{ height: 1, background: '#e0dee7', margin: '8px 20px' }} /> */}
-
-            {/* Links institucionais */}
             <div style={{ padding: '0 20px 40px' }}>
               {[
                 { href: '/sobre', label: 'Sobre Aguante' },
@@ -364,15 +316,12 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* CSS responsivo */}
       <style>{`
         @media (max-width: 768px) {
-          .ag-nav-links      { display: none !important; }
-          .ag-nav-pill-wrap  { display: none !important; }
-          .ag-mobile-btns    { display: flex !important; }
+          .ag-nav-links     { display: none !important; }
+          .ag-nav-pill-wrap { display: none !important; }
+          .ag-mobile-btns   { display: flex !important; }
         }
-        .ag-nav-links a:hover,
-        .ag-nav-links button:hover { color: #550fed; }
       `}</style>
     </>
   )
