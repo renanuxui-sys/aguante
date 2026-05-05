@@ -107,7 +107,15 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       palavra_chave: `${clubeAlerta.trim()} ${anoAlerta.trim()}`,
       ativo: true,
     }
-    const alertaCompleto = { ...alertaBase, nome: nomeAlerta.trim(), ano: anoAlerta.trim() }
+    const alertaCompleto = {
+      ...alertaBase,
+      nome: nomeAlerta.trim(),
+      ano: anoAlerta.trim(),
+      produto_id: produto.id,
+      produto_titulo: produto.titulo,
+      produto_link: produto.link_original,
+      fonte_nome: produto.fonte_nome,
+    }
 
     let { error } = await supabase.from('alertas').insert(alertaCompleto)
     if (error) {

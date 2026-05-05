@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   const [totalProdutos, setTotalProdutos]   = useState(0)
   const [totalFontes, setTotalFontes]       = useState(0)
   const [totalCadastros, setTotalCadastros] = useState(0)
+  const [totalAlertas, setTotalAlertas]     = useState(0)
+  const [totalEscolhas, setTotalEscolhas]   = useState(0)
   const [carregando, setCarregando]         = useState(true)
 
   useEffect(() => {
@@ -45,6 +47,8 @@ export default function AdminDashboard() {
         { count: totProd },
         { count: totFontes },
         { count: totCad },
+        { count: totAlertas },
+        { count: totEscolhas },
       ] = await Promise.all([
         supabase
           .from('produtos')
@@ -70,6 +74,8 @@ export default function AdminDashboard() {
         supabase.from('produtos').select('*', { count: 'exact', head: true }).eq('ativo', true),
         supabase.from('fontes').select('*', { count: 'exact', head: true }).eq('ativa', true),
         supabase.from('cadastros_cta').select('*', { count: 'exact', head: true }),
+        supabase.from('alertas').select('*', { count: 'exact', head: true }),
+        supabase.from('clubes_preferencias').select('*', { count: 'exact', head: true }).eq('acao', 'escolheu'),
       ])
 
       // Ranking de clubes com paginação — Supabase retorna max 1000 linhas por query
@@ -103,6 +109,8 @@ export default function AdminDashboard() {
       setTotalProdutos(totProd || 0)
       setTotalFontes(totFontes || 0)
       setTotalCadastros(totCad || 0)
+      setTotalAlertas(totAlertas || 0)
+      setTotalEscolhas(totEscolhas || 0)
       setCarregando(false)
     }
 
@@ -121,11 +129,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Cards de totais */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 40 }}>
         {[
           { label: 'Produtos indexados', valor: totalProdutos.toLocaleString('pt-BR'), icon: '◈', href: '/admin/produtos' },
           { label: 'Fontes ativas', valor: totalFontes.toLocaleString('pt-BR'), icon: '⊕', href: '/admin/fontes' },
           { label: 'Cadastros CTA', valor: totalCadastros.toLocaleString('pt-BR'), icon: '✉', href: '/admin/cadastros' },
+          { label: 'Alertas criados', valor: totalAlertas.toLocaleString('pt-BR'), icon: '◌', href: '/admin/alertas' },
+          { label: 'Escolhas de clube', valor: totalEscolhas.toLocaleString('pt-BR'), icon: '▣', href: '/admin/preferencias-clubes' },
         ].map(card => (
           <div
             key={card.label}
