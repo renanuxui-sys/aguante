@@ -1,11 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Preferencia = {
   id: string
@@ -17,8 +11,6 @@ type Preferencia = {
 }
 
 type Ranking = { clube: string; total: number; pct: number }
-
-const PAGE = 1000
 
 export default function AdminPreferenciasClubes() {
   const [ranking, setRanking] = useState<Ranking[]>([])
@@ -33,42 +25,19 @@ export default function AdminPreferenciasClubes() {
       setCarregando(true)
       setErro('')
 
-      const todas: Preferencia[] = []
-      let offset = 0
+      const res = await fetch('/api/admin/cms/preferencias-clubes', { cache: 'no-store' })
+      const json = await res.json()
 
-      while (true) {
-        const { data, error } = await supabase
-          .from('clubes_preferencias')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .range(offset, offset + PAGE - 1)
-
-        if (error) {
-          setErro(error.message)
-          setCarregando(false)
-          return
-        }
-
-        if (!data?.length) break
-        todas.push(...data)
-        if (data.length < PAGE) break
-        offset += PAGE
+      if (!res.ok) {
+        setErro(json.error || 'Erro ao carregar escolhas.')
+        setCarregando(false)
+        return
       }
 
-      const escolhas = todas.filter(item => item.acao === 'escolheu' && item.clube)
-      const contagem: Record<string, number> = {}
-      escolhas.forEach(item => {
-        if (item.clube) contagem[item.clube] = (contagem[item.clube] || 0) + 1
-      })
-
-      const lista = Object.entries(contagem)
-        .map(([clube, total]) => ({ clube, total, pct: escolhas.length ? Math.round((total / escolhas.length) * 100) : 0 }))
-        .sort((a, b) => b.total - a.total)
-
-      setRanking(lista)
-      setRecentes(todas.slice(0, 50))
-      setTotalEscolhas(escolhas.length)
-      setTotalSemEscolha(todas.filter(item => item.acao !== 'escolheu').length)
+      setRanking(json.ranking || [])
+      setRecentes(json.recentes || [])
+      setTotalEscolhas(json.totalEscolhas || 0)
+      setTotalSemEscolha(json.totalSemEscolha || 0)
       setCarregando(false)
     }
 

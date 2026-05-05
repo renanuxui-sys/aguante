@@ -46,9 +46,6 @@ export default function AdminDashboard() {
         { data: curtidos },
         { count: totProd },
         { count: totFontes },
-        { count: totCad },
-        { count: totAlertas },
-        { count: totEscolhas },
       ] = await Promise.all([
         supabase
           .from('produtos')
@@ -73,10 +70,10 @@ export default function AdminDashboard() {
           .limit(5),
         supabase.from('produtos').select('*', { count: 'exact', head: true }).eq('ativo', true),
         supabase.from('fontes').select('*', { count: 'exact', head: true }).eq('ativa', true),
-        supabase.from('cadastros_cta').select('*', { count: 'exact', head: true }),
-        supabase.from('alertas').select('*', { count: 'exact', head: true }),
-        supabase.from('clubes_preferencias').select('*', { count: 'exact', head: true }).eq('acao', 'escolheu'),
       ])
+
+      const resumoRes = await fetch('/api/admin/cms/resumo', { cache: 'no-store' })
+      const resumo = resumoRes.ok ? await resumoRes.json() : { cadastros: 0, alertas: 0, escolhas: 0 }
 
       // Ranking de clubes com paginação — Supabase retorna max 1000 linhas por query
       const contagem: Record<string, number> = {}
@@ -108,9 +105,9 @@ export default function AdminDashboard() {
       setMaisCurtidos(curtidos || [])
       setTotalProdutos(totProd || 0)
       setTotalFontes(totFontes || 0)
-      setTotalCadastros(totCad || 0)
-      setTotalAlertas(totAlertas || 0)
-      setTotalEscolhas(totEscolhas || 0)
+      setTotalCadastros(resumo.cadastros || 0)
+      setTotalAlertas(resumo.alertas || 0)
+      setTotalEscolhas(resumo.escolhas || 0)
       setCarregando(false)
     }
 
