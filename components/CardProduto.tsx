@@ -82,7 +82,7 @@ export default function CardProduto({ produto }: Props) {
       </div>
 
       {/* Preço — sem coração */}
-      <div style={{ paddingTop: 4 }}>
+      <div style={{ paddingTop: 4, marginTop: 'auto' }}>
         <div style={{ height: 1, background: '#e0dee7', marginBottom: 8 }} />
         <p style={{ color: '#62748c', letterSpacing: '-0.14px' }}>
           <span style={{ fontSize: 12, fontWeight: 400 }}>R$ </span>
