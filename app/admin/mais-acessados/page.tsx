@@ -1,11 +1,5 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Produto = {
   id: string; titulo: string; clube: string | null; imagem_url: string | null
@@ -22,14 +16,15 @@ export default function MaisAcessados() {
 
   const carregar = useCallback(async () => {
     setCarregando(true)
-    const { data, count } = await supabase
-      .from('produtos')
-      .select('id,titulo,clube,imagem_url,views,likes,cliques_anuncio,fonte_nome,link_original', { count: 'exact' })
-      .eq('ativo', true)
-      .order('views', { ascending: false, nullsFirst: false })
-      .range(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA - 1)
-    setProdutos(data || [])
-    setTotal(count || 0)
+    const params = new URLSearchParams({
+      tipo: 'views',
+      limit: String(POR_PAGINA),
+      offset: String(pagina * POR_PAGINA),
+    })
+    const res = await fetch(`/api/admin/cms/metricas?${params}`, { cache: 'no-store' })
+    const json = res.ok ? await res.json() : { produtos: [], total: 0 }
+    setProdutos(json.produtos || [])
+    setTotal(json.total || 0)
     setCarregando(false)
   }, [pagina])
 

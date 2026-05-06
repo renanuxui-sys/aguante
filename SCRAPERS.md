@@ -104,11 +104,20 @@ ALTER TABLE produtos DISABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_produtos_fonte_ativo ON produtos(fonte_nome, ativo);
 CREATE INDEX IF NOT EXISTS idx_produtos_views ON produtos(views DESC);
+CREATE INDEX IF NOT EXISTS idx_produtos_cliques_anuncio ON produtos(cliques_anuncio DESC);
+CREATE INDEX IF NOT EXISTS idx_produtos_likes ON produtos(likes DESC);
 
 CREATE OR REPLACE FUNCTION incrementar_views(produto_id UUID)
 RETURNS void AS $$
 BEGIN
   UPDATE produtos SET views = COALESCE(views, 0) + 1 WHERE id = produto_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION incrementar_cliques(produto_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE produtos SET cliques_anuncio = COALESCE(cliques_anuncio, 0) + 1 WHERE id = produto_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -123,6 +132,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION incrementar_views(UUID) TO anon;
+GRANT EXECUTE ON FUNCTION incrementar_cliques(UUID) TO anon;
 GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 ```
 

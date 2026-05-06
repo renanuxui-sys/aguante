@@ -95,8 +95,8 @@ export default function Home() {
     supabase.from('produtos').select('*').eq('ativo', true)
       .order('views', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(10)
-      .then(({ data }) => { if (data) setEmAlta(data) })
+      .limit(50)
+      .then(({ data }) => { if (data) setEmAlta(embaralhar(data)) })
 
     supabase.from('produtos').select('*').eq('ativo', true)
       .gte('ano', '1980').lte('ano', '1989').limit(20)
@@ -123,7 +123,7 @@ export default function Home() {
         .order('views', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(30)
-        .then(({ data }) => setProdutosParaVoce(embaralhar(data || []).slice(0, 5)))
+        .then(({ data }) => setProdutosParaVoce(embaralhar(data || []).slice(0, isMobile ? 6 : 5)))
     }
 
     carregarProdutosParaClube(localStorage.getItem(CLUBE_PREFERENCIA_STORAGE_KEY))
@@ -142,7 +142,7 @@ export default function Home() {
       window.removeEventListener('storage', atualizarPorStorage)
       window.removeEventListener(CLUBE_PREFERENCIA_EVENT, atualizarPorEvento)
     }
-  }, [])
+  }, [isMobile])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()

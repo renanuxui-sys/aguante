@@ -35,6 +35,24 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading]           = useState(true)
   const [mostrarBotaoFixo, setMostrarBotaoFixo] = useState(false)
 
+  function registrarMetrica(tipo: 'views' | 'cliques' | 'likes', delta?: number) {
+    const request = fetch('/api/metricas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ produto_id: id, tipo, ...(delta !== undefined ? { delta } : {}) }),
+      keepalive: true,
+    })
+
+    request.then(async res => {
+      if (!res.ok) {
+        const erro = await res.text().catch(() => '')
+        console.warn(`Não foi possível registrar ${tipo}:`, res.status, erro)
+      }
+    }).catch(error => console.warn(`Não foi possível registrar ${tipo}:`, error))
+
+    return request
+  }
+
   useEffect(() => {
     setLoading(true)
     setImgCarregada(false)
@@ -59,11 +77,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       setLoading(false)
 
       if (prod) {
-        fetch('/api/metricas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ produto_id: id, tipo: 'views' }),
-        })
+        registrarMetrica('views')
 
         const query = supabase.from('produtos').select('*').neq('id', id).eq('ativo', true).limit(5)
         if (prod.clube) query.eq('clube', prod.clube)
@@ -88,8 +102,9 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     const delta = novoEstado ? 1 : -1
     setFavoritado(novoEstado)
     setLikes(l => Math.max(0, l + delta))
-    const { data } = await supabase.rpc('ajustar_likes', { produto_id: id, delta })
-    if (typeof data === 'number') setLikes(data)
+    const res = await registrarMetrica('likes', delta)
+    const data = res.ok ? await res.json() : null
+    if (typeof data?.likes === 'number') setLikes(data.likes)
     if (typeof window !== 'undefined') {
       const curtidos: string[] = JSON.parse(sessionStorage.getItem('aguante_curtidos') || '[]')
       if (novoEstado && !curtidos.includes(id)) curtidos.push(id)
@@ -201,7 +216,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       href={produto.link_original}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => fetch('/api/metricas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: produto.id, tipo: 'cliques' }) })}
+      onClick={() => registrarMetrica('cliques')}
       style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 48px', textDecoration: 'none', width: fullWidth ? '100%' : undefined }}
     >
       <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Ir para a loja</span>
@@ -328,7 +343,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
         {/* Botão fixo mobile */}
         <div className={`ag-btn-fixo-mobile${mostrarBotaoFixo ? ' visivel' : ''}`} style={{ position: 'fixed', bottom: 8, left: 16, right: 16, zIndex: 50 }}>
-          <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => fetch('/api/metricas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: produto.id, tipo: 'cliques' }) })} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
+          <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => registrarMetrica('cliques')} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
             <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para a loja</span>
             <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
           </a>

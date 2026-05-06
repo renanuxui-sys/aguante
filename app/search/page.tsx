@@ -30,6 +30,15 @@ const filtros: FiltroBusca[] = [
 ]
 const filtroKeys = ['ordenar', 'decada', 'de_jogo']
 
+function embaralhar<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -74,12 +83,28 @@ function SearchContent() {
       query = query.eq('de_jogo', true)
     }
 
+    const emAlta = ordenar === 'mais-vistos'
+
+    if (emAlta) {
+      query
+        .order('views', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .limit(50)
+        .then(({ data, count }) => {
+          const sorteados = embaralhar(data || [])
+          setProdutos(sorteados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA))
+          setTotal(Math.min(count || sorteados.length, 50))
+          setLoading(false)
+        })
+      return
+    }
+
     // Ordenação
     if (ordem === 'menor preço') {
       query = query.order('preco', { ascending: true, nullsFirst: false })
     } else if (ordem === 'maior preço') {
       query = query.order('preco', { ascending: false, nullsFirst: false })
-    } else if (ordenar === 'mais-vistos' || ordem === 'mais vistos') {
+    } else if (ordem === 'mais vistos') {
       query = query.order('views', { ascending: false, nullsFirst: false })
     } else {
       query = query.order('created_at', { ascending: false })

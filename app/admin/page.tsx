@@ -41,39 +41,20 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function carregar() {
       const [
-        { data: vistos },
-        { data: clicados },
-        { data: curtidos },
         { count: totProd },
         { count: totFontes },
+        metricasRes,
       ] = await Promise.all([
-        supabase
-          .from('produtos')
-          .select('id,titulo,clube,imagem_url,views,likes,cliques_anuncio,fonte_nome')
-          .eq('ativo', true)
-          .not('views', 'is', null)
-          .order('views', { ascending: false, nullsFirst: false })
-          .limit(5),
-        supabase
-          .from('produtos')
-          .select('id,titulo,clube,imagem_url,views,likes,cliques_anuncio,fonte_nome')
-          .eq('ativo', true)
-          .not('cliques_anuncio', 'is', null)
-          .order('cliques_anuncio', { ascending: false, nullsFirst: false })
-          .limit(5),
-        supabase
-          .from('produtos')
-          .select('id,titulo,clube,imagem_url,views,likes,cliques_anuncio,fonte_nome')
-          .eq('ativo', true)
-          .not('likes', 'is', null)
-          .order('likes', { ascending: false, nullsFirst: false })
-          .limit(5),
         supabase.from('produtos').select('*', { count: 'exact', head: true }).eq('ativo', true),
         supabase.from('fontes').select('*', { count: 'exact', head: true }).eq('ativa', true),
+        fetch('/api/admin/cms/metricas', { cache: 'no-store' }),
       ])
 
       const resumoRes = await fetch('/api/admin/cms/resumo', { cache: 'no-store' })
       const resumo = resumoRes.ok ? await resumoRes.json() : { cadastros: 0, alertas: 0, escolhas: 0 }
+      const metricas = metricasRes.ok
+        ? await metricasRes.json()
+        : { views: { produtos: [] }, cliques: { produtos: [] }, likes: { produtos: [] } }
 
       // Ranking de clubes com paginação — Supabase retorna max 1000 linhas por query
       const contagem: Record<string, number> = {}
@@ -100,9 +81,9 @@ export default function AdminDashboard() {
         .slice(0, 8)
 
       setClubesRanking(ranking)
-      setMaisVistos(vistos || [])
-      setMaisClicados(clicados || [])
-      setMaisCurtidos(curtidos || [])
+      setMaisVistos(metricas.views?.produtos || [])
+      setMaisClicados(metricas.cliques?.produtos || [])
+      setMaisCurtidos(metricas.likes?.produtos || [])
       setTotalProdutos(totProd || 0)
       setTotalFontes(totFontes || 0)
       setTotalCadastros(resumo.cadastros || 0)
@@ -155,7 +136,7 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        <TabelaMetrica titulo="Mais curtidos" subtitulo="likes anônimos" dados={maisCurtidos} campo="likes" label="likes" />
+        <TabelaMetrica titulo="Mais curtidos" subtitulo="likes anônimos" dados={maisCurtidos} campo="likes" label="likes" linkTodos="/admin/mais-curtidos" />
 
         {/* Clubes */}
         <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, padding: '24px 28px' }}>

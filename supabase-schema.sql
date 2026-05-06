@@ -33,3 +33,14 @@ create table produtos (
 create index produtos_clube_idx on produtos(clube);
 create index produtos_titulo_idx on produtos using gin(to_tsvector('portuguese', titulo));
 create index produtos_created_at_idx on produtos(created_at desc);
+
+-- Métricas usadas pelo CMS.
+alter table produtos add column if not exists fonte_url text;
+alter table produtos add column if not exists ativo boolean default true;
+alter table produtos add column if not exists views integer default 0;
+alter table produtos add column if not exists likes integer default 0;
+alter table produtos add column if not exists cliques_anuncio integer default 0;
+
+create index if not exists idx_produtos_views on produtos(views desc);
+create index if not exists idx_produtos_cliques_anuncio on produtos(cliques_anuncio desc);
+create index if not exists idx_produtos_likes on produtos(likes desc);
