@@ -7,7 +7,7 @@ import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
 import type { Produto } from '@/types'
 
-const imgBgHero      = "https://www.figma.com/api/mcp/asset/edd4f565-9eae-4473-819e-86ec35f69e85"
+const imgBgHero      = "/assets/bg-hero.png"
 const imgArrowLeft   = "/assets/arrow-left.svg"
 const imgChevronDown = "/assets/chevron-down.svg"
 const imgFire        = "/assets/fire-alt-solid.svg"
@@ -22,22 +22,13 @@ type FiltroBusca = {
 
 const filtros: FiltroBusca[] = [
   { label: 'em alta', params: { ordenar: 'mais-vistos' }, icon: imgFire },
+  { label: 'de jogo', params: { de_jogo: 'true' } },
   { label: 'Anos 70', params: { decada: '70' } },
   { label: 'Anos 80', params: { decada: '80' } },
   { label: 'Anos 90', params: { decada: '90' } },
   { label: 'Anos 2000', params: { decada: '2000' } },
-  { label: 'De jogo', params: { de_jogo: 'true' } },
 ]
 const filtroKeys = ['ordenar', 'decada', 'de_jogo']
-
-function embaralhar<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 function SearchContent() {
   const searchParams = useSearchParams()
@@ -83,29 +74,13 @@ function SearchContent() {
       query = query.eq('de_jogo', true)
     }
 
-    const emAlta = ordenar === 'mais-vistos'
-
-    if (emAlta) {
-      query
-        .order('views', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(50)
-        .then(({ data, count }) => {
-          const sorteados = embaralhar(data || [])
-          setProdutos(sorteados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA))
-          setTotal(Math.min(count || sorteados.length, 50))
-          setLoading(false)
-        })
-      return
-    }
-
     // Ordenação
-    if (ordem === 'menor preço') {
+    if (ordenar === 'mais-vistos' || ordem === 'mais vistos') {
+      query = query.order('views', { ascending: false, nullsFirst: false })
+    } else if (ordem === 'menor preço') {
       query = query.order('preco', { ascending: true, nullsFirst: false })
     } else if (ordem === 'maior preço') {
       query = query.order('preco', { ascending: false, nullsFirst: false })
-    } else if (ordem === 'mais vistos') {
-      query = query.order('views', { ascending: false, nullsFirst: false })
     } else {
       query = query.order('created_at', { ascending: false })
     }
@@ -120,12 +95,7 @@ function SearchContent() {
 
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
 
-  // Título da página dependendo do contexto
-  const tituloContexto = decada
-    ? `Camisas dos anos ${decada.length === 2 ? decada : decada.slice(2)}`
-    : ordenar === 'mais-vistos'
-      ? 'Em alta no momento'
-      : 'Resultado da busca'
+  const tituloContexto = 'Resultado de busca'
 
   // Páginas a exibir na paginação (max 5 + reticências + última)
   function paginasParaExibir() {
@@ -251,7 +221,7 @@ function SearchContent() {
                       <p style={{ fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2, whiteSpace: 'nowrap' as const }}>Ordenar por</p>
                       <div style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', cursor: 'pointer', position: 'relative' as const }}>
                         <select
-                          value={ordem}
+                          value={ordenar === 'mais-vistos' ? 'mais vistos' : ordem}
                           onChange={e => setOrdem(e.target.value)}
                           style={{ fontWeight: 700, fontSize: 12, color: '#62748c', letterSpacing: '-0.24px', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', appearance: 'none' as const, paddingRight: 24 }}
                         >
