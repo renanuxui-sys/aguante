@@ -15,6 +15,8 @@ const imgIconMagic     = "/assets/magic-star.svg"
 const imgIconLightning = "/assets/Vector.svg"
 const imgIconGrid      = "/assets/element-plus.svg"
 const imgChevronRight  = "/assets/chevron-right.svg"
+const CLUBE_PREFERENCIA_STORAGE_KEY = 'aguante_clube_preferencia'
+const CLUBE_PREFERENCIA_EVENT = 'aguante:clube-preferencia'
 
 type Clube = {
   id: string
@@ -45,9 +47,9 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
           {/* Ver todas — 18px com chevron-right.svg */}
           <button
             onClick={() => router.push(linkTodas)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em' }}
           >
-            <span className="ag-ver-todas-txt">Ver todas</span>
+            <span className="ag-ver-todas-txt">ver todos</span>
             <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
           </button>
         </div>
@@ -63,6 +65,8 @@ export default function Home() {
   const router = useRouter()
   const [query, setQuery]         = useState('')
   const [novidades, setNovidades] = useState<Produto[]>([])
+  const [produtosParaVoce, setProdutosParaVoce] = useState<Produto[]>([])
+  const [clubePreferido, setClubePreferido] = useState('')
   const [emAlta, setEmAlta]       = useState<Produto[]>([])
   const [anos80, setAnos80]       = useState<Produto[]>([])
   const [clubes, setClubes]       = useState<Clube[]>([])
@@ -104,6 +108,40 @@ export default function Home() {
       .then(({ data }) => { if (data) setClubes(data) })
 
     return () => media.removeEventListener('change', updateMobile)
+  }, [])
+
+  useEffect(() => {
+    function carregarProdutosParaClube(clube: string | null) {
+      if (!clube || clube === 'nao_escolheu') {
+        setClubePreferido('')
+        setProdutosParaVoce([])
+        return
+      }
+
+      setClubePreferido(clube)
+      supabase.from('produtos').select('*').eq('ativo', true).eq('clube', clube)
+        .order('views', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .limit(30)
+        .then(({ data }) => setProdutosParaVoce(embaralhar(data || []).slice(0, 5)))
+    }
+
+    carregarProdutosParaClube(localStorage.getItem(CLUBE_PREFERENCIA_STORAGE_KEY))
+
+    const atualizarPorStorage = (event: StorageEvent) => {
+      if (event.key === CLUBE_PREFERENCIA_STORAGE_KEY) carregarProdutosParaClube(event.newValue)
+    }
+    const atualizarPorEvento = (event: Event) => {
+      carregarProdutosParaClube((event as CustomEvent<string>).detail)
+    }
+
+    window.addEventListener('storage', atualizarPorStorage)
+    window.addEventListener(CLUBE_PREFERENCIA_EVENT, atualizarPorEvento)
+
+    return () => {
+      window.removeEventListener('storage', atualizarPorStorage)
+      window.removeEventListener(CLUBE_PREFERENCIA_EVENT, atualizarPorEvento)
+    }
   }, [])
 
   function handleSearch(e: React.FormEvent) {
@@ -315,6 +353,13 @@ export default function Home() {
           </section>
         )}
 
+        {clubePreferido && (
+          <SecaoCards
+            titulo="Produtos para você"
+            produtos={produtosParaVoce}
+            linkTodas={`/search?q=${encodeURIComponent(clubePreferido)}&ordenar=mais-vistos`}
+          />
+        )}
         <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search" />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 
@@ -334,9 +379,9 @@ export default function Home() {
                 </div>
                 <button
                   onClick={() => router.push('/search?ordenar=mais-vistos')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em' }}
                 >
-                  Ver todas
+                  ver todos
                   <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
                 </button>
               </div>

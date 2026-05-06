@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { TODOS_CLUBES } from './Navbar'
 import { supabase } from '@/lib/supabase'
@@ -9,6 +9,7 @@ const imgChevronDown = '/assets/chevron-down.svg'
 
 const STORAGE_KEY = 'aguante_clube_preferencia'
 const STORAGE_RECORDED_KEY = 'aguante_clube_preferencia_registrada'
+const STORAGE_EVENT = 'aguante:clube-preferencia'
 
 export default function ClubePreferenceModal() {
   const pathname = usePathname()
@@ -16,21 +17,37 @@ export default function ClubePreferenceModal() {
   const [clubes, setClubes] = useState<string[]>([])
   const [clube, setClube] = useState('')
 
+  const registrarEscolha = useCallback(async (valor: string, acao: 'escolheu' | 'prefiro_nao_escolher' | 'entrou_sem_escolher') => {
+    await supabase.from('clubes_preferencias').insert({
+      clube: valor === 'nao_escolheu' ? null : valor,
+      acao,
+      origem: 'modal_abertura',
+      path: pathname || '/',
+    })
+  }, [pathname])
+
   useEffect(() => {
     if (pathname?.startsWith('/admin')) return
-    const salvo = localStorage.getItem(STORAGE_KEY)
-    const registrado = localStorage.getItem(STORAGE_RECORDED_KEY)
-    if (!salvo) {
-      setAberto(true)
-      return
-    }
-    if (!registrado) {
-      const acao = salvo === 'nao_escolheu' ? 'entrou_sem_escolher' : 'escolheu'
-      registrarEscolha(salvo, acao)
-        .then(() => localStorage.setItem(STORAGE_RECORDED_KEY, '1'))
-        .catch(error => console.warn('Não foi possível registrar a preferência de clube:', error))
-    }
-  }, [pathname])
+    let ativo = true
+
+    queueMicrotask(() => {
+      if (!ativo) return
+      const salvo = localStorage.getItem(STORAGE_KEY)
+      const registrado = localStorage.getItem(STORAGE_RECORDED_KEY)
+      if (!salvo) {
+        setAberto(true)
+        return
+      }
+      if (!registrado) {
+        const acao = salvo === 'nao_escolheu' ? 'entrou_sem_escolher' : 'escolheu'
+        registrarEscolha(salvo, acao)
+          .then(() => localStorage.setItem(STORAGE_RECORDED_KEY, '1'))
+          .catch(error => console.warn('Não foi possível registrar a preferência de clube:', error))
+      }
+    })
+
+    return () => { ativo = false }
+  }, [pathname, registrarEscolha])
 
   useEffect(() => {
     async function carregarClubes() {
@@ -48,17 +65,9 @@ export default function ClubePreferenceModal() {
     carregarClubes()
   }, [])
 
-  async function registrarEscolha(valor: string, acao: 'escolheu' | 'prefiro_nao_escolher' | 'entrou_sem_escolher') {
-    await supabase.from('clubes_preferencias').insert({
-      clube: valor === 'nao_escolheu' ? null : valor,
-      acao,
-      origem: 'modal_abertura',
-      path: pathname || '/',
-    })
-  }
-
   async function salvar(valor: string, acao?: 'escolheu' | 'prefiro_nao_escolher' | 'entrou_sem_escolher') {
     localStorage.setItem(STORAGE_KEY, valor)
+    window.dispatchEvent(new CustomEvent(STORAGE_EVENT, { detail: valor }))
     setAberto(false)
     const acaoRegistro = acao || (valor === 'nao_escolheu'
       ? 'entrou_sem_escolher'
