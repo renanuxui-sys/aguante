@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Produto } from '@/types'
+import { imagemComProxy } from '@/lib/image-url'
 
 const imgLightning = "https://www.figma.com/api/mcp/asset/543aa6e3-da03-41b1-83dc-a9d4e433dad1"
 
@@ -8,6 +9,8 @@ type Props = {
 }
 
 export default function CardProduto({ produto }: Props) {
+  const imagemUrl = imagemComProxy(produto.imagem_url)
+
   return (
     <Link
       href={`/produto/${produto.id}`}
@@ -21,7 +24,7 @@ export default function CardProduto({ produto }: Props) {
         overflow: 'hidden',
         flexShrink: 0,
         background: '#ecebf0',
-        backgroundImage: produto.imagem_url ? `url(${produto.imagem_url})` : undefined,
+        backgroundImage: imagemUrl ? `url(${imagemUrl})` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',

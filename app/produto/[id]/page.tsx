@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
+import { imagemComProxy } from '@/lib/image-url'
 import type { Produto } from '@/types'
 
 const imgArrowLeft    = "/assets/arrow-left.svg"
@@ -157,6 +158,8 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     </main>
   )
 
+  const imagemProdutoUrl = imagemComProxy(produto.imagem_url)
+
   const BlocoInfos = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -260,11 +263,11 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                   <div style={{ width: '100%', height: 625, borderRadius: 16, overflow: 'hidden', background: '#ecebf0', position: 'relative', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     {!imgCarregada && (
                       <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: '#ecebf0', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {!produto.imagem_url && <span style={{ fontSize: 13, color: '#62748c', fontFamily: 'Onest, sans-serif' }}>Sem foto disponível</span>}
+                        {!imagemProdutoUrl && <span style={{ fontSize: 13, color: '#62748c', fontFamily: 'Onest, sans-serif' }}>Sem foto disponível</span>}
                       </div>
                     )}
-                    {produto.imagem_url && (
-                      <img key={produto.imagem_url} src={produto.imagem_url} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', borderRadius: 16, opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease', zIndex: 2 }} />
+                    {imagemProdutoUrl && (
+                      <img key={imagemProdutoUrl} src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', borderRadius: 16, opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease', zIndex: 2 }} />
                     )}
                     {produto.alta_procura && (
                       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', height: 25, alignItems: 'flex-start', justifyContent: 'center', overflow: 'hidden', borderRadius: 16, boxShadow: '0px 14px 12.6px rgba(161,244,82,0.13), inset 0px -2px 28px rgba(116,216,22,0.51)', width: 'fit-content' }}>
@@ -297,8 +300,8 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
         {/* MOBILE */}
         <div className="ag-produto-mobile" style={{ flexDirection: 'column' }}>
           <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', background: '#ecebf0' }}>
-            {produto.imagem_url && (
-              <img src={produto.imagem_url} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
+            {imagemProdutoUrl && (
+              <img src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
             )}
             <button onClick={() => router.back()} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: 12, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
               <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />

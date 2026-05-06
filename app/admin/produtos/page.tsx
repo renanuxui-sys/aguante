@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { imagemComProxy } from '@/lib/image-url'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -233,7 +234,7 @@ export default function AdminProdutos() {
                         background: '#F0EFEB', overflow: 'hidden', flexShrink: 0,
                       }}>
                         {p.imagem_url && (
-                          <img src={p.imagem_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={imagemComProxy(p.imagem_url) || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         )}
                       </div>
                       <div style={{ minWidth: 0 }}>
@@ -423,7 +424,7 @@ export default function AdminProdutos() {
                 background: '#E8E6DF', overflow: 'hidden', flexShrink: 0,
               }}>
                 {editando.imagem_url && (
-                  <img src={editando.imagem_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={imagemComProxy(editando.imagem_url) || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}
               </div>
               <div style={{ minWidth: 0 }}>

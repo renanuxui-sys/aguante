@@ -1,0 +1,73 @@
+name: Scraping Semanal OLX GeckoAPI
+run-name: Scraping Semanal OLX GeckoAPI (${{ github.event_name }})
+
+on:
+  schedule:
+    # GitHub Actions usa UTC. 11:00 UTC = 08:00 em São Paulo/Brasília.
+    - cron: '0 11 * * 1'
+  workflow_dispatch:
+    inputs:
+      max_paginas:
+        description: 'Máximo de páginas por busca (o scraper limita em 3)'
+        required: false
+        default: '3'
+      sem_desativar:
+        description: 'Salvar sem marcar OLX antigos como inativos'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  scraping-olx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    concurrency:
+      group: scraping-olx-gecko
+      cancel-in-progress: false
+    env:
+      TZ: America/Sao_Paulo
+      GECKO_API_KEY: ${{ secrets.GECKO_API_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      CLUBES_OLX: flamengo,fluminense,vasco,botafogo,sao-paulo,palmeiras,santos,corinthians,cruzeiro,atletico-mg,gremio,internacional
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v5
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Verificar secrets obrigatórios
+        run: |
+          if [ -z "$GECKO_API_KEY" ] || [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Configure GECKO_API_KEY, NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Executar OLX via GeckoAPI
+        run: |
+          MAX_PAGINAS="${{ github.event.inputs.max_paginas || '3' }}"
+          SEM_DESATIVAR="${{ github.event.inputs.sem_desativar || 'false' }}"
+
+          CMD="npm run scraper:gecko:olx -- --clubes=$CLUBES_OLX --max-paginas=$MAX_PAGINAS --salvar"
+          if [ "$SEM_DESATIVAR" = "true" ]; then
+            CMD="$CMD --sem-desativar"
+          fi
+
+          echo "Rodando: $CMD"
+          eval "$CMD"
+
+      - name: Relatório final
+        if: always()
+        run: |
+          echo "✅ Rotina OLX concluída em $(date)"
+          echo "Clubes: $CLUBES_OLX"

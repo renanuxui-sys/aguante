@@ -29,6 +29,12 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
+Para integrações pagas/experimentais:
+```
+APIFY_TOKEN=...
+GECKO_API_KEY=...
+```
+
 Rodar qualquer scraper:
 ```bash
 node nome-do-scraper.js
@@ -138,6 +144,7 @@ node scraper-mundodabola.js             # Mundo da Bola
 node scraper-copero.js                  # Copero Brechó
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
+# node scraper-gecko-olx.js             # OLX via GeckoAPI (experimental; gera custo)
 ```
 
 **Tempo estimado total:** ~60–90 minutos
@@ -407,6 +414,45 @@ ML_REFRESH_TOKEN=...
 **Status:** 📋 Experimental — gera custo por resultado
 
 **Variável necessária:** `APIFY_TOKEN=...`
+
+---
+
+### OLX via GeckoAPI
+**Arquivo:** `scraper-gecko-olx.js`
+**Status:** 📋 Experimental — usa `POST /v1/extract` da GeckoAPI
+
+**Variável necessária:** `GECKO_API_KEY=...`
+
+**Comandos:**
+```bash
+npm run scraper:gecko:olx -- --query="camisa flamengo usada"
+npm run scraper:gecko:olx -- --query="camisa flamengo usada" --state=RJ
+npm run scraper:gecko:olx -- --url="https://www.olx.com.br/estado-rj?q=camisa%20flamengo%20usada&o=1" --state=RJ
+npm run scraper:gecko:olx -- --clubes=flamengo,gremio --max-paginas=1
+npm run scraper:gecko:olx -- --clubes=flamengo --max-paginas=2 --salvar
+```
+
+**Flags:**
+- `--query=` busca manual, sem depender dos clubes do banco
+- `--url=` usa uma URL pronta da OLX como entrada
+- `--clubes=` limita clubes quando usa as buscas cadastradas
+- `--max-paginas=` controla custo; o scraper limita no máximo a `3`
+- `--salvar` grava no Supabase; sem isso roda em modo teste
+- `--sem-desativar` salva sem marcar OLX antigos como inativos
+- `--state=` define a UF da busca; a GeckoAPI exige uma UF para OLX
+- quando roda por `--clubes=`, o scraper usa o mapa de UFs por clube se `--state` não for informado
+- `--todos-estados` varre todas as UFs do Brasil, multiplicando o custo por 27
+- `--city=` refina por cidade quando suportado pela GeckoAPI
+- `--price-min=` e `--price-max=` entram na URL da OLX como `ps` e `pe`; o mínimo padrão é `250`
+- `--filtro-preco-api` tenta enviar também `priceMin`/`priceMax` como campos do payload
+- `--sem-filtro-camisa` desliga o filtro local de títulos com "camisa"
+- `--debug` imprime uma amostra do primeiro item retornado pela GeckoAPI
+
+**Mapa de UFs padrão:**
+- Flamengo, Fluminense, Vasco, Botafogo: RJ e SP
+- São Paulo, Palmeiras, Santos, Corinthians: RJ e SP
+- Cruzeiro, Atlético-MG: RJ e MG
+- Grêmio, Internacional: RS
 
 ---
 

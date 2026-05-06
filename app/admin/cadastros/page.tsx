@@ -13,15 +13,26 @@ export default function AdminCadastros() {
   const [pagina, setPagina]       = useState(0)
   const [busca, setBusca]         = useState('')
   const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
 
   const carregar = useCallback(async () => {
     setCarregando(true)
-    const params = new URLSearchParams({ pagina: String(pagina), busca })
-    const res = await fetch(`/api/admin/cms/cadastros?${params}`, { cache: 'no-store' })
-    const json = await res.json()
-    setCadastros(json.data || [])
-    setTotal(json.total || 0)
-    setCarregando(false)
+    setErro('')
+
+    try {
+      const params = new URLSearchParams({ pagina: String(pagina), busca })
+      const res = await fetch(`/api/admin/cms/cadastros?${params}`, { cache: 'no-store' })
+      const json = await res.json()
+      if (!res.ok) setErro(json.error || 'Erro ao carregar cadastros.')
+      setCadastros(json.data || [])
+      setTotal(json.total || 0)
+    } catch {
+      setErro('Erro ao carregar cadastros.')
+      setCadastros([])
+      setTotal(0)
+    } finally {
+      setCarregando(false)
+    }
   }, [pagina, busca])
 
   useEffect(() => { carregar() }, [carregar])
@@ -53,7 +64,11 @@ export default function AdminCadastros() {
       </div>
 
       {/* Tabela */}
-      {carregando ? (
+      {erro ? (
+        <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, padding: 24, color: '#8A8880', fontSize: 14 }}>
+          Não foi possível carregar cadastros: {erro}
+        </div>
+      ) : carregando ? (
         <div style={{ color: '#8A8880', fontSize: 14 }}>Carregando...</div>
       ) : (
         <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, overflow: 'hidden' }}>

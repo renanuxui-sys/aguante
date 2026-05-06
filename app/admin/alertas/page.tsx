@@ -67,7 +67,7 @@ export default function AdminAlertas() {
 
       {erro ? (
         <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, padding: 24, color: '#8A8880', fontSize: 14 }}>
-          Não foi possível carregar alertas. Verifique se a tabela `alertas` tem os campos novos.
+          Não foi possível carregar alertas: {erro}
         </div>
       ) : carregando ? (
         <div style={{ color: '#8A8880', fontSize: 14 }}>Carregando...</div>

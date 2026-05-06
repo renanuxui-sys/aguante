@@ -69,7 +69,7 @@ export default function AdminPreferenciasClubes() {
 
       {erro ? (
         <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, padding: 24, color: '#8A8880', fontSize: 14 }}>
-          Não foi possível carregar escolhas. Verifique se a tabela `clubes_preferencias` existe.
+          Não foi possível carregar escolhas: {erro}
         </div>
       ) : (
         <>
