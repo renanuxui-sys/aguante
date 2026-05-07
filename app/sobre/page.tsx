@@ -8,6 +8,21 @@ const imgBgHero = '/assets/bg-hero.png'
 export const metadata: Metadata = {
   title: 'Conheça Aguante — Aguante',
   description: 'A paixão pelo futebol continua nas histórias, nas memórias e nas camisas que marcaram gerações.',
+  alternates: {
+    canonical: '/sobre',
+  },
+  openGraph: {
+    title: 'Conheça Aguante — Aguante',
+    description: 'A paixão pelo futebol continua nas histórias, nas memórias e nas camisas que marcaram gerações.',
+    url: '/sobre',
+    images: ['/assets/compartilhamento.jpg'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Conheça Aguante — Aguante',
+    description: 'A paixão pelo futebol continua nas histórias, nas memórias e nas camisas que marcaram gerações.',
+    images: ['/assets/compartilhamento.jpg'],
+  },
 }
 
 export default function SobrePage() {

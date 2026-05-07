@@ -9,6 +9,21 @@ const emailContato = 'contato@aguante.com.br'
 export const metadata: Metadata = {
   title: 'Contato — Aguante',
   description: 'Fale com a equipe da Aguante para dúvidas, sugestões, parcerias e feedbacks.',
+  alternates: {
+    canonical: '/contato',
+  },
+  openGraph: {
+    title: 'Contato — Aguante',
+    description: 'Fale com a equipe da Aguante para dúvidas, sugestões, parcerias e feedbacks.',
+    url: '/contato',
+    images: ['/assets/compartilhamento.jpg'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Contato — Aguante',
+    description: 'Fale com a equipe da Aguante para dúvidas, sugestões, parcerias e feedbacks.',
+    images: ['/assets/compartilhamento.jpg'],
+  },
 }
 
 function EmailLink() {

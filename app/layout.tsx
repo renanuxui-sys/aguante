@@ -3,22 +3,30 @@ import Script from 'next/script'
 import './globals.css'
 import ClubePreferenceModal from '@/components/ClubePreferenceModal'
 
+const siteUrl = 'https://aguante.com.br'
+const siteTitle = 'Aguante — O buscador do colecionador'
+const siteDescription = 'Descubra camisas de futebol colecionáveis em diferentes lojas e marketplaces, reunidas em uma plataforma feita para colecionadores.'
+const sharingImage = '/assets/compartilhamento.jpg'
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://aguante.com.br'),
-  title: 'Aguante — O buscador do colecionador',
-  description: 'A maneira mais inteligente de descobrir camisas de futebol colecionáveis.',
+  metadataBase: new URL(siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: '/assets/favicon.svg',
     shortcut: '/assets/favicon.svg',
   },
   openGraph: {
-    title: 'Aguante — O buscador do colecionador',
-    description: 'A maneira mais inteligente de descobrir camisas de futebol colecionáveis.',
-    url: 'https://aguante.com.br',
+    title: siteTitle,
+    description: siteDescription,
+    url: siteUrl,
     siteName: 'Aguante',
     images: [
       {
-        url: '/assets/compartilhamento.jpg',
+        url: sharingImage,
         width: 1200,
         height: 600,
         alt: 'Aguante — O buscador do colecionador',
@@ -29,9 +37,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aguante — O buscador do colecionador',
-    description: 'A maneira mais inteligente de descobrir camisas de futebol colecionáveis.',
-    images: ['/assets/compartilhamento.jpg'],
+    title: siteTitle,
+    description: siteDescription,
+    images: [sharingImage],
   },
 }
 
