@@ -12,6 +12,14 @@ function assinar(valor: string) {
   return crypto.createHmac('sha256', segredoAdmin()).update(valor).digest('hex')
 }
 
+export function compararValorSeguro(valor: string, esperado: string) {
+  const bufferValor = Buffer.from(valor)
+  const bufferEsperado = Buffer.from(esperado)
+
+  if (bufferValor.length !== bufferEsperado.length) return false
+  return crypto.timingSafeEqual(bufferValor, bufferEsperado)
+}
+
 export function criarSessaoAdmin() {
   const timestamp = String(Date.now())
   return `${timestamp}.${assinar(timestamp)}`

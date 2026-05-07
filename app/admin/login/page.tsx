@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 export default function AdminLogin() {
   const router = useRouter()
+  const [usuario, setUsuario] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
@@ -17,13 +18,13 @@ export default function AdminLogin() {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ senha }),
+      body: JSON.stringify({ usuario, senha }),
     })
 
     if (res.ok) {
       router.push('/admin')
     } else {
-      setErro('Senha incorreta.')
+      setErro(res.status === 429 ? 'Muitas tentativas. Tente novamente em alguns minutos.' : 'Usuário ou senha incorretos.')
       setCarregando(false)
     }
   }
@@ -72,20 +73,56 @@ export default function AdminLogin() {
               letterSpacing: '0.02em',
               textTransform: 'uppercase',
             }}>
-              Senha de acesso
+              Usuário
             </label>
             <input
-              type="password"
-              value={senha}
-              onChange={e => setSenha(e.target.value)}
-              placeholder="••••••••"
+              type="text"
+              value={usuario}
+              onChange={e => setUsuario(e.target.value)}
+              placeholder="admin"
+              autoComplete="username"
               required
               style={{
                 width: '100%',
                 padding: '11px 14px',
                 border: `1.5px solid ${erro ? '#E53E3E' : '#E8E6DF'}`,
                 borderRadius: 10,
-                fontSize: 15,
+                fontSize: 16,
+                fontFamily: 'Onest, sans-serif',
+                background: '#FAFAF8',
+                color: '#1A1A1A',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.15s',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 600,
+              color: '#4A4845',
+              marginBottom: 6,
+              letterSpacing: '0.02em',
+              textTransform: 'uppercase',
+            }}>
+              Senha
+            </label>
+            <input
+              type="password"
+              value={senha}
+              onChange={e => setSenha(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+              style={{
+                width: '100%',
+                padding: '11px 14px',
+                border: `1.5px solid ${erro ? '#E53E3E' : '#E8E6DF'}`,
+                borderRadius: 10,
+                fontSize: 16,
                 fontFamily: 'Onest, sans-serif',
                 background: '#FAFAF8',
                 color: '#1A1A1A',
@@ -103,18 +140,18 @@ export default function AdminLogin() {
 
           <button
             type="submit"
-            disabled={carregando || !senha}
+            disabled={carregando || !usuario || !senha}
             style={{
               width: '100%',
               padding: '12px',
-              background: carregando || !senha ? '#C8C6BF' : '#1A1A1A',
+              background: carregando || !usuario || !senha ? '#C8C6BF' : '#1A1A1A',
               color: '#fff',
               border: 'none',
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 600,
               fontFamily: 'Onest, sans-serif',
-              cursor: carregando || !senha ? 'not-allowed' : 'pointer',
+              cursor: carregando || !usuario || !senha ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s',
             }}
           >
