@@ -265,7 +265,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
           <Navbar />
           <section style={{ paddingTop: 76, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 897, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-              <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 0.4 }} />
+              <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 1 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 56%, #f8f8f8)' }} />
             </div>
             <div className="ag-container" style={{ paddingTop: 40, paddingBottom: 48, position: 'relative', zIndex: 1 }}>
@@ -314,30 +314,33 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
 
         {/* MOBILE */}
         <div className="ag-produto-mobile" style={{ flexDirection: 'column' }}>
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', background: '#ecebf0' }}>
-            {imagemProdutoUrl && (
-              <img src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
-            )}
-            <button onClick={() => router.back()} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: 12, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
-              <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />
-            </button>
-            <button onClick={toggleCurtida} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 12, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
-              <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-                <path d="M14 24s-9-5.5-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-9 12-9 12z" fill={favoritado ? '#550fed' : 'none'} stroke="#550fed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span style={{ fontWeight: 700, fontSize: 14, color: '#550fed' }}>{likes}</span>
-            </button>
-            {produto.alta_procura && (
-              <div style={{ position: 'absolute', bottom: 16, left: 16, background: '#1beaa0', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', boxShadow: '0px 14px 12.6px rgba(161,244,82,0.13)' }}>
-                <img src={imgLightning} alt="" style={{ width: 14, height: 14 }} />
-                <span style={{ fontWeight: 400, fontSize: 12, color: '#000', whiteSpace: 'nowrap' }}>alta procura</span>
-              </div>
-            )}
-          </div>
-          <div style={{ padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 32 }}>
-            <BlocoInfos />
-            <BotaoAnuncio fullWidth />
-            <CardAlerta />
+          <Navbar />
+          <div style={{ paddingTop: 76 }}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', background: '#ecebf0' }}>
+              {imagemProdutoUrl && (
+                <img src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
+              )}
+              <button onClick={() => router.back()} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: 12, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
+                <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />
+              </button>
+              <button onClick={toggleCurtida} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 12, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
+                <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+                  <path d="M14 24s-9-5.5-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-9 12-9 12z" fill={favoritado ? '#550fed' : 'none'} stroke="#550fed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#550fed' }}>{likes}</span>
+              </button>
+              {produto.alta_procura && (
+                <div style={{ position: 'absolute', bottom: 16, left: 16, background: '#1beaa0', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', boxShadow: '0px 14px 12.6px rgba(161,244,82,0.13)' }}>
+                  <img src={imgLightning} alt="" style={{ width: 14, height: 14 }} />
+                  <span style={{ fontWeight: 400, fontSize: 12, color: '#000', whiteSpace: 'nowrap' }}>alta procura</span>
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+              <BlocoInfos />
+              <BotaoAnuncio fullWidth />
+              <CardAlerta />
+            </div>
           </div>
         </div>
 

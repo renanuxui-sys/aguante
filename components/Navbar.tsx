@@ -154,11 +154,6 @@ export default function Navbar() {
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
             Conheça Aguante
           </Link>
-          <Link href="/anuncie" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
-            onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
-            onMouseLeave={e => (e.currentTarget.style.color='#000')}>
-            Sua loja aqui
-          </Link>
           <Link href="/contato" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
@@ -183,13 +178,13 @@ export default function Navbar() {
 
         <div style={{ display: 'none', alignItems: 'center', gap: 8 }} className="ag-mobile-btns">
           <button onClick={() => { setBuscaMobile(b => !b); setMenuMobile(false) }}
-            style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', border: '1px solid #e0dee7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={imgNavSearch} alt="Buscar" style={{ width: 20, height: 20 }} />
+            style={{ width: 44, height: 44, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <img src={imgNavSearch} alt="Buscar" style={{ width: 24, height: 24, filter: 'brightness(0)' }} />
           </button>
           <button onClick={() => { setMenuMobile(m => !m); setBuscaMobile(false) }}
             aria-label={menuMobile ? 'Fechar menu' : 'Abrir menu'}
-            style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', border: '1px solid #e0dee7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={menuMobile ? imgClose : imgMenu} alt="" style={{ width: 22, height: 22 }} />
+            style={{ width: 52, height: 52, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <img src={menuMobile ? imgClose : imgMenu} alt="" style={{ width: 48, height: 48 }} />
           </button>
         </div>
       </nav>
@@ -248,7 +243,7 @@ export default function Navbar() {
                 placeholder="O que você procura?"
                 style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#444', fontFamily: 'Onest, sans-serif' }} />
               <button type="submit" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
-                <img src={imgNavSearch} alt="" style={{ width: 20, height: 20 }} />
+                <img src={imgNavSearch} alt="" style={{ width: 20, height: 20, filter: 'brightness(0)' }} />
               </button>
             </div>
           </form>
@@ -258,9 +253,9 @@ export default function Navbar() {
       {/* MENU MOBILE */}
       {menuMobile && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#fff', zIndex: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 64, flexShrink: 0 }}>
-            <button onClick={() => setMenuMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
-              <img src={imgClose} alt="Fechar" style={{ width: 24, height: 24 }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 16px', height: 76, flexShrink: 0 }}>
+            <button onClick={() => setMenuMobile(false)} aria-label="Fechar menu" style={{ width: 52, height: 52, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={imgClose} alt="" style={{ width: 48, height: 48 }} />
             </button>
           </div>
 
@@ -304,7 +299,6 @@ export default function Navbar() {
               {[
                 { href: '/sobre', label: 'Sobre Aguante' },
                 { href: '/contato', label: 'Fale conosco' },
-                { href: '/anuncie', label: 'Sua loja aqui' },
               ].map(l => (
                 <Link key={l.href} href={l.href} onClick={() => setMenuMobile(false)}
                   style={{ display: 'block', fontSize: 16, color: '#000', textDecoration: 'none', padding: '16px 0', letterSpacing: '-0.01em' }}>

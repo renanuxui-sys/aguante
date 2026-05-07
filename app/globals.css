@@ -368,6 +368,16 @@ body {
   box-shadow: 0 0 0 3px rgba(85,15,237,0.08);
 }
 
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea,
+  .ag-input,
+  .ag-select {
+    font-size: 16px !important;
+  }
+}
+
 /* ============================================================
    BOTÃO CADASTRAR (CTA footer)
 ============================================================ */

@@ -105,10 +105,9 @@ export default function ClubePreferenceModal() {
         </button>
         <div className="ag-clube-modal-card">
           <img src={imgLogo} alt="Aguante" className="ag-clube-modal-logo" />
-          <p className="ag-clube-modal-title">Qual seu clube do coração?</p>
+          <p className="ag-clube-modal-title">Qual o clube de sua preferência?</p>
           <p className="ag-clube-modal-text">
-            Gostaríamos de saber somente para<br />
-            <strong style={{ fontWeight: 700 }}>personalizar a sua experiência</strong> em nosso site.
+            Queremos personalizar a sua experiência em nossa plataforma.
           </p>
           <div className="ag-clube-modal-field">
             <select value={clube} onChange={e => setClube(e.target.value)} className="ag-clube-modal-select" style={{ color: clube ? '#000' : '#282828' }}>
@@ -120,7 +119,7 @@ export default function ClubePreferenceModal() {
           <button onClick={() => salvar(clube || 'nao_escolheu')} style={{ width: '100%', height: 56, border: 'none', borderRadius: 16, background: '#550fed', color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'Onest, sans-serif', cursor: 'pointer', marginBottom: 26 }}>
             entrar
           </button>
-          <button onClick={() => salvar('nao_escolheu', 'prefiro_nao_escolher')} style={{ border: 'none', background: 'transparent', color: '#000', fontSize: 18, fontFamily: 'Onest, sans-serif', cursor: 'pointer' }}>
+          <button onClick={() => salvar('nao_escolheu', 'prefiro_nao_escolher')} style={{ border: 'none', background: 'transparent', color: '#000', fontSize: 14, fontFamily: 'Onest, sans-serif', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
             Prefiro não escolher
           </button>
         </div>

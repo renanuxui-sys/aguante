@@ -73,6 +73,7 @@ export default function Home() {
   const [totalProdutos, setTotalProdutos] = useState<number | null>(null)
   const [novosHoje, setNovosHoje] = useState<number | null>(null)
   const [isMobile, setIsMobile]   = useState(false)
+  const [clubesManualScroll, setClubesManualScroll] = useState(false)
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 768px)')
@@ -183,16 +184,33 @@ export default function Home() {
 
           /* Hero mobile */
           .ag-hero-img { display: none !important; }
-          .ag-hero-infos { width: 100% !important; }
+          .ag-hero-infos { width: 100% !important; max-width: none !important; display: flex !important; flex-direction: column !important; align-items: center !important; text-align: center !important; }
+          .ag-hero-infos > div:first-child { margin-left: auto !important; margin-right: auto !important; }
+          .ag-hero-infos h1 { text-align: center !important; }
+          .ag-hero-infos p { text-align: center !important; margin-left: auto !important; margin-right: auto !important; }
           .ag-hero-stats-inline { display: flex !important; }
           .ag-hero-blocos { display: none !important; }
-          .ag-hero-busca-btn { padding: 12px !important; min-width: 44px !important; }
+          .ag-hero-form { width: 100% !important; }
+          .ag-hero-search { width: 100% !important; max-width: none !important; padding: 12px 14px 12px 24px !important; border-radius: 26px !important; }
+          .ag-hero-search input { font-size: 16px !important; }
+          .ag-hero-busca-btn { width: 64px !important; height: 64px !important; min-width: 64px !important; padding: 0 !important; border-radius: 22px !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 0 !important; }
+          .ag-hero-busca-btn img { width: 22px !important; height: 22px !important; display: block !important; flex: 0 0 auto !important; }
           .ag-hero-busca-txt { display: none !important; }
 
           /* Clubes em scroll horizontal */
           .ag-clubes-wrapper {
             margin: 0 -24px !important;
             overflow: hidden !important;
+          }
+          .ag-clubes-wrapper.manual {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            touch-action: pan-x;
+          }
+          .ag-clubes-wrapper.manual::-webkit-scrollbar {
+            display: none;
           }
           .ag-clubes-grid {
             display: none !important;
@@ -212,6 +230,13 @@ export default function Home() {
           }
           .ag-clubes-mobile-set + .ag-clubes-mobile-set { padding-left: 8px; }
           .ag-clubes-mobile-set button { flex-shrink: 0 !important; }
+          .ag-clubes-wrapper.manual .ag-clubes-mobile-track {
+            animation: none !important;
+            transform: none !important;
+          }
+          .ag-clubes-wrapper.manual .ag-clubes-mobile-set[aria-hidden="true"] {
+            display: none !important;
+          }
         }
 
         @media (min-width: 769px) and (max-width: 1024px) {
@@ -226,7 +251,7 @@ export default function Home() {
         {/* ══ HERO ══ */}
         <section style={{ paddingTop: 76, position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 700, zIndex: 0, pointerEvents: 'none' }}>
-            <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
+            <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 1 }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, #f5f5f5)' }} />
           </div>
 
@@ -247,8 +272,8 @@ export default function Home() {
                 A maneira mais inteligente de descobrir camisas de futebol colecionáveis.
               </p>
 
-              <form onSubmit={handleSearch}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f5f5f5', border: '1.76px solid white', borderRadius: 24, padding: '16px 16px 16px 32px', maxWidth: 611, boxShadow: '0px 3.52px 8.8px rgba(183,181,203,0.31), 0px 17.6px 17.6px rgba(192,192,192,0.27), 0px 36.96px 22.88px rgba(192,192,192,0.16)' }}>
+              <form onSubmit={handleSearch} className="ag-hero-form">
+                <div className="ag-hero-search" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f5f5f5', border: '1.76px solid white', borderRadius: 24, padding: '16px 16px 16px 32px', maxWidth: 611, boxShadow: '0px 3.52px 8.8px rgba(183,181,203,0.31), 0px 17.6px 17.6px rgba(192,192,192,0.27), 0px 36.96px 22.88px rgba(192,192,192,0.16)' }}>
                   <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex.: camisa do flamengo 1989" style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, fontWeight: 700, color: 'rgba(0,0,0,0.3)', background: 'transparent', letterSpacing: '-0.01em', fontFamily: 'Onest, sans-serif', minWidth: 0 }} />
                   <button type="submit" className="ag-btn-buscar ag-hero-busca-btn" style={{ color: '#fff', fontWeight: 700, fontSize: 14, padding: '16px 48px', borderRadius: 16, cursor: 'pointer', letterSpacing: '-0.01em', fontFamily: 'Onest, sans-serif', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <img src={imgSearchIcon} alt="" style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} />
@@ -323,7 +348,14 @@ export default function Home() {
               <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
                 Os <strong>mais populares</strong> do Brasil
               </p>
-              <div className="ag-clubes-wrapper">
+              <div
+                className={`ag-clubes-wrapper${clubesManualScroll ? ' manual' : ''}`}
+                onPointerDown={() => setClubesManualScroll(true)}
+                onTouchStart={() => setClubesManualScroll(true)}
+                onWheel={event => {
+                  if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) setClubesManualScroll(true)
+                }}
+              >
                 <div className="ag-clubes-grid">
                   {clubes.map(c => (
                     <button key={c.id} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

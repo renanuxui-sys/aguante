@@ -37,6 +37,7 @@ function SearchContent() {
   const decada  = searchParams.get('decada')
   const ordenar = searchParams.get('ordenar')
   const deJogo  = searchParams.get('de_jogo') === 'true'
+  const paginaParam = Math.max(1, Number(searchParams.get('pagina') || '1') || 1)
 
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [total, setTotal]       = useState(0)
@@ -46,8 +47,8 @@ function SearchContent() {
 
   useEffect(() => {
     setLoading(true)
-    setPagina(1)
-  }, [q, decada, ordenar, deJogo])
+    setPagina(paginaParam)
+  }, [q, decada, ordenar, deJogo, paginaParam])
 
   useEffect(() => {
     setLoading(true)
@@ -119,6 +120,19 @@ function SearchContent() {
     router.push(qs ? `/search?${qs}` : '/search')
   }
 
+  function irParaPagina(n: number) {
+    setPagina(n)
+    const next = new URLSearchParams(searchParams.toString())
+    if (n <= 1) {
+      next.delete('pagina')
+    } else {
+      next.set('pagina', String(n))
+    }
+    const qs = next.toString()
+    router.push(qs ? `/search?${qs}` : '/search')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function filtroAtivo(params: Record<string, string>) {
     return Object.entries(params).every(([key, value]) => searchParams.get(key) === value)
   }
@@ -163,7 +177,7 @@ function SearchContent() {
 
         <section style={{ paddingTop: 76, position: 'relative', minHeight: 290, background: '#f5f5f5' }}>
           <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-            <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 0.4 }} />
+            <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 1 }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(245,245,245,0.7) 80%, #f5f5f5 95%)' }} />
           </div>
 
@@ -264,14 +278,14 @@ function SearchContent() {
             {!loading && totalPaginas > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 112 }}>
                 {paginasExib.map(n => (
-                  <button key={n} onClick={() => { setPagina(n); window.scrollTo({ top: 0, behavior: 'smooth' }) }} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: pagina === n ? '#550fed' : '#ecebf0', color: pagina === n ? '#ebe8f2' : '#444', fontSize: 12, fontWeight: 400, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button key={n} onClick={() => irParaPagina(n)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: pagina === n ? '#550fed' : '#ecebf0', color: pagina === n ? '#ebe8f2' : '#444', fontSize: 12, fontWeight: 400, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {n}
                   </button>
                 ))}
                 {mostrarReticencias && (
                   <>
                     <span style={{ color: '#62748c', fontFamily: 'Onest, sans-serif' }}>...</span>
-                    <button onClick={() => { setPagina(totalPaginas); window.scrollTo({ top: 0, behavior: 'smooth' }) }} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: pagina === totalPaginas ? '#550fed' : '#ecebf0', color: pagina === totalPaginas ? '#ebe8f2' : '#444', fontSize: 12, cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => irParaPagina(totalPaginas)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: pagina === totalPaginas ? '#550fed' : '#ecebf0', color: pagina === totalPaginas ? '#ebe8f2' : '#444', fontSize: 12, cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {totalPaginas}
                     </button>
                   </>
