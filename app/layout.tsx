@@ -65,6 +65,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </noscript>
         {children}
         <ClubePreferenceModal />
+        <Script
+          id="google-analytics-src"
+          src="https://www.googletagmanager.com/gtag/js?id=G-9KTV27HJMX"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-9KTV27HJMX');
+          `}
+        </Script>
         <Script id="google-tag-manager" strategy="afterInteractive">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
