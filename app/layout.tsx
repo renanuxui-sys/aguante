@@ -5,7 +5,7 @@ import ClubePreferenceModal from '@/components/ClubePreferenceModal'
 
 const siteUrl = 'https://aguante.com.br'
 const siteTitle = 'Aguante — O buscador do colecionador'
-const siteDescription = 'Descubra camisas de futebol colecionáveis em diferentes lojas e marketplaces, reunidas em uma plataforma feita para colecionadores.'
+const siteDescription = 'Encontre camisas de futebol colecionáveis em lojas e marketplaces do Brasil.'
 const sharingImage = `${siteUrl}/assets/compartilhamento.jpg`
 
 export const metadata: Metadata = {
