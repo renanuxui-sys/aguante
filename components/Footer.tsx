@@ -167,17 +167,34 @@ export default function Footer() {
                 Encontre a peça que falta para a sua coleção
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <svg width="19" height="19" viewBox="0 0 19 19" fill="none">
-                <path d="M2 4h15a1 1 0 011 1v10a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#000" strokeWidth="1.5"/>
-                <path d="M1 5l8.5 6L18 5" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="19" height="19" viewBox="0 0 19 19" fill="none">
+                  <path d="M2 4h15a1 1 0 011 1v10a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#000" strokeWidth="1.5"/>
+                  <path d="M1 5l8.5 6L18 5" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                <a
+                  href="mailto:contato@aguante.com.br"
+                  style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.42px', lineHeight: 1.4, textDecoration: 'none' }}
+                  className="ag-link-black"
+                >
+                  contato@aguante.com.br
+                </a>
+              </div>
+
               <a
-                href="mailto:contato@aguante.com.br"
-                style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.42px', lineHeight: 1.4, textDecoration: 'none' }}
+                href="https://instagram.com/aguante.camisas"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.42px', lineHeight: 1.4, textDecoration: 'none' }}
                 className="ag-link-black"
               >
-                contato@aguante.com.br
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="5" stroke="#000" strokeWidth="1.8"/>
+                  <circle cx="12" cy="12" r="4" stroke="#000" strokeWidth="1.8"/>
+                  <circle cx="17.2" cy="6.8" r="1.2" fill="#000"/>
+                </svg>
+                <span>Siga-nos no Instagram</span>
               </a>
             </div>
           </div>
