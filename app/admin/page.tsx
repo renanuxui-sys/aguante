@@ -45,8 +45,8 @@ export default function AdminDashboard() {
         { count: totFontes },
         metricasRes,
       ] = await Promise.all([
-        supabase.from('produtos').select('*', { count: 'exact', head: true }).eq('ativo', true),
-        supabase.from('fontes').select('*', { count: 'exact', head: true }).eq('ativa', true),
+        supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true),
+        supabase.from('fontes').select('id', { count: 'exact', head: true }).eq('ativa', true),
         fetch('/api/admin/cms/metricas', { cache: 'no-store' }),
       ])
 

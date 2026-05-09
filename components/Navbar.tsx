@@ -34,7 +34,61 @@ type ClubeDB = {
   id: string; nome: string; slug: string
   categoria: string; escudo_url: string | null; total_anuncios: number
 }
+type ClubeBase = Omit<ClubeDB, 'total_anuncios'>
 type Categoria = { key: string; label: string; labelMobile: string; clubes: ClubeDB[] }
+
+function montarCategorias(clubes: ClubeDB[]) {
+  const comProdutos = clubes
+    .filter(c => c.total_anuncios > 0)
+    .sort((a, b) => b.total_anuncios - a.total_anuncios)
+
+  const grupos: Record<string, ClubeDB[]> = {}
+  comProdutos.forEach(c => {
+    const cat = c.categoria || 'Outros'
+    if (!grupos[cat]) grupos[cat] = []
+    grupos[cat].push(c)
+  })
+
+  return ORDEM_CATS
+    .filter(k => grupos[k]?.length)
+    .map(k => ({ key: k, label: k, labelMobile: LABEL_MOBILE[k] || k, clubes: grupos[k] }))
+}
+
+async function carregarClubesComContagem() {
+  const { data: clubesComTotal, error } = await supabase
+    .from('clubes_com_total_anuncios')
+    .select('id,nome,slug,categoria,escudo_url,total_anuncios')
+    .eq('ativo', true)
+    .order('ordem', { ascending: true })
+
+  if (!error && clubesComTotal?.length) {
+    return clubesComTotal as ClubeDB[]
+  }
+
+  const [{ data: clubes }, { data: produtos }] = await Promise.all([
+    supabase
+      .from('clubes')
+      .select('id,nome,slug,categoria,escudo_url')
+      .eq('ativo', true)
+      .order('ordem', { ascending: true }),
+    supabase
+      .from('produtos')
+      .select('clube')
+      .eq('ativo', true)
+      .range(0, 9999),
+  ])
+
+  const totaisPorClube = new Map<string, number>()
+  produtos?.forEach(produto => {
+    if (!produto.clube) return
+    totaisPorClube.set(produto.clube, (totaisPorClube.get(produto.clube) || 0) + 1)
+  })
+
+  return ((clubes || []) as ClubeBase[]).map(clube => ({
+    ...clube,
+    total_anuncios: totaisPorClube.get(clube.nome) || 0,
+  }))
+}
 
 export default function Navbar() {
   const router = useRouter()
@@ -51,34 +105,9 @@ export default function Navbar() {
 
   useEffect(() => {
     async function carregar() {
-      const { data } = await supabase
-        .from('clubes').select('id,nome,slug,categoria,escudo_url')
-        .eq('ativo', true).order('ordem', { ascending: true })
-      if (!data?.length) return
-
-      const comContagem = await Promise.all(data.map(async c => {
-        const { count } = await supabase.from('produtos')
-          .select('*', { count: 'exact', head: true })
-          .eq('clube', c.nome).eq('ativo', true)
-        return { ...c, total_anuncios: count || 0 }
-      }))
-
-      // Remove zerados e ordena por quantidade decrescente
-      const comProdutos = comContagem
-        .filter(c => c.total_anuncios > 0)
-        .sort((a, b) => b.total_anuncios - a.total_anuncios)
-
-      const grupos: Record<string, ClubeDB[]> = {}
-      comProdutos.forEach(c => {
-        const cat = c.categoria || 'Outros'
-        if (!grupos[cat]) grupos[cat] = []
-        grupos[cat].push(c)
-      })
-
-      const result = ORDEM_CATS
-        .filter(k => grupos[k]?.length)
-        .map(k => ({ key: k, label: k, labelMobile: LABEL_MOBILE[k] || k, clubes: grupos[k] }))
-      setCategorias(result)
+      const clubes = await carregarClubesComContagem()
+      if (!clubes.length) return
+      setCategorias(montarCategorias(clubes))
     }
     carregar()
   }, [])

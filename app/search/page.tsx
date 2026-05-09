@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
+import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import type { Produto } from '@/types'
 
 const imgBgHero      = "/assets/bg-hero.png"
@@ -43,17 +44,14 @@ function SearchContent() {
   const [total, setTotal]       = useState(0)
   const [loading, setLoading]   = useState(true)
   const [ordem, setOrdem]       = useState('mais recente')
-  const [pagina, setPagina]     = useState(1)
 
   useEffect(() => {
-    setLoading(true)
-    setPagina(paginaParam)
-  }, [q, decada, ordenar, deJogo, paginaParam])
+    let ativo = true
+    const loadingTimer = window.setTimeout(() => {
+      if (ativo) setLoading(true)
+    }, 0)
 
-  useEffect(() => {
-    setLoading(true)
-
-    let query = supabase.from('produtos').select('*', { count: 'exact' }).eq('ativo', true)
+    let query = supabase.from('produtos').select(PRODUCT_CARD_SELECT, { count: 'exact' }).eq('ativo', true)
 
     // Busca por múltiplos termos: "internacional 1997" busca cada palavra no título OU clube OU ano
     if (q) {
@@ -86,13 +84,19 @@ function SearchContent() {
       query = query.order('created_at', { ascending: false })
     }
 
-    query.range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1)
+    query.range((paginaParam - 1) * POR_PAGINA, paginaParam * POR_PAGINA - 1)
       .then(({ data, count }) => {
+        if (!ativo) return
         setProdutos(data || [])
         setTotal(count || 0)
         setLoading(false)
       })
-  }, [q, decada, ordenar, deJogo, ordem, pagina])
+
+    return () => {
+      ativo = false
+      window.clearTimeout(loadingTimer)
+    }
+  }, [q, decada, ordenar, deJogo, ordem, paginaParam])
 
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
 
@@ -101,7 +105,7 @@ function SearchContent() {
   // Páginas a exibir na paginação (max 5 + reticências + última)
   function paginasParaExibir() {
     if (totalPaginas <= 5) return Array.from({ length: totalPaginas }, (_, i) => i + 1)
-    const inicio = Math.max(1, pagina - 2)
+    const inicio = Math.max(1, paginaParam - 2)
     const fim = Math.min(totalPaginas, inicio + 4)
     return Array.from({ length: fim - inicio + 1 }, (_, i) => inicio + i)
   }
@@ -121,7 +125,6 @@ function SearchContent() {
   }
 
   function irParaPagina(n: number) {
-    setPagina(n)
     const next = new URLSearchParams(searchParams.toString())
     if (n <= 1) {
       next.delete('pagina')
@@ -197,12 +200,12 @@ function SearchContent() {
                     {total > 0 ? (
                       <>
                         Encontramos <strong style={{ fontWeight: 700 }}>{total.toLocaleString('pt-BR')} {total === 1 ? 'camisa' : 'camisas'}</strong>
-                        {q && <> na sua busca por <strong style={{ fontWeight: 700 }}>"{q}"</strong></>}
+                        {q && <> na sua busca por <strong style={{ fontWeight: 700 }}>&quot;{q}&quot;</strong></>}
                       </>
                     ) : (
                       <>
                         Nenhuma camisa encontrada
-                        {q && <> para <strong style={{ fontWeight: 700 }}>"{q}"</strong></>}
+                        {q && <> para <strong style={{ fontWeight: 700 }}>&quot;{q}&quot;</strong></>}
                       </>
                     )}
                   </p>
@@ -278,14 +281,14 @@ function SearchContent() {
             {!loading && totalPaginas > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 112 }}>
                 {paginasExib.map(n => (
-                  <button key={n} onClick={() => irParaPagina(n)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: pagina === n ? '#550fed' : '#ecebf0', color: pagina === n ? '#ebe8f2' : '#444', fontSize: 12, fontWeight: 400, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button key={n} onClick={() => irParaPagina(n)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: paginaParam === n ? '#550fed' : '#ecebf0', color: paginaParam === n ? '#ebe8f2' : '#444', fontSize: 12, fontWeight: 400, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {n}
                   </button>
                 ))}
                 {mostrarReticencias && (
                   <>
                     <span style={{ color: '#62748c', fontFamily: 'Onest, sans-serif' }}>...</span>
-                    <button onClick={() => irParaPagina(totalPaginas)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: pagina === totalPaginas ? '#550fed' : '#ecebf0', color: pagina === totalPaginas ? '#ebe8f2' : '#444', fontSize: 12, cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => irParaPagina(totalPaginas)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: paginaParam === totalPaginas ? '#550fed' : '#ecebf0', color: paginaParam === totalPaginas ? '#ebe8f2' : '#444', fontSize: 12, cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {totalPaginas}
                     </button>
                   </>

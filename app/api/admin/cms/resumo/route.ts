@@ -11,9 +11,9 @@ export async function GET() {
   try {
     const supabase = criarSupabaseAdmin()
     const [{ count: cadastros }, { count: alertas }, { count: escolhas }] = await Promise.all([
-      supabase.from('cadastros_cta').select('*', { count: 'exact', head: true }),
-      supabase.from('alertas').select('*', { count: 'exact', head: true }),
-      supabase.from('clubes_preferencias').select('*', { count: 'exact', head: true }).eq('acao', 'escolheu'),
+      supabase.from('cadastros_cta').select('id', { count: 'exact', head: true }),
+      supabase.from('alertas').select('id', { count: 'exact', head: true }),
+      supabase.from('clubes_preferencias').select('id', { count: 'exact', head: true }).eq('acao', 'escolheu'),
     ])
 
     return Response.json({

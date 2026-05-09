@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
 import { imagemComProxy } from '@/lib/image-url'
+import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import type { Produto } from '@/types'
 
 const imgArrowLeft    = "/assets/arrow-left.svg"
@@ -79,7 +80,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       if (prod) {
         registrarMetrica('views')
 
-        const query = supabase.from('produtos').select('*').neq('id', id).eq('ativo', true).limit(5)
+        const query = supabase.from('produtos').select(PRODUCT_CARD_SELECT).neq('id', id).eq('ativo', true).limit(5)
         if (prod.clube) query.eq('clube', prod.clube)
         const { data: rel } = await query
         setRelacionados(rel || [])

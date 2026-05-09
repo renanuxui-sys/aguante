@@ -44,3 +44,34 @@ alter table produtos add column if not exists cliques_anuncio integer default 0;
 create index if not exists idx_produtos_views on produtos(views desc);
 create index if not exists idx_produtos_cliques_anuncio on produtos(cliques_anuncio desc);
 create index if not exists idx_produtos_likes on produtos(likes desc);
+
+-- Índices para as consultas públicas mais frequentes.
+create index if not exists idx_produtos_ativo_created_at on produtos(ativo, created_at desc);
+create index if not exists idx_produtos_ativo_views_created_at on produtos(ativo, views desc, created_at desc);
+create index if not exists idx_produtos_ativo_clube_views_created_at on produtos(ativo, clube, views desc, created_at desc);
+create index if not exists idx_produtos_ativo_ano on produtos(ativo, ano);
+
+-- A busca usa ilike com termos parciais; trigram evita varredura completa em tabelas maiores.
+create extension if not exists pg_trgm;
+create index if not exists idx_produtos_titulo_trgm on produtos using gin (titulo gin_trgm_ops);
+create index if not exists idx_produtos_clube_trgm on produtos using gin (clube gin_trgm_ops);
+create index if not exists idx_produtos_ano_trgm on produtos using gin (ano gin_trgm_ops);
+
+-- View usada pela navegação para evitar uma consulta de contagem por clube.
+create or replace view clubes_com_total_anuncios
+with (security_invoker = true)
+as
+select
+  c.id,
+  c.nome,
+  c.slug,
+  c.categoria,
+  c.escudo_url,
+  c.ativo,
+  c.ordem,
+  count(p.id)::integer as total_anuncios
+from clubes c
+left join produtos p
+  on p.clube = c.nome
+  and p.ativo = true
+group by c.id, c.nome, c.slug, c.categoria, c.escudo_url, c.ativo, c.ordem;

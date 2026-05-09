@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
+import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import type { Produto } from '@/types'
 
 const imgCamisas       = "/assets/img-hero.png"
@@ -81,25 +82,25 @@ export default function Home() {
     updateMobile()
     media.addEventListener('change', updateMobile)
 
-    supabase.from('produtos').select('*', { count: 'exact', head: true }).eq('ativo', true)
+    supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true)
       .then(({ count }) => setTotalProdutos(count))
 
     const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    supabase.from('produtos').select('*', { count: 'exact', head: true })
+    supabase.from('produtos').select('id', { count: 'exact', head: true })
       .eq('ativo', true).gte('created_at', ontem)
       .then(({ count }) => setNovosHoje(count))
 
-    supabase.from('produtos').select('*').eq('ativo', true)
+    supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
       .order('created_at', { ascending: false }).limit(30)
       .then(({ data }) => { if (data) setNovidades(embaralhar(data).slice(0, 6)) })
 
-    supabase.from('produtos').select('*').eq('ativo', true)
+    supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
       .order('views', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(50)
       .then(({ data }) => { if (data) setEmAlta(embaralhar(data)) })
 
-    supabase.from('produtos').select('*').eq('ativo', true)
+    supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
       .gte('ano', '1980').lte('ano', '1989').limit(20)
       .then(({ data }) => { if (data) setAnos80(embaralhar(data).slice(0, 6)) })
 
@@ -120,7 +121,7 @@ export default function Home() {
       }
 
       setClubePreferido(clube)
-      supabase.from('produtos').select('*').eq('ativo', true).eq('clube', clube)
+      supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true).eq('clube', clube)
         .order('views', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(30)
