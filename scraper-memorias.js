@@ -9,12 +9,22 @@ import * as cheerio from 'cheerio'
 import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
-const BASE_URL   = 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/brasil'
 const FONTE_NOME = 'Memórias do Esporte'
 const FONTE_URL  = 'https://memoriasdoesporteoficial.com.br'
 const DELAY_MS   = 1500
 
 const supabase = criarSupabase()
+
+const FONTES = [
+  {
+    nome: 'Brasil',
+    base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/brasil',
+  },
+  {
+    nome: 'Seleções',
+    base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/selecoes',
+  },
+]
 
 function limparPreco(texto) {
   if (!texto) return null
@@ -22,8 +32,8 @@ function limparPreco(texto) {
   return match ? parseFloat(match[0]) : null
 }
 
-async function rasparPagina(pagina, clubesMap) {
-  const url = pagina === 1 ? `${BASE_URL}/` : `${BASE_URL}/page/${pagina}/`
+async function rasparPagina(base, pagina, clubesMap) {
+  const url = pagina === 1 ? `${base}/` : `${base}/page/${pagina}/`
   console.log(`  📄 Página ${pagina}`)
 
   try {
@@ -78,27 +88,30 @@ async function main() {
   const clubesMap = await carregarClubesMap(supabase)
 
   let totalSalvos = 0
-  let pagina = 1
-  let erros = 0
+  for (const fonte of FONTES) {
+    console.log(`\n⚽ ${fonte.nome}`)
+    let pagina = 1
+    let erros = 0
 
-  while (true) {
-    const produtos = await rasparPagina(pagina, clubesMap)
+    while (true) {
+      const produtos = await rasparPagina(fonte.base, pagina, clubesMap)
 
-    if (produtos.length > 0) {
-      const salvos = await salvarProdutos(supabase, produtos)
-      totalSalvos += salvos
-      console.log(`  ✅ ${salvos} salvos (total: ${totalSalvos})`)
-      erros = 0
-    } else {
-      erros++
-      if (erros >= 5) {
-        console.log(`\n⏹️  Sem produtos por ${erros} páginas. Encerrando.`)
-        break
+      if (produtos.length > 0) {
+        const salvos = await salvarProdutos(supabase, produtos)
+        totalSalvos += salvos
+        console.log(`  ✅ ${salvos} salvos (total: ${totalSalvos})`)
+        erros = 0
+      } else {
+        erros++
+        if (erros >= 5) {
+          console.log(`\n⏹️  Sem produtos por ${erros} páginas. Encerrando ${fonte.nome}.`)
+          break
+        }
       }
-    }
 
-    pagina++
-    await sleep(DELAY_MS)
+      pagina++
+      await sleep(DELAY_MS)
+    }
   }
 
   await relatorioFinal(supabase, FONTE_NOME, totalSalvos)

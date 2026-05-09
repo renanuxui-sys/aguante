@@ -4,7 +4,7 @@
  */
 
 import fetch from 'node-fetch'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, identificarSelecao, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME = 'Brechó FC'
@@ -17,6 +17,7 @@ const supabase = criarSupabase()
 // Coleções a raspar
 const COLECOES = [
   { slug: 'todos-os-produtos', clube: null },
+  { slug: 'times-internacionais', clube: null, somenteSelecoes: true },
 ]
 
 async function buscarPagina(slug, page) {
@@ -35,7 +36,7 @@ async function buscarPagina(slug, page) {
   }
 }
 
-function converterProduto(produto, clubeFixo, clubesMap) {
+function converterProduto(produto, clubeFixo, clubesMap, { somenteSelecoes = false } = {}) {
   const titulo    = produto.title || ''
   const link      = `${FONTE_URL}/products/${produto.handle}`
   const imagem    = produto.images?.[0]?.src || null
@@ -46,35 +47,40 @@ function converterProduto(produto, clubeFixo, clubesMap) {
   // Ignora esgotados
   if (!disponivel) return null
 
-  // Ignora internacionais e seleções
-const tags = (produto.tags || []).map(t => t.toLowerCase())
-const ignorar = tags.some(t => 
-  t.includes('internacional') || 
-  t.includes('internacionais') || 
-  t.includes('seleção') || 
-  t.includes('selecao') ||
-  t.includes('seleções') ||
-  t.includes('selecoes')
-)
-if (ignorar) return null
+  const tags = produto.tags || []
+  const tagsNormalizadas = tags.map(t => t.toLowerCase())
+  const internacionalOuSelecao = tagsNormalizadas.some(t =>
+    t.includes('internacional') ||
+    t.includes('internacionais') ||
+    t.includes('seleção') ||
+    t.includes('selecao') ||
+    t.includes('seleções') ||
+    t.includes('selecoes')
+  )
+
+  if (!somenteSelecoes && internacionalOuSelecao) return null
+
+  const clube = clubeFixo || (somenteSelecoes ? identificarSelecao(titulo) : identificarClube(titulo, clubesMap))
+
+  if (somenteSelecoes && !clube) return null
 
   return {
     titulo,
     link_original: link,
     imagem_url: imagem,
     preco,
-    clube: clubeFixo || identificarClube(titulo, clubesMap),
+    clube,
     ano: extrairAno(titulo),
     fonte_nome: FONTE_NOME,
     fonte_url: FONTE_URL,
-    tags: produto.tags || [],
+    tags,
     de_jogo: titulo.toLowerCase().includes('jogo') || titulo.toLowerCase().includes('match'),
     novidade: false,
     alta_procura: false,
   }
 }
 
-async function rasparColecao({ slug, clube }, clubesMap) {
+async function rasparColecao({ slug, clube, somenteSelecoes = false }, clubesMap) {
   console.log(`\n⚽ ${clube || slug}`)
 
   let page = 1
@@ -87,7 +93,7 @@ async function rasparColecao({ slug, clube }, clubesMap) {
     if (produtos.length === 0) break
 
     const convertidos = produtos
-      .map(p => converterProduto(p, clube, clubesMap))
+      .map(p => converterProduto(p, clube, clubesMap, { somenteSelecoes }))
       .filter(Boolean)
 
     esgotados += produtos.length - convertidos.length

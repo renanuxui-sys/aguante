@@ -6,7 +6,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.mundodabolaloja.com.br'
@@ -15,6 +15,11 @@ const FONTE_URL  = BASE_URL
 const DELAY_MS   = 1500
 
 const supabase = criarSupabase()
+
+const CATEGORIAS = [
+  { nome: 'Futebol nacional', path: 'futebol-nacional' },
+  { nome: 'Seleções', path: 'camisas-de-futebol/selecoes' },
+]
 
 function urlAbsoluta(url) {
   if (!url) return null
@@ -35,8 +40,8 @@ function extrairImagem($el) {
   return urlAbsoluta(imagem)
 }
 
-async function rasparPagina(page) {
-  const url = `${BASE_URL}/futebol-nacional?pg=${page}`
+async function rasparPagina(categoria, page, clubesMap) {
+  const url = `${BASE_URL}/${categoria.path}?pg=${page}`
   console.log(`  📄 Página ${page}`)
 
   try {
@@ -59,8 +64,7 @@ async function rasparPagina(page) {
 
       if (!titulo || !link) return
 
-      // Só salva se identificar clube brasileiro
-      const clube = identificarClube(titulo)
+      const clube = identificarClube(titulo, clubesMap)
       if (!clube) return
 
       produtos.push({
@@ -90,29 +94,33 @@ async function main() {
   console.log('🚀 Scraper — Mundo da Bola\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   let totalSalvos = 0
-  let page = 1
-  let erros = 0
+  for (const categoria of CATEGORIAS) {
+    console.log(`\n⚽ ${categoria.nome}`)
+    let page = 1
+    let erros = 0
 
-  while (true) {
-    const produtos = await rasparPagina(page)
+    while (true) {
+      const produtos = await rasparPagina(categoria, page, clubesMap)
 
-    if (produtos.length > 0) {
-      const salvos = await salvarProdutos(supabase, produtos)
-      totalSalvos += salvos
-      console.log(`  ✅ ${salvos} salvos (total: ${totalSalvos})`)
-      erros = 0
-    } else {
-      erros++
-      if (erros >= 3) {
-        console.log(`\n⏹️  Sem produtos por ${erros} páginas seguidas. Encerrando.`)
-        break
+      if (produtos.length > 0) {
+        const salvos = await salvarProdutos(supabase, produtos)
+        totalSalvos += salvos
+        console.log(`  ✅ ${salvos} salvos (total: ${totalSalvos})`)
+        erros = 0
+      } else {
+        erros++
+        if (erros >= 3) {
+          console.log(`\n⏹️  Sem produtos por ${erros} páginas seguidas. Encerrando ${categoria.nome}.`)
+          break
+        }
       }
-    }
 
-    page++
-    await sleep(DELAY_MS)
+      page++
+      await sleep(DELAY_MS)
+    }
   }
 
   await relatorioFinal(supabase, FONTE_NOME, totalSalvos)

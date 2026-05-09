@@ -112,6 +112,36 @@ export const CLUBES_MAP = [
   { clube: 'Vitória',       termos: ['vitória', 'vitoria'] },
 ]
 
+export const SELECOES_MAP = [
+  { clube: 'Brasil',         termos: ['brasil', 'seleção brasileira', 'selecao brasileira', 'canarinho', 'cbf'] },
+  { clube: 'Argentina',      termos: ['argentina', 'afa', 'albiceleste'] },
+  { clube: 'Uruguai',        termos: ['uruguai', 'uruguay'] },
+  { clube: 'Chile',          termos: ['chile'] },
+  { clube: 'Colômbia',       termos: ['colômbia', 'colombia'] },
+  { clube: 'Paraguai',       termos: ['paraguai', 'paraguay'] },
+  { clube: 'Peru',           termos: ['peru'] },
+  { clube: 'Equador',        termos: ['equador', 'ecuador'] },
+  { clube: 'México',         termos: ['méxico', 'mexico'] },
+  { clube: 'Estados Unidos', termos: ['estados unidos', 'eua', 'usa', 'united states', 'usmnt'] },
+  { clube: 'Canadá',         termos: ['canadá', 'canada'] },
+  { clube: 'Alemanha',       termos: ['alemanha', 'germany', 'deutschland'] },
+  { clube: 'Espanha',        termos: ['espanha', 'spain'] },
+  { clube: 'França',         termos: ['frança', 'franca', 'france'] },
+  { clube: 'Inglaterra',     termos: ['inglaterra', 'england'] },
+  { clube: 'Itália',         termos: ['itália', 'italia', 'italy', 'azzurra'] },
+  { clube: 'Holanda',        termos: ['holanda', 'países baixos', 'paises baixos', 'netherlands'] },
+  { clube: 'Portugal',       termos: ['portugal'] },
+  { clube: 'Bélgica',        termos: ['bélgica', 'belgica', 'belgium'] },
+  { clube: 'Croácia',        termos: ['croácia', 'croacia', 'croatia'] },
+  { clube: 'Japão',          termos: ['japão', 'japao', 'japan'] },
+  { clube: 'Coreia do Sul',  termos: ['coreia do sul', 'coréia do sul', 'korea'] },
+  { clube: 'Nigéria',        termos: ['nigéria', 'nigeria'] },
+  { clube: 'Camarões',       termos: ['camarões', 'camaroes', 'cameroon'] },
+  { clube: 'Marrocos',       termos: ['marrocos', 'morocco'] },
+]
+
+export const TIMES_MAP = [...CLUBES_MAP, ...SELECOES_MAP]
+
 export function normalizarTexto(texto) {
   return (texto || '')
     .normalize('NFD')
@@ -141,7 +171,7 @@ export async function carregarClubesMap(supabase) {
 
   if (error || !data?.length) {
     if (error) console.warn('  ⚠️  Não foi possível carregar clubes do banco:', error.message)
-    return CLUBES_MAP
+    return TIMES_MAP
   }
 
   const porClube = new Map()
@@ -151,7 +181,7 @@ export async function carregarClubesMap(supabase) {
     porClube.set(chave, { clube: clube.nome, termos: new Set(termosBaseClube(clube)) })
   }
 
-  for (const clubePadrao of CLUBES_MAP) {
+  for (const clubePadrao of TIMES_MAP) {
     const termosPadrao = termosBaseClube(clubePadrao).concat(clubePadrao.termos)
     const clubeDoBanco = Array.from(porClube.values()).find(item => {
       const nome = normalizarTexto(item.clube)
@@ -199,4 +229,8 @@ export function identificarClube(titulo, clubesMap = CLUBES_MAP) {
   }
 
   return melhor?.clube || null
+}
+
+export function identificarSelecao(titulo, selecoesMap = SELECOES_MAP) {
+  return identificarClube(titulo, selecoesMap)
 }

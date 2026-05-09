@@ -5,7 +5,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.mantosagradocamisas.com'
@@ -21,7 +21,7 @@ const COLECOES = [
   { slug: 'nacionais',  clube: null,             paginas: 4 },
 ]
 
-async function rasparPagina(slug, page) {
+async function rasparPagina(slug, page, clubesMap) {
   const url = `${BASE_URL}/${slug}?page=${page}`
   console.log(`  📄 Página ${page}: ${url}`)
 
@@ -55,7 +55,7 @@ async function rasparPagina(slug, page) {
         link_original: linkFull,
         imagem_url: imagem,
         preco,
-        clube: identificarClube(titulo),
+        clube: identificarClube(titulo, clubesMap),
         ano: extrairAno(titulo),
         fonte_nome: FONTE_NOME,
         fonte_url: FONTE_URL,
@@ -73,13 +73,13 @@ async function rasparPagina(slug, page) {
   }
 }
 
-async function rasparColecao({ slug, clube, paginas }) {
+async function rasparColecao({ slug, clube, paginas }, clubesMap) {
   console.log(`\n⚽ ${clube || slug} (${paginas} páginas)`)
 
   let totalColecao = 0
 
   for (let page = 1; page <= paginas; page++) {
-    const produtos = await rasparPagina(slug, page)
+    const produtos = await rasparPagina(slug, page, clubesMap)
 
     if (produtos.length > 0) {
       // Se clube fixo, força o clube em todos os produtos
@@ -102,10 +102,11 @@ async function main() {
   console.log('🚀 Scraper — Manto Sagrado Camisas\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  const clubesMap = await carregarClubesMap(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao)
+    totalGeral += await rasparColecao(colecao, clubesMap)
     await sleep(DELAY_MS)
   }
 

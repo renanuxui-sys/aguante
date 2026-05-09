@@ -176,6 +176,7 @@ node scraper-copero.js                  # Copero Brechó
 | Arquivo | Categoria |
 |---|---|
 | `scraper-memorias.js` | `/categoria-produto/futebol/brasil/` |
+| `scraper-memorias.js` | `/categoria-produto/futebol/selecoes/` |
 | `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/internacional/` |
 | `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/gremio/` |
 
@@ -204,7 +205,7 @@ $('ul.products li.product').each((_, el) => {
 
 **Endpoint:** `/collections/{slug}/products.json?limit=250&page=N`
 
-**Coleções:** flamengo, botafogo, fluminense, vasco-da-gama, corinthians, palmeiras, santos, sao-paulo, gremio, internacional, atletico-mineiro, cruzeiro, athletico-paranaense, fortaleza, bahia, vitoria, demais-clubes-*
+**Coleções:** flamengo, botafogo, fluminense, vasco-da-gama, corinthians, palmeiras, santos, sao-paulo, gremio, internacional, atletico-mineiro, cruzeiro, athletico-paranaense, fortaleza, bahia, vitoria, demais-clubes-*, selecoes-nacionais
 
 ---
 
@@ -263,7 +264,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Produtos:** ~305
 **Paginação automática:** ✅ para após 2 páginas vazias
 
-**URL:** `/clubes/sulamericanos/brasileiros/?page=N`
+**URLs:** `/clubes/sulamericanos/brasileiros/?page=N`, `/selecoes1/?page=N`
 
 **Comportamento:**
 - Página 1 carrega ~60 produtos com scroll devagar
@@ -280,7 +281,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Produtos:** ~792
 **Paginação automática:** ✅ clica até não ter mais botão
 
-**URL:** `https://www.futclassics.com.br/clubes-brasileiros` (página única)
+**URLs:** `https://www.futclassics.com.br/clubes-brasileiros`, `https://www.futclassics.com.br/selecoes-camisas-futebol`
 
 **Fluxo:**
 1. Abre a página
@@ -307,11 +308,11 @@ imagem  = `https://static.wixstatic.com/media/${uri}/v1/fill/w_480,h_480,.../${u
 **Produtos:** ~206
 **Paginação automática:** ✅ para quando retornar menos que 250 itens
 
-**Endpoint:** `/collections/todos-os-produtos/products.json?limit=250&page=N`
+**Endpoints:** `/collections/todos-os-produtos/products.json?limit=250&page=N`, `/collections/times-internacionais/products.json?limit=250&page=N`
 
 **Filtros:**
 - `variants[0].available === false` → ignora esgotados
-- Tags com `internacionais`, `seleção`, `seleções` → ignora
+- Produtos internacionais/seleções são salvos quando o time/seleção é identificado pelo mapa compartilhado
 
 ---
 
@@ -324,7 +325,7 @@ imagem  = `https://static.wixstatic.com/media/${uri}/v1/fill/w_480,h_480,.../${u
 
 **Paginação:** `/{slug}?page=N`
 
-**Coleções:** gremio (clube fixo: Grêmio), inter (clube fixo: Internacional), nacionais (identificação automática)
+**Coleções:** gremio (clube fixo: Grêmio), inter (clube fixo: Internacional), nacionais/seleções (identificação automática)
 
 **Seletores:**
 ```js
@@ -349,7 +350,7 @@ $('div.listagem-item').each((_, el) => {
 **Produtos:** ~243
 **Paginação automática:** ✅ para após 3 páginas sem clube identificado
 
-**URL:** `/futebol-nacional?pg=N` (atenção: usa `pg=` não `page=`)
+**URLs:** `/futebol-nacional?pg=N`, `/camisas-de-futebol/selecoes?pg=N` (atenção: usa `pg=` não `page=`)
 
 **Seletores:**
 ```js
@@ -361,7 +362,7 @@ $('div.product').each((_, el) => {
 })
 ```
 
-**Filtro:** só salva produtos cujo clube foi identificado no `CLUBES_MAP` — internacionais e seleções são ignorados automaticamente.
+**Filtro:** só salva produtos cujo clube/seleção foi identificado no mapa compartilhado.
 
 ---
 
@@ -372,7 +373,7 @@ $('div.product').each((_, el) => {
 **Produtos:** ~226 na coleção Grêmio
 **Paginação automática:** ✅ para após 2 páginas vazias
 
-**URL:** `/gremio/` e `/gremio/page/N/`
+**URLs:** `/gremio/`, `/selecao-brasileira/`, `/camisas-de-outras-selecoes/` e respectivas páginas `/page/N/`
 
 **Comandos:**
 ```bash

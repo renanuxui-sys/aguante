@@ -37,6 +37,7 @@ const COLECOES = [
   { slug: 'demais-clubes-de-minas-gerais',   clube: null },
   { slug: 'demais-clubes-parana',            clube: null },
   { slug: 'demais-clubes-sao-paulo',         clube: null },
+  { slug: 'selecoes-nacionais',              clube: null },
 ]
 
 async function buscarPagina(slug, page) {

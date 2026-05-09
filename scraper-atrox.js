@@ -17,6 +17,7 @@ const supabase = criarSupabase()
 
 const COLECOES = [
   { slug: 'clubes/sulamericanos/brasileiros', clube: null },
+  { slug: 'selecoes1', clube: null },
 ]
 
 function imagemValida(url) {

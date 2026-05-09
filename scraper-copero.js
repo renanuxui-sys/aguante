@@ -6,7 +6,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL = 'https://coperobrecho.net'
@@ -20,6 +20,8 @@ const semDesativar = process.argv.includes('--sem-desativar')
 
 const COLECOES = [
   { path: 'gremio', clube: 'Grêmio' },
+  { path: 'selecao-brasileira', clube: 'Brasil' },
+  { path: 'camisas-de-outras-selecoes', clube: null },
 ]
 
 function urlAbsoluta(url) {
@@ -91,7 +93,7 @@ function estaDisponivel($el, produtoJson) {
   return !texto.includes('esgotado') && !texto.includes('sem estoque')
 }
 
-function converterProduto($, el, clube) {
+function converterProduto($, el, clube, clubesMap) {
   const $el = $(el)
   const produtoJson = parseJsonProduto($el)
 
@@ -115,7 +117,7 @@ function converterProduto($, el, clube) {
     link_original: urlAbsoluta(link),
     imagem_url: extrairImagem($el, produtoJson),
     preco,
-    clube,
+    clube: clube || identificarClube(titulo, clubesMap),
     ano: extrairAno(titulo),
     fonte_nome: FONTE_NOME,
     fonte_url: FONTE_URL,
@@ -126,7 +128,7 @@ function converterProduto($, el, clube) {
   }
 }
 
-async function rasparPagina({ path, clube }, pagina) {
+async function rasparPagina({ path, clube }, pagina, clubesMap) {
   const url = pagina === 1 ? `${BASE_URL}/${path}/` : `${BASE_URL}/${path}/page/${pagina}/`
   console.log(`  📄 Página ${pagina}`)
 
@@ -141,7 +143,7 @@ async function rasparPagina({ path, clube }, pagina) {
     const $ = cheerio.load(html)
 
     return $('.js-item-product')
-      .map((_, el) => converterProduto($, el, clube))
+      .map((_, el) => converterProduto($, el, clube, clubesMap))
       .get()
       .filter(Boolean)
   } catch (err) {
@@ -150,15 +152,15 @@ async function rasparPagina({ path, clube }, pagina) {
   }
 }
 
-async function rasparColecao(colecao) {
-  console.log(`\n⚽ ${colecao.clube}`)
+async function rasparColecao(colecao, clubesMap) {
+  console.log(`\n⚽ ${colecao.clube || colecao.path}`)
 
   let totalColecao = 0
   let pagina = 1
   let paginasVazias = 0
 
   while (true) {
-    const produtos = await rasparPagina(colecao, pagina)
+    const produtos = await rasparPagina(colecao, pagina, clubesMap)
 
     if (produtos.length > 0) {
       if (dryRun) {
@@ -191,10 +193,11 @@ async function main() {
   if (!dryRun && !semDesativar) {
     await desativarProdutosDaFonte(supabase, FONTE_NOME)
   }
+  const clubesMap = await carregarClubesMap(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao)
+    totalGeral += await rasparColecao(colecao, clubesMap)
     await sleep(DELAY_MS)
   }
 

@@ -8,11 +8,15 @@ import * as cheerio from 'cheerio'
 import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
-const URL_BRASILEIROS = 'https://www.futclassics.com.br/clubes-brasileiros'
 const FONTE_NOME      = 'Fut Classics'
 const FONTE_URL       = 'https://www.futclassics.com.br'
 
 const supabase = criarSupabase()
+
+const PAGINAS = [
+  'https://www.futclassics.com.br/clubes-brasileiros',
+  'https://www.futclassics.com.br/selecoes-camisas-futebol',
+]
 
 function extrairImagemWix(el, $) {
   const $el = $(el)
@@ -36,70 +40,77 @@ async function main() {
   const page = await browser.newPage()
   await page.setViewportSize({ width: 1440, height: 900 })
 
-  console.log('🌐 Abrindo página...')
-  await page.goto(URL_BRASILEIROS, { waitUntil: 'domcontentloaded', timeout: 60000 })
-  await page.waitForSelector('[data-hook="product-list-grid-item"]', { timeout: 15000 })
-  await sleep(2000)
-
-  let cliques = 0
-  while (true) {
-    const botao = await page.$('[data-hook="load-more-button"]')
-    if (!botao || !(await botao.isVisible())) break
-    console.log(`  🔄 Clicando em "ver mais" (${++cliques}x)...`)
-    await botao.click()
-    await sleep(1000)
-    await page.waitForLoadState('networkidle').catch(() => {})
-    await sleep(500)
-  }
-
-  const totalCarregado = await page.$$eval('[data-hook="product-list-grid-item"]', els => els.length)
-  console.log(`\n✅ ${totalCarregado} produtos carregados após ${cliques} cliques\n`)
-
-  const html = await page.content()
-  await browser.close()
-
-  const $ = cheerio.load(html)
   const vistos = new Set()
   const produtos = []
 
-  $('[data-hook="product-list-grid-item"]').each((_, el) => {
-    const $el = $(el)
+  for (const url of PAGINAS) {
+    console.log(`🌐 Abrindo página: ${url}`)
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
+    const encontrouGrid = await page.waitForSelector('[data-hook="product-list-grid-item"]', { timeout: 15000 }).then(() => true).catch(() => false)
+    if (!encontrouGrid) {
+      console.warn('  ⚠️  Nenhum grid de produtos encontrado.')
+      continue
+    }
+    await sleep(2000)
 
-    // Ignora esgotados
-    if ($el.find('[data-hook="product-item-out-of-stock"]').length > 0) return
+    let cliques = 0
+    while (true) {
+      const botao = await page.$('[data-hook="load-more-button"]')
+      if (!botao || !(await botao.isVisible())) break
+      console.log(`  🔄 Clicando em "ver mais" (${++cliques}x)...`)
+      await botao.click()
+      await sleep(1000)
+      await page.waitForLoadState('networkidle').catch(() => {})
+      await sleep(500)
+    }
 
-    const titulo   = $el.find('[data-hook="product-item-name"]').text().trim()
-    const link     = $el.find('[data-hook="product-item-container"]').attr('href') || ''
-    const precoTxt = $el.find('[data-hook="product-item-price-to-pay"]').attr('data-wix-price') || ''
-    const imagem   = extrairImagemWix(el, $)
+    const totalCarregado = await page.$$eval('[data-hook="product-list-grid-item"]', els => els.length)
+    console.log(`  ✅ ${totalCarregado} produtos carregados após ${cliques} cliques`)
 
-    if (!titulo || !link) return
+    const html = await page.content()
+    const $ = cheerio.load(html)
 
-    const linkFull = link.startsWith('http') ? link : `${FONTE_URL}${link}`
+    $('[data-hook="product-list-grid-item"]').each((_, el) => {
+      const $el = $(el)
 
-    // Deduplica por link
-    if (vistos.has(linkFull)) return
-    vistos.add(linkFull)
+      // Ignora esgotados
+      if ($el.find('[data-hook="product-item-out-of-stock"]').length > 0) return
 
-    const preco = precoTxt
-      ? parseFloat(precoTxt.replace(/[R$\s\u00a0]/g, '').replace('.', '').replace(',', '.'))
-      : null
+      const titulo   = $el.find('[data-hook="product-item-name"]').text().trim()
+      const link     = $el.find('[data-hook="product-item-container"]').attr('href') || ''
+      const precoTxt = $el.find('[data-hook="product-item-price-to-pay"]').attr('data-wix-price') || ''
+      const imagem   = extrairImagemWix(el, $)
 
-    produtos.push({
-      titulo,
-      link_original: linkFull,
-      imagem_url: imagem,
-      preco: isNaN(preco) ? null : preco,
-      clube: identificarClube(titulo, clubesMap),
-      ano: extrairAno(titulo),
-      fonte_nome: FONTE_NOME,
-      fonte_url: FONTE_URL,
-      tags: [],
-      de_jogo: titulo.toLowerCase().includes('de jogo') || titulo.toLowerCase().includes('match worn'),
-      novidade: false,
-      alta_procura: false,
+      if (!titulo || !link) return
+
+      const linkFull = link.startsWith('http') ? link : `${FONTE_URL}${link}`
+
+      // Deduplica por link
+      if (vistos.has(linkFull)) return
+      vistos.add(linkFull)
+
+      const preco = precoTxt
+        ? parseFloat(precoTxt.replace(/[R$\s\u00a0]/g, '').replace('.', '').replace(',', '.'))
+        : null
+
+      produtos.push({
+        titulo,
+        link_original: linkFull,
+        imagem_url: imagem,
+        preco: isNaN(preco) ? null : preco,
+        clube: identificarClube(titulo, clubesMap),
+        ano: extrairAno(titulo),
+        fonte_nome: FONTE_NOME,
+        fonte_url: FONTE_URL,
+        tags: [],
+        de_jogo: titulo.toLowerCase().includes('de jogo') || titulo.toLowerCase().includes('match worn'),
+        novidade: false,
+        alta_procura: false,
+      })
     })
-  })
+  }
+
+  await browser.close()
 
   console.log(`📦 ${produtos.length} produtos únicos disponíveis`)
 
