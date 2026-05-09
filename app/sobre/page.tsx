@@ -69,8 +69,8 @@ export default function SobrePage() {
         .sobre-title {
           margin: 23px 0 26px;
           color: #050505;
-          font-size: 82px;
-          font-weight: 300;
+          font-size: 64px;
+          font-weight: 100;
           line-height: 0.92;
           letter-spacing: -0.065em;
         }

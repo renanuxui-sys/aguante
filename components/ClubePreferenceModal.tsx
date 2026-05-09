@@ -55,11 +55,12 @@ export default function ClubePreferenceModal() {
         .from('clubes')
         .select('nome')
         .eq('ativo', true)
+        .eq('categoria', 'Clubes Brasileiros')
         .order('nome', { ascending: true })
 
       const nomes = data?.map(c => c.nome).filter(Boolean) || TODOS_CLUBES
-      const unicos = Array.from(new Set(nomes)).filter(nome => nome !== 'Outro').sort((a, b) => a.localeCompare(b, 'pt-BR'))
-      setClubes([...unicos, 'Outro'])
+      const unicos = Array.from(new Set(nomes)).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      setClubes(unicos)
     }
 
     carregarClubes()
