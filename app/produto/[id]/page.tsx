@@ -15,6 +15,7 @@ const imgIconNotify   = "/assets/ico-notify.svg"
 const imgChevronRight = "/assets/chevron-right.svg"
 const imgBgHero       = "/assets/bg-hero.png"
 const imgExport       = "/assets/export.svg"
+const TAGS_OCULTAS = new Set(['geckoapi', 'apify'])
 
 type ProdutoComStats = Produto & { views?: number; likes?: number; cliques_anuncio?: number }
 type StatusAlerta = 'idle' | 'loading' | 'success' | 'error'
@@ -175,13 +176,14 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   )
 
   const imagemProdutoUrl = imagemComProxy(produto.imagem_url)
+  const tagsVisiveis = (produto.tags || []).filter(tag => !TAGS_OCULTAS.has(tag.toLowerCase()))
 
   const BlocoInfos = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {produto.tags && produto.tags.length > 0 && (
+        {tagsVisiveis.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {produto.tags.map((tag: string) => (
+            {tagsVisiveis.map((tag: string) => (
               <span key={tag} style={{ background: '#ecebf0', borderRadius: 8, padding: '3px 10px', fontSize: 12, color: '#4a4845', fontWeight: 500, letterSpacing: '-0.01em' }}>
                 {tag}
               </span>

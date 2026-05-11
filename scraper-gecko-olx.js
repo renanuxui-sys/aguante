@@ -209,7 +209,7 @@ function converterItem(item, clube) {
     ano: extrairAno(titulo),
     fonte_nome: FONTE_NOME,
     fonte_url: FONTE_URL,
-    tags: ['geckoapi'],
+    tags: [],
     de_jogo: normalizarTexto(titulo).includes('jogo') || normalizarTexto(titulo).includes('match worn'),
     novidade: false,
     alta_procura: false,
