@@ -230,12 +230,23 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   const CardAlerta = () => (
     <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <p style={{ fontWeight: 300, fontSize: 15, color: '#000', lineHeight: 1.3 }}>
-        <strong style={{ fontWeight: 700 }}>Quer ser avisado</strong> quando aparecer outra igual?
+        <strong style={{ fontWeight: 700 }}>Não encontrou o produto que procurava?</strong> Crie um alerta que te avisamos quando ele for encontrado.
       </p>
       <button onClick={() => setAlertaAberto(true)} style={{ border: '1px solid #550fed', borderRadius: 12, padding: '12px 16px', background: 'transparent', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         <span style={{ fontWeight: 700, fontSize: 13, color: '#000', whiteSpace: 'nowrap' }}>criar alerta</span>
         <img src={imgIconNotify} alt="" style={{ width: 20, height: 20 }} />
       </button>
+    </div>
+  )
+
+  const AvisoTerceiros = () => (
+    <div style={{ borderTop: '1px solid #e0dee7', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <p style={{ fontWeight: 300, fontSize: 13, color: '#62748c', letterSpacing: '-0.13px', lineHeight: 1.35 }}>
+        Os produtos e preços exibidos na Aguante podem sofrer alterações sem aviso prévio, conforme disponibilidade das lojas e vendedores responsáveis pelos anúncios.
+      </p>
+      <p style={{ fontWeight: 300, fontSize: 13, color: '#62748c', letterSpacing: '-0.13px', lineHeight: 1.35 }}>
+        A Aguante não realiza vendas diretas e não se responsabiliza por pagamentos, entregas, trocas ou negociações realizadas com terceiros.
+      </p>
     </div>
   )
 
@@ -309,6 +320,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                   <BlocoInfos />
                   <BotaoAnuncio />
                   <CardAlerta />
+                  <AvisoTerceiros />
                 </div>
               </div>
             </div>
@@ -343,6 +355,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
               <BlocoInfos />
               <BotaoAnuncio fullWidth />
               <CardAlerta />
+              <AvisoTerceiros />
             </div>
           </div>
         </div>

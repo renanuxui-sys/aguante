@@ -95,7 +95,7 @@ export default function Navbar() {
   const [submenu, setSubmenu]         = useState(false)
   const [catAtiva, setCatAtiva]       = useState('Clubes Brasileiros')
   const [menuMobile, setMenuMobile]   = useState(false)
-  const [catMobile, setCatMobile]     = useState('Clubes Brasileiros')
+  const [catMobile, setCatMobile]     = useState('')
   const [categorias, setCategorias]   = useState<Categoria[]>([])
   const [query, setQuery]             = useState('')
   const [buscaMobile, setBuscaMobile] = useState(false)
@@ -210,7 +210,7 @@ export default function Navbar() {
             style={{ width: 44, height: 44, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
             <img src={imgNavSearch} alt="Buscar" style={{ width: 24, height: 24, filter: 'brightness(0)' }} />
           </button>
-          <button onClick={() => { setMenuMobile(m => !m); setBuscaMobile(false) }}
+          <button onClick={() => { setMenuMobile(m => { const aberto = !m; if (aberto) setCatMobile(''); return aberto }); setBuscaMobile(false) }}
             aria-label={menuMobile ? 'Fechar menu' : 'Abrir menu'}
             style={{ width: 52, height: 52, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
             <img src={menuMobile ? imgClose : imgMenu} alt="" style={{ width: 48, height: 48 }} />

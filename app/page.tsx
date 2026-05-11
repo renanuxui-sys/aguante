@@ -41,12 +41,13 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
   return (
     <section style={{ background: '#f5f5f5', paddingBottom: 56 }}>
       <div className="ag-container">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 12 }}>
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
             {titulo}
           </h2>
           {/* Ver todas — 18px com chevron-right.svg */}
           <button
+            className="ag-section-link"
             onClick={() => router.push(linkTodas)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em' }}
           >
@@ -62,11 +63,40 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
   )
 }
 
+function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
+  const router = useRouter()
+  if (produtos.length === 0) return null
+  return (
+    <section className="ag-copa-section" style={{ background: '#ecebf0', padding: '88px 0' }}>
+      <div className="ag-container">
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
+          <div style={{ maxWidth: 620 }}>
+            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', marginBottom: 8 }}>🌍 Copa do Mundo</h2>
+            <p style={{ fontWeight: 400, fontSize: 16, lineHeight: 1.2, color: '#4a4845', letterSpacing: '-0.01em' }}>A copa está chegando e te ajudamos a encontrar as camisas das seleções do mundo todo.</p>
+          </div>
+          <button
+            className="ag-section-link"
+            onClick={() => router.push('/search?q=Seleção')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em', flexShrink: 0, padding: 0, marginBottom: 2 }}
+          >
+            <span className="ag-ver-todas-txt">ver todas</span>
+            <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
+          </button>
+        </div>
+        <div className="ag-cards ag-copa-card-grid">
+          {produtos.map(p => <CardProduto key={`copa-${p.id}`} produto={p} />)}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function Home() {
   const router = useRouter()
   const [query, setQuery]         = useState('')
   const [novidades, setNovidades] = useState<Produto[]>([])
   const [produtosParaVoce, setProdutosParaVoce] = useState<Produto[]>([])
+  const [selecoes, setSelecoes] = useState<Produto[]>([])
   const [clubePreferido, setClubePreferido] = useState('')
   const [emAlta, setEmAlta]       = useState<Produto[]>([])
   const [anos80, setAnos80]       = useState<Produto[]>([])
@@ -93,6 +123,29 @@ export default function Home() {
     supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
       .order('created_at', { ascending: false }).limit(30)
       .then(({ data }) => { if (data) setNovidades(embaralhar(data).slice(0, 6)) })
+
+    supabase.from('clubes_com_total_anuncios').select('nome,total_anuncios')
+      .eq('ativo', true)
+      .eq('categoria', 'Seleções')
+      .gt('total_anuncios', 0)
+      .order('ordem', { ascending: true })
+      .then(async ({ data, error }) => {
+        if (error || !data?.length) {
+          setSelecoes([])
+          return
+        }
+
+        const nomesSelecoes = data.map(clube => clube.nome)
+        const { data: produtosSelecoes } = await supabase.from('produtos')
+          .select(PRODUCT_CARD_SELECT)
+          .eq('ativo', true)
+          .in('clube', nomesSelecoes)
+          .order('views', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .limit(50)
+
+        setSelecoes(embaralhar(produtosSelecoes || []))
+      })
 
     supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
       .order('views', { ascending: false, nullsFirst: false })
@@ -165,6 +218,8 @@ export default function Home() {
         .ag-card { width: 100%; min-height: 325px; height: 100%; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; margin-bottom: 32px; }
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+        .ag-copa-card-grid .ag-card { margin-bottom: 0; }
+        .ag-copa-section { margin-bottom: 88px; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         .ag-hero-img { display: block; }
         .ag-hero-stats-inline { display: none; }
@@ -172,13 +227,17 @@ export default function Home() {
         .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
         .ag-clubes-mobile-track { display: none; }
         .ag-ver-todas-txt { display: inline; }
+        .ag-section-link { flex-shrink: 0; }
         @keyframes ag-clubes-slide {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
         }
 
         @media (max-width: 768px) {
-          .ag-ver-todas-txt { display: none !important; }
+          .ag-ver-todas-txt { display: inline !important; }
+          .ag-section-head { align-items: flex-end !important; flex-direction: row !important; justify-content: space-between !important; gap: 32px !important; }
+          .ag-section-link { margin-bottom: 0 !important; }
+          .ag-copa-section { margin-bottom: 56px; }
           .ag-cards { grid-template-columns: repeat(2,1fr) !important; }
           .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
@@ -393,6 +452,7 @@ export default function Home() {
             linkTodas={`/search?q=${encodeURIComponent(clubePreferido)}&ordenar=mais-vistos`}
           />
         )}
+        <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
         <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search" />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 
@@ -400,7 +460,7 @@ export default function Home() {
         {emAlta.length > 0 && (
           <section style={{ background: '#f5f5f5', paddingBottom: 80 }}>
             <div className="ag-container">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M12 2C9 7 6 9 6 13a6 6 0 0012 0c0-4-3-6-6-11z" fill="#FF4D00" opacity="0.9"/>
@@ -411,10 +471,11 @@ export default function Home() {
                    </h2>
                 </div>
                 <button
+                  className="ag-section-link"
                   onClick={() => router.push('/search?ordenar=mais-vistos')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em' }}
                 >
-                  ver todos
+                  <span className="ag-ver-todas-txt">ver todos</span>
                   <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
