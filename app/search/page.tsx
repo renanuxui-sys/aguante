@@ -35,6 +35,7 @@ function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const q       = searchParams.get('q') || ''
+  const categoria = searchParams.get('categoria')
   const decada  = searchParams.get('decada')
   const ordenar = searchParams.get('ordenar')
   const deJogo  = searchParams.get('de_jogo') === 'true'
@@ -51,52 +52,75 @@ function SearchContent() {
       if (ativo) setLoading(true)
     }, 0)
 
-    let query = supabase.from('produtos').select(PRODUCT_CARD_SELECT, { count: 'exact' }).eq('ativo', true)
+    async function carregarProdutos() {
+      let query = supabase.from('produtos').select(PRODUCT_CARD_SELECT, { count: 'exact' }).eq('ativo', true)
 
-    // Busca por múltiplos termos: "internacional 1997" busca cada palavra no título OU clube OU ano
-    if (q) {
-      const termos = q.trim().split(/\s+/).filter(t => t.length > 0)
-      termos.forEach(termo => {
-        query = query.or(`titulo.ilike.%${termo}%,clube.ilike.%${termo}%,ano.ilike.%${termo}%`)
-      })
-    }
+      if (categoria) {
+        const { data: clubesCategoria } = await supabase
+          .from('clubes_com_total_anuncios')
+          .select('nome,total_anuncios')
+          .eq('ativo', true)
+          .eq('categoria', categoria)
+          .gt('total_anuncios', 0)
 
-    // Filtro por década (1980, 1990, etc.)
-    if (decada) {
-      const ini = decada.length === 2 ? `19${decada}` : decada
-      const inicio = parseInt(ini, 10)
-      const fim = inicio + 9
-      query = query.gte('ano', String(inicio)).lte('ano', String(fim))
-    }
-
-    if (deJogo) {
-      query = query.eq('de_jogo', true)
-    }
-
-    // Ordenação
-    if (ordenar === 'mais-vistos' || ordem === 'mais vistos') {
-      query = query.order('views', { ascending: false, nullsFirst: false })
-    } else if (ordem === 'menor preço') {
-      query = query.order('preco', { ascending: true, nullsFirst: false })
-    } else if (ordem === 'maior preço') {
-      query = query.order('preco', { ascending: false, nullsFirst: false })
-    } else {
-      query = query.order('created_at', { ascending: false })
-    }
-
-    query.range((paginaParam - 1) * POR_PAGINA, paginaParam * POR_PAGINA - 1)
-      .then(({ data, count }) => {
         if (!ativo) return
-        setProdutos(data || [])
-        setTotal(count || 0)
-        setLoading(false)
-      })
+
+        const nomes = (clubesCategoria || []).map(clube => clube.nome)
+        if (nomes.length === 0) {
+          setProdutos([])
+          setTotal(0)
+          setLoading(false)
+          return
+        }
+
+        query = query.in('clube', nomes)
+      }
+
+      // Busca por múltiplos termos: "internacional 1997" busca cada palavra no título OU clube OU ano
+      if (q) {
+        const termos = q.trim().split(/\s+/).filter(t => t.length > 0)
+        termos.forEach(termo => {
+          query = query.or(`titulo.ilike.%${termo}%,clube.ilike.%${termo}%,ano.ilike.%${termo}%`)
+        })
+      }
+
+      // Filtro por década (1980, 1990, etc.)
+      if (decada) {
+        const ini = decada.length === 2 ? `19${decada}` : decada
+        const inicio = parseInt(ini, 10)
+        const fim = inicio + 9
+        query = query.gte('ano', String(inicio)).lte('ano', String(fim))
+      }
+
+      if (deJogo) {
+        query = query.eq('de_jogo', true)
+      }
+
+      // Ordenação
+      if (ordenar === 'mais-vistos' || ordem === 'mais vistos') {
+        query = query.order('views', { ascending: false, nullsFirst: false })
+      } else if (ordem === 'menor preço') {
+        query = query.order('preco', { ascending: true, nullsFirst: false })
+      } else if (ordem === 'maior preço') {
+        query = query.order('preco', { ascending: false, nullsFirst: false })
+      } else {
+        query = query.order('created_at', { ascending: false })
+      }
+
+      const { data, count } = await query.range((paginaParam - 1) * POR_PAGINA, paginaParam * POR_PAGINA - 1)
+      if (!ativo) return
+      setProdutos(data || [])
+      setTotal(count || 0)
+      setLoading(false)
+    }
+
+    carregarProdutos()
 
     return () => {
       ativo = false
       window.clearTimeout(loadingTimer)
     }
-  }, [q, decada, ordenar, deJogo, ordem, paginaParam])
+  }, [q, categoria, decada, ordenar, deJogo, ordem, paginaParam])
 
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
 
@@ -201,11 +225,13 @@ function SearchContent() {
                       <>
                         Encontramos <strong style={{ fontWeight: 700 }}>{total.toLocaleString('pt-BR')} {total === 1 ? 'camisa' : 'camisas'}</strong>
                         {q && <> na sua busca por <strong style={{ fontWeight: 700 }}>&quot;{q}&quot;</strong></>}
+                        {!q && categoria && <> em <strong style={{ fontWeight: 700 }}>{categoria}</strong></>}
                       </>
                     ) : (
                       <>
                         Nenhuma camisa encontrada
                         {q && <> para <strong style={{ fontWeight: 700 }}>&quot;{q}&quot;</strong></>}
+                        {!q && categoria && <> em <strong style={{ fontWeight: 700 }}>{categoria}</strong></>}
                       </>
                     )}
                   </p>

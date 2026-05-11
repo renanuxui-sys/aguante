@@ -76,7 +76,7 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
           </div>
           <button
             className="ag-section-link"
-            onClick={() => router.push('/search?q=Seleção')}
+            onClick={() => router.push('/search?categoria=Seleções')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em', flexShrink: 0, padding: 0, marginBottom: 2 }}
           >
             <span className="ag-ver-todas-txt">ver todas</span>
