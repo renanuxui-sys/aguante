@@ -30,6 +30,7 @@ const MAX_PAGINAS_LIMITE = 3
 const PRECO_MINIMO_PADRAO = 250
 const LOCATION_PADRAO = 'brasil'
 const DELAY_MS = 1200
+const RETRIES_PADRAO = 2
 const ESTADOS_BR = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
   'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
@@ -83,6 +84,7 @@ function parseArgs() {
     semDesativar: args.includes('--sem-desativar'),
     filtrarCamisas: !args.includes('--sem-filtro-camisa'),
     debug: args.includes('--debug'),
+    retries: Math.max(0, Number(valorArg('retries') || RETRIES_PADRAO) || RETRIES_PADRAO),
     filtroPrecoApi: args.includes('--filtro-preco-api'),
     priceMin: valorArg('price-min') ? Number(valorArg('price-min')) : PRECO_MINIMO_PADRAO,
     priceMax: valorArg('price-max') ? Number(valorArg('price-max')) : null,
@@ -300,6 +302,10 @@ function montarPayload(busca, page, options) {
   return payload
 }
 
+function erroTemporarioGecko(error) {
+  return error?.status === 429 || error?.status >= 500
+}
+
 async function chamarGecko(payload) {
   if (!process.env.GECKO_API_KEY) {
     throw new Error('Configure GECKO_API_KEY no .env para usar o scraper OLX via GeckoAPI.')
@@ -324,10 +330,31 @@ async function chamarGecko(payload) {
 
   if (!res.ok) {
     const detalhe = data?.message || data?.error || data?.errorCode || JSON.stringify(data?.details || data)
-    throw new Error(`GeckoAPI retornou status ${res.status}: ${detalhe}`)
+    const error = new Error(`GeckoAPI retornou status ${res.status}: ${detalhe}`)
+    error.status = res.status
+    throw error
   }
 
   return data
+}
+
+async function chamarGeckoComRetry(payload, options) {
+  let ultimaFalha = null
+
+  for (let tentativa = 1; tentativa <= options.retries + 1; tentativa++) {
+    try {
+      return await chamarGecko(payload)
+    } catch (error) {
+      ultimaFalha = error
+      if (!erroTemporarioGecko(error) || tentativa > options.retries) break
+
+      const espera = Math.round((3000 * tentativa) + (Math.random() * 2000))
+      console.warn(`  GeckoAPI falhou (${error.message}). Tentativa ${tentativa + 1}/${options.retries + 1} em ${Math.round(espera / 1000)}s`)
+      await sleep(espera)
+    }
+  }
+
+  throw ultimaFalha
 }
 
 function filtrarProdutos(produtos, busca, options) {
@@ -357,7 +384,7 @@ async function rasparBusca(busca, options) {
   for (let page = 1; page <= options.maxPaginas; page++) {
     const payload = montarPayload(busca, page, options)
     console.log(`  URL consultada: ${payload.url}`)
-    const data = await chamarGecko(payload)
+    const data = await chamarGeckoComRetry(payload, options)
     const items = extrairItems(data)
     if (options.debug) diagnosticarPrimeiroItem(items)
     const produtos = filtrarProdutos(items.map(item => converterItem(item, busca.clube)), busca, options)
@@ -412,13 +439,26 @@ async function main() {
   }
 
   let totalGeral = 0
+  const falhas = []
   for (const busca of buscas) {
-    totalGeral += await rasparBusca(busca, options)
+    try {
+      totalGeral += await rasparBusca(busca, options)
+    } catch (error) {
+      falhas.push({ busca, erro: error.message || String(error) })
+      console.warn(`\n⚠️  Falha em ${busca.estado || 'sem UF'} — "${busca.query}": ${error.message || error}`)
+    }
     await sleep(DELAY_MS)
   }
 
   if (options.salvar) {
     await relatorioFinal(supabase, FONTE_NOME, totalGeral)
+  }
+
+  if (falhas.length > 0) {
+    console.warn('\n⚠️  Buscas com falha:')
+    falhas.forEach(({ busca, erro }, index) => {
+      console.warn(`   ${index + 1}. ${busca.estado || 'sem UF'} — ${busca.query}: ${erro}`)
+    })
   }
 
   console.log(`\n🏁 Concluído! Total geral: ${totalGeral} produtos ${options.salvar ? 'salvos' : 'encontrados'}.`)
