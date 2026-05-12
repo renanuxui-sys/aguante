@@ -44,7 +44,7 @@ jobs:
             exit 1
           fi
 
-      - name: Memórias do Esporte (Brasil)
+      - name: Memórias do Esporte (Brasil e Seleções)
         run: node scraper-memorias.js
 
       - name: Memórias do Esporte (Inter e Grêmio)
@@ -66,6 +66,16 @@ jobs:
             script: scraper-jaiminho.js
           - nome: Brechó FC
             script: scraper-brechofc.js
+          - nome: Manto Sagrado
+            script: scraper-mantosagrado.js
+          - nome: Mundo da Bola
+            script: scraper-mundodabola.js
+          - nome: Copero Brechó
+            script: scraper-copero.js
+          - nome: Xiru FC
+            script: scraper-xirufc.js
+          - nome: Rill Sports
+            script: scraper-rillsports.js
 
     steps:
       - name: Checkout do repositório
@@ -143,4 +153,4 @@ jobs:
       - name: Relatório final
         run: |
           echo "✅ Rotina concluída em $(date)"
-          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Atrox, Fut Classics, Brechó FC"
+          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Brechó FC, Fut Classics, Atrox, Manto Sagrado, Mundo da Bola, Copero Brechó, Rill Sports, Xiru FC"

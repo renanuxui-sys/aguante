@@ -143,7 +143,7 @@ GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduzir o tempo total e evitar que uma loja trave as próximas:
 
 - **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
-- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho e Brechó FC em matriz paralela.
+- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Xiru FC e Rill Sports em matriz paralela.
 - **Lojas Playwright**: Atrox e Fut Classics em matriz paralela, com Chromium instalado apenas nesses jobs.
 
 Para rodar localmente, a ordem abaixo continua válida:
