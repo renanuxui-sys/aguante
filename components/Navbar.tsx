@@ -129,9 +129,12 @@ export default function Navbar() {
     if (q) { router.push(`/search?q=${encodeURIComponent(q)}`); setQuery(''); setMenuMobile(false); setBuscaMobile(false) }
   }
 
+  // Navegação pelo submenu/menu mobile usa ?clube= para busca exata por clube,
+  // evitando que a busca por título traga resultados irrelevantes
+  // (ex: "Brasil" trazia camisas com "Brasileiro" ou "Copa do Brasil" no título)
   function navegar(nome: string) {
     setSubmenu(false); setMenuMobile(false)
-    router.push(`/search?q=${encodeURIComponent(nome)}`)
+    router.push(`/search?clube=${encodeURIComponent(nome)}`)
   }
 
   function onSubmenuEnter() {

@@ -34,11 +34,14 @@ const filtroKeys = ['ordenar', 'decada', 'de_jogo']
 function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const q       = searchParams.get('q') || ''
-  const categoria = searchParams.get('categoria')
-  const decada  = searchParams.get('decada')
-  const ordenar = searchParams.get('ordenar')
-  const deJogo  = searchParams.get('de_jogo') === 'true'
+  const q          = searchParams.get('q') || ''
+  const categoria  = searchParams.get('categoria')
+  // ?clube=Brasil → busca exata pelo campo clube (vinda da navbar/submenu)
+  // Evita que "Brasil" traga camisas com "Brasileiro" ou "Copa do Brasil" no título
+  const clubeExato = searchParams.get('clube') || ''
+  const decada     = searchParams.get('decada')
+  const ordenar    = searchParams.get('ordenar')
+  const deJogo     = searchParams.get('de_jogo') === 'true'
   const paginaParam = Math.max(1, Number(searchParams.get('pagina') || '1') || 1)
 
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -76,7 +79,12 @@ function SearchContent() {
         query = query.in('clube', nomes)
       }
 
-      // Busca por múltiplos termos: "internacional 1997" busca cada palavra no título OU clube OU ano
+      // Busca exata por clube — vinda da navbar, sem pesquisar no título
+      if (clubeExato) {
+        query = query.eq('clube', clubeExato)
+      }
+
+      // Busca livre por múltiplos termos — pesquisa título, clube e ano
       if (q) {
         const termos = q.trim().split(/\s+/).filter(t => t.length > 0)
         termos.forEach(termo => {
@@ -120,11 +128,13 @@ function SearchContent() {
       ativo = false
       window.clearTimeout(loadingTimer)
     }
-  }, [q, categoria, decada, ordenar, deJogo, ordem, paginaParam])
+  }, [q, clubeExato, categoria, decada, ordenar, deJogo, ordem, paginaParam])
 
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
 
+  // Título contextual: clube exato > busca livre > categoria
   const tituloContexto = 'Resultado de busca'
+  const labelBusca = clubeExato || q || categoria || ''
 
   // Páginas a exibir na paginação (max 5 + reticências + última)
   function paginasParaExibir() {
@@ -224,14 +234,12 @@ function SearchContent() {
                     {total > 0 ? (
                       <>
                         Encontramos <strong style={{ fontWeight: 700 }}>{total.toLocaleString('pt-BR')} {total === 1 ? 'camisa' : 'camisas'}</strong>
-                        {q && <> na sua busca por <strong style={{ fontWeight: 700 }}>&quot;{q}&quot;</strong></>}
-                        {!q && categoria && <> em <strong style={{ fontWeight: 700 }}>{categoria}</strong></>}
+                        {labelBusca && <> para <strong style={{ fontWeight: 700 }}>&quot;{labelBusca}&quot;</strong></>}
                       </>
                     ) : (
                       <>
                         Nenhuma camisa encontrada
-                        {q && <> para <strong style={{ fontWeight: 700 }}>&quot;{q}&quot;</strong></>}
-                        {!q && categoria && <> em <strong style={{ fontWeight: 700 }}>{categoria}</strong></>}
+                        {labelBusca && <> para <strong style={{ fontWeight: 700 }}>&quot;{labelBusca}&quot;</strong></>}
                       </>
                     )}
                   </p>
