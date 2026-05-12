@@ -16,7 +16,8 @@ import {
   relatorioFinal,
   extrairAno,
   identificarClube,
-  carregarClubesMap,
+  carregarClubesMapPorCategoria,
+  combinarClubesMap,
   sleep,
 } from './scraper-utils.js'
 import 'dotenv/config'
@@ -30,7 +31,8 @@ const supabase = criarSupabase()
 
 const COLECOES = [
   { slug: 's-c-internacional', clube: 'Internacional' },
-  { slug: 'selecoes',          clube: null },            // identificação automática
+  { slug: 'selecoes',          clube: null, categorias: ['Seleções'] },
+  { slug: 'clubes-da-europa',  clube: null, categorias: ['Clubes Europeus'], somenteIdentificados: true },
 ]
 
 async function rasparPagina(slug, page) {
@@ -95,8 +97,9 @@ async function rasparPagina(slug, page) {
   }
 }
 
-async function rasparColecao({ slug, clube }, clubesMap) {
+async function rasparColecao({ slug, clube, categorias = ['Clubes Brasileiros'], somenteIdentificados = false }, clubesPorCategoria) {
   console.log(`\n⚽ ${clube || slug}`)
+  const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
   let page = 1
   let erros = 0
   let totalColecao = 0
@@ -114,20 +117,22 @@ async function rasparColecao({ slug, clube }, clubesMap) {
 
     erros = 0
 
-    const produtos = items.map(({ titulo, link, imagem, preco }) => ({
-      titulo,
-      link_original: link,
-      imagem_url: imagem,
-      preco,
-      clube: clube || identificarClube(titulo, clubesMap),
-      ano: extrairAno(titulo),
-      fonte_nome: FONTE_NOME,
-      fonte_url: FONTE_URL,
-      tags: [],
-      de_jogo: /\bjogo\b/i.test(titulo),
-      novidade: false,
-      alta_procura: false,
-    }))
+    const produtos = items
+      .map(({ titulo, link, imagem, preco }) => ({
+        titulo,
+        link_original: link,
+        imagem_url: imagem,
+        preco,
+        clube: clube || identificarClube(titulo, clubesMap),
+        ano: extrairAno(titulo),
+        fonte_nome: FONTE_NOME,
+        fonte_url: FONTE_URL,
+        tags: [],
+        de_jogo: /\bjogo\b/i.test(titulo),
+        novidade: false,
+        alta_procura: false,
+      }))
+      .filter(produto => !somenteIdentificados || produto.clube)
 
     const salvos = await salvarProdutos(supabase, produtos)
     totalColecao += salvos
@@ -144,11 +149,11 @@ async function main() {
   console.log('🚀 Scraper — Xiru FC\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao, clubesMap)
+    totalGeral += await rasparColecao(colecao, clubesPorCategoria)
     await sleep(DELAY_MS)
   }
 

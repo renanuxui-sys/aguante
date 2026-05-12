@@ -6,7 +6,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL = 'https://digordo.lojavirtualnuvem.com.br'
@@ -20,8 +20,10 @@ const dryRun = process.argv.includes('--dry-run')
 const semDesativar = process.argv.includes('--sem-desativar')
 
 const COLECOES = [
-  { slug: 'times-nacionais', nome: 'Times nacionais' },
-  { slug: 'selecoes', nome: 'Seleções' },
+  { slug: 'times-nacionais', nome: 'Times nacionais', categorias: ['Clubes Brasileiros'] },
+  { slug: 'times-sul-americanos', nome: 'Times sul-americanos', categorias: ['Clubes Sulamericanos'], somenteIdentificados: true },
+  { slug: 'times-europeus', nome: 'Times europeus', categorias: ['Clubes Europeus'], somenteIdentificados: true },
+  { slug: 'selecoes', nome: 'Seleções', categorias: ['Seleções'] },
 ]
 
 function produtoDisponivel(produto) {
@@ -78,8 +80,9 @@ async function rasparPagina(slug, page) {
   }
 }
 
-async function rasparColecao({ slug, nome }, clubesMap) {
+async function rasparColecao({ slug, nome, categorias, somenteIdentificados = false }, clubesPorCategoria) {
   console.log(`\n⚽ ${nome}`)
+  const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
 
   let page = 1
   let totalColecao = 0
@@ -100,20 +103,22 @@ async function rasparColecao({ slug, nome }, clubesMap) {
     } else {
       paginasVazias = 0
 
-      const convertidos = novos.map(p => ({
-        titulo: p.titulo,
-        link_original: p.link,
-        imagem_url: p.imagem,
-        preco: p.preco,
-        clube: identificarClube(p.titulo, clubesMap),
-        ano: extrairAno(p.titulo),
-        fonte_nome: FONTE_NOME,
-        fonte_url: FONTE_URL,
-        tags: [],
-        de_jogo: p.titulo.toLowerCase().includes('de jogo') || p.titulo.toLowerCase().includes('match worn'),
-        novidade: false,
-        alta_procura: false,
-      }))
+      const convertidos = novos
+        .map(p => ({
+          titulo: p.titulo,
+          link_original: p.link,
+          imagem_url: p.imagem,
+          preco: p.preco,
+          clube: identificarClube(p.titulo, clubesMap),
+          ano: extrairAno(p.titulo),
+          fonte_nome: FONTE_NOME,
+          fonte_url: FONTE_URL,
+          tags: [],
+          de_jogo: p.titulo.toLowerCase().includes('de jogo') || p.titulo.toLowerCase().includes('match worn'),
+          novidade: false,
+          alta_procura: false,
+        }))
+        .filter(produto => !somenteIdentificados || produto.clube)
 
       const salvos = dryRun ? convertidos.length : await salvarProdutos(supabase, convertidos)
       totalColecao += salvos
@@ -132,11 +137,11 @@ async function main() {
   console.log(`🚀 Scraper — Di Gordo${dryRun ? ' (dry-run)' : ''}\n`)
 
   if (!dryRun && !semDesativar) await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao, clubesMap)
+    totalGeral += await rasparColecao(colecao, clubesPorCategoria)
     await sleep(DELAY_MS)
   }
 

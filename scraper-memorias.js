@@ -6,7 +6,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME = 'Memórias do Esporte'
@@ -19,10 +19,22 @@ const FONTES = [
   {
     nome: 'Brasil',
     base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/brasil',
+    categorias: ['Clubes Brasileiros'],
   },
   {
     nome: 'Seleções',
     base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/selecoes',
+    categorias: ['Seleções'],
+  },
+  {
+    nome: 'Europa',
+    base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/europa',
+    categorias: ['Clubes Europeus'],
+  },
+  {
+    nome: 'Américas',
+    base: 'https://memoriasdoesporteoficial.com.br/categoria-produto/futebol/americas',
+    categorias: ['Clubes Sulamericanos'],
   },
 ]
 
@@ -85,11 +97,12 @@ async function main() {
   console.log('🚀 Scraper — Memórias do Esporte\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalSalvos = 0
   for (const fonte of FONTES) {
     console.log(`\n⚽ ${fonte.nome}`)
+    const clubesMap = combinarClubesMap(...fonte.categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
     let pagina = 1
     let erros = 0
 

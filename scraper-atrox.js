@@ -5,7 +5,7 @@
 
 import { chromium } from 'playwright'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.atroxcasualclub.com'
@@ -16,8 +16,10 @@ const DELAY_MS   = 2000
 const supabase = criarSupabase()
 
 const COLECOES = [
-  { slug: 'clubes/sulamericanos/brasileiros', clube: null },
-  { slug: 'selecoes1', clube: null },
+  { slug: 'clubes/sulamericanos/brasileiros', clube: null, categorias: ['Clubes Brasileiros'] },
+  { slug: 'clubes/europeus', clube: null, categorias: ['Clubes Europeus'] },
+  { slug: 'clubes/sulamericanos', clube: null, categorias: ['Clubes Sulamericanos'] },
+  { slug: 'selecoes1', clube: null, categorias: ['Seleções'] },
 ]
 
 function imagemValida(url) {
@@ -114,8 +116,9 @@ async function rasparPagina(page, slug, pagina) {
   }
 }
 
-async function rasparColecao(browser, { slug, clube }, clubesMap) {
+async function rasparColecao(browser, { slug, clube, categorias = ['Clubes Brasileiros'] }, clubesPorCategoria) {
   console.log(`\n⚽ ${clube || slug}`)
+  const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
 
   const page = await browser.newPage()
   await page.setViewportSize({ width: 1440, height: 900 })
@@ -165,7 +168,7 @@ async function main() {
   console.log('🚀 Scraper — Atrox Casual Club (Playwright)\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   const browser = await chromium.launch({ headless: true })
 
@@ -173,7 +176,7 @@ async function main() {
 
   try {
     for (const colecao of COLECOES) {
-      totalGeral += await rasparColecao(browser, colecao, clubesMap)
+      totalGeral += await rasparColecao(browser, colecao, clubesPorCategoria)
       await sleep(DELAY_MS)
     }
   } finally {

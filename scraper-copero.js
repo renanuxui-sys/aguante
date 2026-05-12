@@ -6,7 +6,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL = 'https://coperobrecho.net'
@@ -20,8 +20,10 @@ const semDesativar = process.argv.includes('--sem-desativar')
 
 const COLECOES = [
   { path: 'gremio', clube: 'Grêmio' },
-  { path: 'selecao-brasileira', clube: 'Brasil' },
-  { path: 'camisas-de-outras-selecoes', clube: null },
+  { path: 'selecao-brasileira', clube: 'Brasil', categorias: ['Seleções'] },
+  { path: 'camisas-de-outras-selecoes', clube: null, categorias: ['Seleções'] },
+  { path: 'clubes-europeus', clube: null, categorias: ['Clubes Europeus'], somenteIdentificados: true },
+  { path: 'clubes-da-america-latina', clube: null, categorias: ['Clubes Sulamericanos'], somenteIdentificados: true },
 ]
 
 function urlAbsoluta(url) {
@@ -128,7 +130,7 @@ function converterProduto($, el, clube, clubesMap) {
   }
 }
 
-async function rasparPagina({ path, clube }, pagina, clubesMap) {
+async function rasparPagina({ path, clube, somenteIdentificados = false }, pagina, clubesMap) {
   const url = pagina === 1 ? `${BASE_URL}/${path}/` : `${BASE_URL}/${path}/page/${pagina}/`
   console.log(`  📄 Página ${pagina}`)
 
@@ -146,14 +148,17 @@ async function rasparPagina({ path, clube }, pagina, clubesMap) {
       .map((_, el) => converterProduto($, el, clube, clubesMap))
       .get()
       .filter(Boolean)
+      .filter(produto => !somenteIdentificados || produto.clube)
   } catch (err) {
     console.warn(`  ⚠️  Erro: ${err.message}`)
     return []
   }
 }
 
-async function rasparColecao(colecao, clubesMap) {
+async function rasparColecao(colecao, clubesPorCategoria) {
   console.log(`\n⚽ ${colecao.clube || colecao.path}`)
+  const categorias = colecao.categorias || ['Clubes Brasileiros']
+  const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
 
   let totalColecao = 0
   let pagina = 1
@@ -193,11 +198,11 @@ async function main() {
   if (!dryRun && !semDesativar) {
     await desativarProdutosDaFonte(supabase, FONTE_NOME)
   }
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao, clubesMap)
+    totalGeral += await rasparColecao(colecao, clubesPorCategoria)
     await sleep(DELAY_MS)
   }
 

@@ -209,6 +209,53 @@ export async function carregarClubesMap(supabase) {
   }))
 }
 
+export async function carregarClubesMapPorCategoria(supabase) {
+  const { data, error } = await supabase
+    .from('clubes')
+    .select('nome, slug, categoria')
+    .eq('ativo', true)
+    .order('nome', { ascending: true })
+
+  if (error || !data?.length) {
+    if (error) console.warn('  ⚠️  Não foi possível carregar clubes por categoria do banco:', error.message)
+    return new Map([
+      ['Clubes Brasileiros', CLUBES_MAP],
+      ['Seleções', SELECOES_MAP],
+    ])
+  }
+
+  const porCategoria = new Map()
+  for (const clube of data) {
+    const categoria = clube.categoria || 'Outros'
+    if (!porCategoria.has(categoria)) porCategoria.set(categoria, [])
+    porCategoria.get(categoria).push({
+      clube: clube.nome,
+      termos: termosBaseClube(clube),
+    })
+  }
+
+  return porCategoria
+}
+
+export function combinarClubesMap(...maps) {
+  const porClube = new Map()
+
+  for (const map of maps) {
+    for (const item of map || []) {
+      if (!item?.clube) continue
+      const chave = normalizarTexto(item.clube)
+      const atual = porClube.get(chave) || { clube: item.clube, termos: new Set() }
+      ;(item.termos || []).forEach(termo => atual.termos.add(termo))
+      porClube.set(chave, atual)
+    }
+  }
+
+  return Array.from(porClube.values()).map(({ clube, termos }) => ({
+    clube,
+    termos: Array.from(termos).filter(Boolean),
+  }))
+}
+
 export async function carregarClubesBusca(supabase, { usado = false } = {}) {
   const clubesMap = await carregarClubesMap(supabase)
   return clubesMap.map(({ clube, termos }) => ({

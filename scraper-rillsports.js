@@ -31,6 +31,12 @@ const supabase = criarSupabase()
 
 const CATEGORIAS = [
   { path: '/futebol-nacional',          clube: null, filtroSelecao: false },
+  {
+    path: '/futebol/camisas-de-futebol?loja=1381980&categoria=35&categories%5B%5D=Argentina&categories%5B%5D=Clubes%2BSul%2BAmericanos&categories%5B%5D=Col%25F4mbia&categories%5B%5D=Uruguai',
+    clube: null,
+    filtroSelecao: false,
+    somenteIdentificados: true,
+  },
   { path: '/futebol/camisas-de-futebol', clube: null, filtroSelecao: true  },
 ]
 
@@ -68,7 +74,8 @@ function identificarSelecaoSegura(titulo, clubesMap) {
 
 async function rasparPagina(path, page) {
   // Tray Commerce usa ?pg=N (igual ao Mundo da Bola)
-  const url = `${FONTE_URL}${path}?pg=${page}`
+  const separador = path.includes('?') ? '&' : '?'
+  const url = `${FONTE_URL}${path}${separador}pg=${page}`
   try {
     const res = await fetch(url, {
       headers: {
@@ -130,7 +137,7 @@ async function rasparPagina(path, page) {
   }
 }
 
-async function rasparCategoria({ path, clube, filtroSelecao }, clubesMap) {
+async function rasparCategoria({ path, clube, filtroSelecao, somenteIdentificados = false }, clubesMap) {
   console.log(`\n⚽ ${clube || path}`)
   let page = 1
   let errosSemClube = 0
@@ -163,6 +170,11 @@ async function rasparCategoria({ path, clube, filtroSelecao }, clubesMap) {
       } else {
         // Categoria de clubes nacionais: identificação pelo título
         clubeIdentificado = clube || identificarClube(titulo, clubesMap)
+      }
+
+      if (somenteIdentificados && !clubeIdentificado) {
+        descartados++
+        continue
       }
 
       if (!clubeIdentificado) continue

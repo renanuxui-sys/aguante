@@ -188,6 +188,8 @@ node scraper-rillsports.js              # Rill Sports
 |---|---|
 | `scraper-memorias.js` | `/categoria-produto/futebol/brasil/` |
 | `scraper-memorias.js` | `/categoria-produto/futebol/selecoes/` |
+| `scraper-memorias.js` | `/categoria-produto/futebol/europa/` |
+| `scraper-memorias.js` | `/categoria-produto/futebol/americas/` |
 | `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/internacional/` |
 | `scraper-memorias-inter-gremio.js` | `/categoria-produto/futebol/gremio/` |
 
@@ -216,7 +218,7 @@ $('ul.products li.product').each((_, el) => {
 
 **Endpoint:** `/collections/{slug}/products.json?limit=250&page=N`
 
-**Coleções:** flamengo, botafogo, fluminense, vasco-da-gama, corinthians, palmeiras, santos, sao-paulo, gremio, internacional, atletico-mineiro, cruzeiro, athletico-paranaense, fortaleza, bahia, vitoria, demais-clubes-*, selecoes-nacionais
+**Coleções:** flamengo, botafogo, fluminense, vasco-da-gama, corinthians, palmeiras, santos, sao-paulo, gremio, internacional, atletico-mineiro, cruzeiro, athletico-paranaense, fortaleza, bahia, vitoria, demais-clubes-*, selecoes-nacionais, clubes-europeus, clubes-latino-americanos
 
 ---
 
@@ -276,7 +278,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Produtos:** ~305
 **Paginação automática:** ✅ para após 2 páginas vazias
 
-**URLs:** `/clubes/sulamericanos/brasileiros/?page=N`, `/selecoes1/?page=N`
+**URLs:** `/clubes/sulamericanos/brasileiros/?page=N`, `/clubes/europeus/?page=N`, `/clubes/sulamericanos/?page=N`, `/selecoes1/?page=N`
 
 **Comportamento:**
 - Página 1 carrega ~60 produtos com scroll devagar
@@ -293,7 +295,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Produtos:** ~792
 **Paginação automática:** ✅ clica até não ter mais botão
 
-**URLs:** `https://www.futclassics.com.br/clubes-brasileiros`, `https://www.futclassics.com.br/selecoes-camisas-futebol`
+**URLs:** clubes brasileiros, argentinos, outros clubes da América, clubes alemães, espanhóis, franceses, ingleses, italianos, escoceses, outros clubes da Europa e seleções.
 
 **Fluxo:**
 1. Abre a página
@@ -343,7 +345,7 @@ imagem  = `https://static.wixstatic.com/media/${uri}/v1/fill/w_480,h_480,.../${u
 
 **Paginação:** `/{slug}?page=N`
 
-**Coleções:** gremio (clube fixo: Grêmio), inter (clube fixo: Internacional), nacionais/seleções (identificação automática)
+**Coleções:** gremio (clube fixo: Grêmio), inter (clube fixo: Internacional), nacionais/seleções, europa e estrangeiras (identificação automática; estrangeiras salva só identificados)
 
 **Seletores:**
 ```js
@@ -368,7 +370,7 @@ $('div.listagem-item').each((_, el) => {
 **Produtos:** ~243
 **Paginação automática:** ✅ para após 3 páginas sem clube identificado
 
-**URLs:** `/futebol-nacional?pg=N`, `/camisas-de-futebol/selecoes?pg=N` (atenção: usa `pg=` não `page=`)
+**URLs:** `/futebol-nacional?pg=N`, `/futebol-europeu?pg=N`, `/clubes-latinos-americanos?pg=N`, `/camisas-de-futebol/selecoes?pg=N` (atenção: usa `pg=` não `page=`)
 
 **Seletores:**
 ```js
@@ -391,7 +393,7 @@ $('div.product').each((_, el) => {
 **Produtos:** ~226 na coleção Grêmio
 **Paginação automática:** ✅ para após 2 páginas vazias
 
-**URLs:** `/gremio/`, `/selecao-brasileira/`, `/camisas-de-outras-selecoes/` e respectivas páginas `/page/N/`
+**URLs:** `/gremio/`, `/selecao-brasileira/`, `/camisas-de-outras-selecoes/`, `/clubes-europeus/`, `/clubes-da-america-latina/` e respectivas páginas `/page/N/`
 
 **Comandos:**
 ```bash
@@ -426,6 +428,7 @@ $('.js-item-product').each((_, el) => {
 |---|---|
 | `/s-c-internacional/` | Internacional (fixo) |
 | `/selecoes/` | Identificação automática |
+| `/clubes-da-europa/` | Identificação automática; salva só identificados |
 
 **Paginação:** `/{slug}/?page=N`
 
@@ -452,7 +455,7 @@ $('.js-product-container').each((_, el) => {
 **Produtos:** a verificar
 **Paginação automática:** ✅ para após 2 páginas vazias por coleção
 
-**URLs rastreadas:** `/times-nacionais/`, `/selecoes/`
+**URLs rastreadas:** `/times-nacionais/`, `/times-sul-americanos/`, `/times-europeus/`, `/selecoes/`
 
 **Comandos:**
 ```bash
@@ -476,6 +479,7 @@ node scraper-digordo.js --sem-desativar  # salva sem desativar antigos
 | URL | Conteúdo | Filtro |
 |---|---|---|
 | `/futebol-nacional` | Clubes nacionais | Identificação automática pelo título |
+| URL filtrada por Argentina/Clubes Sul-Americanos/Colômbia/Uruguai | Clubes sul-americanos | Identificação automática pelo título; salva só identificados |
 | `/futebol/camisas-de-futebol` | Seleções + clubes estrangeiros misturados | Filtra pelo slug da URL |
 
 **Paginação:** `?pg=N` (Tray Commerce — igual ao Mundo da Bola)

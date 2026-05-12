@@ -6,7 +6,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.mundodabolaloja.com.br'
@@ -17,8 +17,10 @@ const DELAY_MS   = 1500
 const supabase = criarSupabase()
 
 const CATEGORIAS = [
-  { nome: 'Futebol nacional', path: 'futebol-nacional' },
-  { nome: 'Seleções', path: 'camisas-de-futebol/selecoes' },
+  { nome: 'Futebol nacional', path: 'futebol-nacional', categorias: ['Clubes Brasileiros'] },
+  { nome: 'Futebol europeu', path: 'futebol-europeu', categorias: ['Clubes Europeus'] },
+  { nome: 'Clubes latinos americanos', path: 'clubes-latinos-americanos', categorias: ['Clubes Sulamericanos'] },
+  { nome: 'Seleções', path: 'camisas-de-futebol/selecoes', categorias: ['Seleções'] },
 ]
 
 function urlAbsoluta(url) {
@@ -94,11 +96,12 @@ async function main() {
   console.log('🚀 Scraper — Mundo da Bola\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalSalvos = 0
   for (const categoria of CATEGORIAS) {
     console.log(`\n⚽ ${categoria.nome}`)
+    const clubesMap = combinarClubesMap(...categoria.categorias.map(nomeCategoria => clubesPorCategoria.get(nomeCategoria) || []))
     let page = 1
     let erros = 0
 

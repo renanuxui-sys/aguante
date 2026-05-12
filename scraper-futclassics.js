@@ -5,7 +5,7 @@
 
 import { chromium } from 'playwright'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME      = 'Fut Classics'
@@ -17,8 +17,17 @@ const TIMEOUT_PAGINA_MS = 8 * 60 * 1000
 const supabase = criarSupabase()
 
 const PAGINAS = [
-  'https://www.futclassics.com.br/clubes-brasileiros',
-  'https://www.futclassics.com.br/selecoes-camisas-futebol',
+  { url: 'https://www.futclassics.com.br/clubes-brasileiros', categorias: ['Clubes Brasileiros'] },
+  { url: 'https://www.futclassics.com.br/clubes-argentinos', categorias: ['Clubes Sulamericanos'] },
+  { url: 'https://www.futclassics.com.br/outros-clubes-america', categorias: ['Clubes Sulamericanos'] },
+  { url: 'https://www.futclassics.com.br/clubes-alemaes-camisas-futebol', categorias: ['Clubes Europeus'] },
+  { url: 'https://www.futclassics.com.br/clubes-espanhois-camisas-futebol', categorias: ['Clubes Europeus'] },
+  { url: 'https://www.futclassics.com.br/clubes-franceses-camisas-futebol', categorias: ['Clubes Europeus'] },
+  { url: 'https://www.futclassics.com.br/clubes-ingleses-camisas-futebol', categorias: ['Clubes Europeus'] },
+  { url: 'https://www.futclassics.com.br/clubes-italianos-camisas-futebol', categorias: ['Clubes Europeus'] },
+  { url: 'https://www.futclassics.com.br/clubes-escoceses-camisas-futebol', categorias: ['Clubes Europeus'] },
+  { url: 'https://www.futclassics.com.br/outros-clubes-da-europa', categorias: ['Clubes Europeus'] },
+  { url: 'https://www.futclassics.com.br/selecoes-camisas-futebol', categorias: ['Seleções'] },
 ]
 
 function extrairImagemWix(el, $) {
@@ -86,7 +95,7 @@ async function main() {
   console.log('🚀 Scraper — Fut Classics\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
@@ -103,7 +112,8 @@ async function main() {
   const produtos = []
 
   try {
-    for (const url of PAGINAS) {
+    for (const { url, categorias } of PAGINAS) {
+      const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
       console.log(`🌐 Abrindo página: ${url}`)
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 })
       const encontrouGrid = await page.waitForSelector('[data-hook="product-list-grid-item"]', { timeout: 15000 }).then(() => true).catch(() => false)

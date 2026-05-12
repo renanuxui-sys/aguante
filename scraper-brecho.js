@@ -4,7 +4,7 @@
  */
 
 import fetch from 'node-fetch'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME = 'Brechó do Futebol'
@@ -31,13 +31,15 @@ const COLECOES = [
   { slug: 'fortaleza',            clube: 'Fortaleza' },
   { slug: 'bahia',                clube: 'Bahia' },
   { slug: 'vitoria',              clube: 'Vitória' },
-  { slug: 'demais-clubes-da-bahia',          clube: null },
-  { slug: 'demais-clubes-do-rio-de-janeiro', clube: null },
-  { slug: 'demais-clubes-gauchos',           clube: null },
-  { slug: 'demais-clubes-de-minas-gerais',   clube: null },
-  { slug: 'demais-clubes-parana',            clube: null },
-  { slug: 'demais-clubes-sao-paulo',         clube: null },
-  { slug: 'selecoes-nacionais',              clube: null },
+  { slug: 'demais-clubes-da-bahia',          clube: null, categorias: ['Clubes Brasileiros'] },
+  { slug: 'demais-clubes-do-rio-de-janeiro', clube: null, categorias: ['Clubes Brasileiros'] },
+  { slug: 'demais-clubes-gauchos',           clube: null, categorias: ['Clubes Brasileiros'] },
+  { slug: 'demais-clubes-de-minas-gerais',   clube: null, categorias: ['Clubes Brasileiros'] },
+  { slug: 'demais-clubes-parana',            clube: null, categorias: ['Clubes Brasileiros'] },
+  { slug: 'demais-clubes-sao-paulo',         clube: null, categorias: ['Clubes Brasileiros'] },
+  { slug: 'selecoes-nacionais',              clube: null, categorias: ['Seleções'] },
+  { slug: 'clubes-europeus',                 clube: null, categorias: ['Clubes Europeus'], somenteIdentificados: true },
+  { slug: 'clubes-latino-americanos',        clube: null, categorias: ['Clubes Sulamericanos'], somenteIdentificados: true },
 ]
 
 async function buscarPagina(slug, page) {
@@ -53,18 +55,21 @@ async function buscarPagina(slug, page) {
   }
 }
 
-function converterProduto(produto, clubeFixo, clubesMap) {
+function converterProduto(produto, clubeFixo, clubesMap, { somenteIdentificados = false } = {}) {
   const titulo   = produto.title || ''
   const link     = `${FONTE_URL}/products/${produto.handle}`
   const imagem   = produto.images?.[0]?.src || null
   const preco    = produto.variants?.[0]?.price ? parseFloat(produto.variants[0].price) : null
+
+  const clube = clubeFixo || identificarClube(titulo, clubesMap)
+  if (somenteIdentificados && !clube) return null
 
   return {
     titulo,
     link_original: link,
     imagem_url: imagem,
     preco,
-    clube: clubeFixo || identificarClube(titulo, clubesMap),
+    clube,
     ano: extrairAno(titulo),
     fonte_nome: FONTE_NOME,
     fonte_url: FONTE_URL,
@@ -75,8 +80,9 @@ function converterProduto(produto, clubeFixo, clubesMap) {
   }
 }
 
-async function rasparColecao({ slug, clube }, clubesMap) {
+async function rasparColecao({ slug, clube, categorias = ['Clubes Brasileiros'], somenteIdentificados = false }, clubesPorCategoria) {
   console.log(`\n⚽ ${clube || slug}`)
+  const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
   let page = 1
   let totalColecao = 0
 
@@ -84,7 +90,9 @@ async function rasparColecao({ slug, clube }, clubesMap) {
     const produtos = await buscarPagina(slug, page)
     if (produtos.length === 0) break
 
-    const convertidos = produtos.map(p => converterProduto(p, clube, clubesMap))
+    const convertidos = produtos
+      .map(p => converterProduto(p, clube, clubesMap, { somenteIdentificados }))
+      .filter(Boolean)
     const salvos = await salvarProdutos(supabase, convertidos)
     totalColecao += salvos
     console.log(`  ✅ Página ${page} — ${salvos} salvos (total: ${totalColecao})`)
@@ -101,11 +109,11 @@ async function main() {
   console.log('🚀 Scraper — Brechó do Futebol\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao, clubesMap)
+    totalGeral += await rasparColecao(colecao, clubesPorCategoria)
     await sleep(DELAY_MS)
   }
 

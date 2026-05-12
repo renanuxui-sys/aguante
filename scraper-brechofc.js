@@ -18,6 +18,7 @@ const supabase = criarSupabase()
 const COLECOES = [
   { slug: 'todos-os-produtos', clube: null },
   { slug: 'times-internacionais', clube: null, somenteSelecoes: true },
+  { slug: 'times-internacionais-1', clube: null, somenteIdentificados: true },
 ]
 
 async function buscarPagina(slug, page) {
@@ -36,7 +37,7 @@ async function buscarPagina(slug, page) {
   }
 }
 
-function converterProduto(produto, clubeFixo, clubesMap, { somenteSelecoes = false } = {}) {
+function converterProduto(produto, clubeFixo, clubesMap, { somenteSelecoes = false, somenteIdentificados = false } = {}) {
   const titulo    = produto.title || ''
   const link      = `${FONTE_URL}/products/${produto.handle}`
   const imagem    = produto.images?.[0]?.src || null
@@ -62,7 +63,7 @@ function converterProduto(produto, clubeFixo, clubesMap, { somenteSelecoes = fal
 
   const clube = clubeFixo || (somenteSelecoes ? identificarSelecao(titulo) : identificarClube(titulo, clubesMap))
 
-  if (somenteSelecoes && !clube) return null
+  if ((somenteSelecoes || somenteIdentificados) && !clube) return null
 
   return {
     titulo,
@@ -80,7 +81,7 @@ function converterProduto(produto, clubeFixo, clubesMap, { somenteSelecoes = fal
   }
 }
 
-async function rasparColecao({ slug, clube, somenteSelecoes = false }, clubesMap) {
+async function rasparColecao({ slug, clube, somenteSelecoes = false, somenteIdentificados = false }, clubesMap) {
   console.log(`\n⚽ ${clube || slug}`)
 
   let page = 1
@@ -93,7 +94,7 @@ async function rasparColecao({ slug, clube, somenteSelecoes = false }, clubesMap
     if (produtos.length === 0) break
 
     const convertidos = produtos
-      .map(p => converterProduto(p, clube, clubesMap, { somenteSelecoes }))
+      .map(p => converterProduto(p, clube, clubesMap, { somenteSelecoes, somenteIdentificados }))
       .filter(Boolean)
 
     esgotados += produtos.length - convertidos.length

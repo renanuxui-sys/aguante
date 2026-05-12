@@ -5,7 +5,7 @@
 
 import fetch from 'node-fetch'
 import * as cheerio from 'cheerio'
-import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMap, sleep } from './scraper-utils.js'
+import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
 import 'dotenv/config'
 
 const BASE_URL   = 'https://www.mantosagradocamisas.com'
@@ -18,7 +18,9 @@ const supabase = criarSupabase()
 const COLECOES = [
   { slug: 'gremio',     clube: 'Grêmio',        paginas: 2 },
   { slug: 'inter',      clube: 'Internacional',  paginas: 1 },
-  { slug: 'nacionais',  clube: null,             paginas: 4 },
+  { slug: 'nacionais',  clube: null,             paginas: 4, categorias: ['Clubes Brasileiros', 'Seleções'] },
+  { slug: 'europa',     clube: null,             paginas: 4, categorias: ['Clubes Europeus'], somenteIdentificados: true },
+  { slug: 'estrangeiras', clube: null,           paginas: 4, categorias: ['Clubes Europeus', 'Clubes Sulamericanos', 'Seleções'], somenteIdentificados: true },
 ]
 
 async function rasparPagina(slug, page, clubesMap) {
@@ -73,8 +75,9 @@ async function rasparPagina(slug, page, clubesMap) {
   }
 }
 
-async function rasparColecao({ slug, clube, paginas }, clubesMap) {
+async function rasparColecao({ slug, clube, paginas, categorias = ['Clubes Brasileiros'], somenteIdentificados = false }, clubesPorCategoria) {
   console.log(`\n⚽ ${clube || slug} (${paginas} páginas)`)
+  const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
 
   let totalColecao = 0
 
@@ -86,8 +89,11 @@ async function rasparColecao({ slug, clube, paginas }, clubesMap) {
       const convertidos = clube
         ? produtos.map(p => ({ ...p, clube }))
         : produtos
+      const filtrados = somenteIdentificados
+        ? convertidos.filter(p => p.clube)
+        : convertidos
 
-      const salvos = await salvarProdutos(supabase, convertidos)
+      const salvos = await salvarProdutos(supabase, filtrados)
       totalColecao += salvos
       console.log(`  ✅ ${salvos} salvos (total: ${totalColecao})`)
     }
@@ -102,11 +108,11 @@ async function main() {
   console.log('🚀 Scraper — Manto Sagrado Camisas\n')
 
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0
   for (const colecao of COLECOES) {
-    totalGeral += await rasparColecao(colecao, clubesMap)
+    totalGeral += await rasparColecao(colecao, clubesPorCategoria)
     await sleep(DELAY_MS)
   }
 

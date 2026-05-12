@@ -223,10 +223,10 @@ export default function Navbar() {
 
       {/* SUBMENU DESKTOP */}
       {submenu && (
-        <div style={{ position: 'fixed', top: 76, left: 0, right: 0, background: '#fff', boxShadow: '0 20px 68px rgba(0,0,0,0.1)', zIndex: 99, paddingBottom: 40 }}
+        <div style={{ position: 'fixed', top: 76, left: 0, right: 0, background: '#fff', boxShadow: '0 20px 68px rgba(0,0,0,0.1)', zIndex: 99, paddingBottom: 24, maxHeight: 'calc(100vh - 76px)', display: 'flex', flexDirection: 'column' }}
           onMouseEnter={onSubmenuEnter} onMouseLeave={onSubmenuLeave}>
-          <div style={{ borderBottom: '1px solid #e0dee7', padding: '0 max(16px, calc((100% - 1140px) / 2 + 24px))' }}>
-            <div style={{ display: 'flex', gap: 32, paddingTop: 24 }}>
+          <div style={{ borderBottom: '1px solid #e0dee7', padding: '0 max(16px, calc((100% - 1140px) / 2 + 24px))', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 32, paddingTop: 24, overflowX: 'auto' }}>
               {cats.map(cat => (
                 <button key={cat.key} onClick={() => setCatAtiva(cat.key)} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
@@ -242,7 +242,7 @@ export default function Navbar() {
               ))}
             </div>
           </div>
-          <div style={{ padding: '24px max(16px, calc((100% - 1140px) / 2 + 24px)) 0' }}>
+          <div style={{ padding: '24px max(16px, calc((100% - 1140px) / 2 + 24px)) 0', overflowY: 'auto', overscrollBehavior: 'contain' }}>
             {catAtivaData && catAtivaData.clubes.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0 40px' }}>
                 {catAtivaData.clubes.map(clube => (
