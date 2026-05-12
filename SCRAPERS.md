@@ -152,6 +152,8 @@ node scraper-brechofc.js                # Brechó FC
 node scraper-mantosagrado.js            # Manto Sagrado Camisas
 node scraper-mundodabola.js             # Mundo da Bola
 node scraper-copero.js                  # Copero Brechó
+node scraper-xirufc.js                  # Xiru FC
+node scraper-rillsports.js              # Rill Sports
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
 # node scraper-gecko-olx.js             # OLX via GeckoAPI (experimental; gera custo)
@@ -393,6 +395,68 @@ $('.js-item-product').each((_, el) => {
 ```
 
 **Observação:** a loja usa imagens lazy-load; quando o `src` vem como `data:image`, o scraper usa o JSON-LD ou o maior item do `data-srcset`.
+
+---
+
+### 11. Xiru FC (Nuvemshop)
+**Site:** `xirufc.com.br`
+**Arquivo:** `scraper-xirufc.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** a verificar
+**Paginação automática:** ✅ para após 2 páginas vazias
+
+**URLs rastreadas:**
+| URL | Clube |
+|---|---|
+| `/s-c-internacional/` | Internacional (fixo) |
+| `/selecoes/` | Identificação automática |
+
+**Paginação:** `/{slug}/?page=N`
+
+**Seletores (padrão Nuvemshop):**
+```js
+$('.js-product-container').each((_, el) => {
+  const variants = JSON.parse($el.attr('data-variants'))
+  // Pula esgotados: available === false || stock === 0
+  preco  = variants[0].price_number
+  imagem = `https:${variants[0].image_url.replace('-1024-1024', '-480-0')}`
+  titulo = container.find('a.item-link').attr('title')
+  link   = container.find('a.item-link').attr('href')
+})
+```
+
+**Nota:** a coleção de nacionais cobre somente Internacional por enquanto. Adicionar novos slugs em `COLECOES` quando a loja expandir.
+
+---
+
+### 12. Rill Sports (Tray Commerce)
+**Site:** `rillsports.com.br`
+**Arquivo:** `scraper-rillsports.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** a verificar
+**Paginação automática:** ✅ para quando página retornar vazia; para após 3 páginas sem clube identificado na categoria de nacionais
+
+**URLs rastreadas:**
+| URL | Conteúdo | Filtro |
+|---|---|---|
+| `/futebol-nacional` | Clubes nacionais | Identificação automática pelo título |
+| `/futebol/camisas-de-futebol` | Seleções + clubes estrangeiros misturados | Filtra pelo slug da URL |
+
+**Paginação:** `?pg=N` (Tray Commerce — igual ao Mundo da Bola)
+
+**Seletores:**
+```js
+$('div.product').each((_, el) => {
+  titulo = $el.find('.product-name').text().trim()
+  link   = $el.find('a.space-image').attr('href') || $el.find('a.product-info').attr('href')
+  imagem = $el.find('img.lazyload').attr('data-src') || $el.find('img.lazyload').attr('src')
+  preco  = parseFloat($el.find('.current-price').text().replace(/[R$\s.]/g, '').replace(',', '.'))
+})
+```
+
+**Filtro de seleções (categoria mista):** o scraper extrai o segmento da URL de cada produto e só salva os que batem com slugs de seleções conhecidas (`brasil`, `argentina`, `alemanha`, etc.), descartando automaticamente clubes estrangeiros (`barcelona`, `clubes-sul-americanos`, etc.). No log aparece `🚫 X estrangeiros descartados` por página.
+
+**Para adicionar nova seleção:** incluir o slug no `Set SELECOES_SLUGS` e o mapeamento em `SLUG_PARA_SELECAO` no arquivo do scraper.
 
 ---
 
