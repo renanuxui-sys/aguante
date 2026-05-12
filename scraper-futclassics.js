@@ -10,6 +10,9 @@ import 'dotenv/config'
 
 const FONTE_NOME      = 'Fut Classics'
 const FONTE_URL       = 'https://www.futclassics.com.br'
+const MAX_CLIQUES_VER_MAIS = 80
+const MAX_CLIQUES_SEM_NOVOS_PRODUTOS = 3
+const TIMEOUT_PAGINA_MS = 8 * 60 * 1000
 
 const supabase = criarSupabase()
 
@@ -30,6 +33,55 @@ function extrairImagemWix(el, $) {
   return $el.find('img').first().attr('src') || null
 }
 
+async function contarProdutos(page) {
+  return page.$$eval('[data-hook="product-list-grid-item"]', els => els.length).catch(() => 0)
+}
+
+async function carregarTodosProdutos(page) {
+  const inicio = Date.now()
+  let cliques = 0
+  let cliquesSemNovosProdutos = 0
+  let totalAnterior = await contarProdutos(page)
+
+  while (true) {
+    if (Date.now() - inicio > TIMEOUT_PAGINA_MS) {
+      console.warn(`  ⚠️  Tempo limite por página atingido após ${cliques} cliques. Seguindo com ${totalAnterior} produtos carregados.`)
+      break
+    }
+
+    if (cliques >= MAX_CLIQUES_VER_MAIS) {
+      console.warn(`  ⚠️  Limite de ${MAX_CLIQUES_VER_MAIS} cliques em "ver mais" atingido. Seguindo com ${totalAnterior} produtos carregados.`)
+      break
+    }
+
+    const botao = await page.$('[data-hook="load-more-button"]')
+    if (!botao || !(await botao.isVisible().catch(() => false))) break
+
+    console.log(`  🔄 Clicando em "ver mais" (${++cliques}x)...`)
+
+    await Promise.all([
+      botao.click({ timeout: 10000 }).catch(err => {
+        console.warn(`  ⚠️  Clique em "ver mais" falhou: ${err.message}`)
+      }),
+      page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {}),
+    ])
+
+    await sleep(800)
+
+    const totalAtual = await contarProdutos(page)
+    if (totalAtual <= totalAnterior) {
+      cliquesSemNovosProdutos++
+      console.warn(`  ⚠️  Nenhum produto novo após o clique (${cliquesSemNovosProdutos}/${MAX_CLIQUES_SEM_NOVOS_PRODUTOS}).`)
+      if (cliquesSemNovosProdutos >= MAX_CLIQUES_SEM_NOVOS_PRODUTOS) break
+    } else {
+      cliquesSemNovosProdutos = 0
+      totalAnterior = totalAtual
+    }
+  }
+
+  return { cliques, totalCarregado: await contarProdutos(page) }
+}
+
 async function main() {
   console.log('🚀 Scraper — Fut Classics\n')
 
@@ -38,79 +90,77 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
+  page.setDefaultTimeout(15000)
+  page.setDefaultNavigationTimeout(45000)
   await page.setViewportSize({ width: 1440, height: 900 })
+  await page.route('**/*', route => {
+    const tipo = route.request().resourceType()
+    if (['image', 'media', 'font'].includes(tipo)) return route.abort()
+    return route.continue()
+  })
 
   const vistos = new Set()
   const produtos = []
 
-  for (const url of PAGINAS) {
-    console.log(`🌐 Abrindo página: ${url}`)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
-    const encontrouGrid = await page.waitForSelector('[data-hook="product-list-grid-item"]', { timeout: 15000 }).then(() => true).catch(() => false)
-    if (!encontrouGrid) {
-      console.warn('  ⚠️  Nenhum grid de produtos encontrado.')
-      continue
-    }
-    await sleep(2000)
+  try {
+    for (const url of PAGINAS) {
+      console.log(`🌐 Abrindo página: ${url}`)
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 })
+      const encontrouGrid = await page.waitForSelector('[data-hook="product-list-grid-item"]', { timeout: 15000 }).then(() => true).catch(() => false)
+      if (!encontrouGrid) {
+        console.warn('  ⚠️  Nenhum grid de produtos encontrado.')
+        continue
+      }
+      await sleep(1500)
 
-    let cliques = 0
-    while (true) {
-      const botao = await page.$('[data-hook="load-more-button"]')
-      if (!botao || !(await botao.isVisible())) break
-      console.log(`  🔄 Clicando em "ver mais" (${++cliques}x)...`)
-      await botao.click()
-      await sleep(1000)
-      await page.waitForLoadState('networkidle').catch(() => {})
-      await sleep(500)
-    }
+      const { cliques, totalCarregado } = await carregarTodosProdutos(page)
+      console.log(`  ✅ ${totalCarregado} produtos carregados após ${cliques} cliques`)
 
-    const totalCarregado = await page.$$eval('[data-hook="product-list-grid-item"]', els => els.length)
-    console.log(`  ✅ ${totalCarregado} produtos carregados após ${cliques} cliques`)
+      const html = await page.content()
+      const $ = cheerio.load(html)
 
-    const html = await page.content()
-    const $ = cheerio.load(html)
+      $('[data-hook="product-list-grid-item"]').each((_, el) => {
+        const $el = $(el)
 
-    $('[data-hook="product-list-grid-item"]').each((_, el) => {
-      const $el = $(el)
+        // Ignora esgotados
+        if ($el.find('[data-hook="product-item-out-of-stock"]').length > 0) return
 
-      // Ignora esgotados
-      if ($el.find('[data-hook="product-item-out-of-stock"]').length > 0) return
+        const titulo   = $el.find('[data-hook="product-item-name"]').text().trim()
+        const link     = $el.find('[data-hook="product-item-container"]').attr('href') || ''
+        const precoTxt = $el.find('[data-hook="product-item-price-to-pay"]').attr('data-wix-price') || ''
+        const imagem   = extrairImagemWix(el, $)
 
-      const titulo   = $el.find('[data-hook="product-item-name"]').text().trim()
-      const link     = $el.find('[data-hook="product-item-container"]').attr('href') || ''
-      const precoTxt = $el.find('[data-hook="product-item-price-to-pay"]').attr('data-wix-price') || ''
-      const imagem   = extrairImagemWix(el, $)
+        if (!titulo || !link) return
 
-      if (!titulo || !link) return
+        const linkFull = link.startsWith('http') ? link : `${FONTE_URL}${link}`
 
-      const linkFull = link.startsWith('http') ? link : `${FONTE_URL}${link}`
+        // Deduplica por link
+        if (vistos.has(linkFull)) return
+        vistos.add(linkFull)
 
-      // Deduplica por link
-      if (vistos.has(linkFull)) return
-      vistos.add(linkFull)
+        const preco = precoTxt
+          ? parseFloat(precoTxt.replace(/[R$\s\u00a0]/g, '').replace('.', '').replace(',', '.'))
+          : null
 
-      const preco = precoTxt
-        ? parseFloat(precoTxt.replace(/[R$\s\u00a0]/g, '').replace('.', '').replace(',', '.'))
-        : null
-
-      produtos.push({
-        titulo,
-        link_original: linkFull,
-        imagem_url: imagem,
-        preco: isNaN(preco) ? null : preco,
-        clube: identificarClube(titulo, clubesMap),
-        ano: extrairAno(titulo),
-        fonte_nome: FONTE_NOME,
-        fonte_url: FONTE_URL,
-        tags: [],
-        de_jogo: titulo.toLowerCase().includes('de jogo') || titulo.toLowerCase().includes('match worn'),
-        novidade: false,
-        alta_procura: false,
+        produtos.push({
+          titulo,
+          link_original: linkFull,
+          imagem_url: imagem,
+          preco: isNaN(preco) ? null : preco,
+          clube: identificarClube(titulo, clubesMap),
+          ano: extrairAno(titulo),
+          fonte_nome: FONTE_NOME,
+          fonte_url: FONTE_URL,
+          tags: [],
+          de_jogo: titulo.toLowerCase().includes('de jogo') || titulo.toLowerCase().includes('match worn'),
+          novidade: false,
+          alta_procura: false,
+        })
       })
-    })
+    }
+  } finally {
+    await browser.close()
   }
-
-  await browser.close()
 
   console.log(`📦 ${produtos.length} produtos únicos disponíveis`)
 

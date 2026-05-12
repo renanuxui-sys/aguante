@@ -140,6 +140,14 @@ GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 
 ## Ordem recomendada de execução (rotina diária)
 
+No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduzir o tempo total e evitar que uma loja trave as próximas:
+
+- **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
+- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Meiuka e Brechó FC em matriz paralela.
+- **Lojas Playwright**: Atrox e Fut Classics em matriz paralela, com Chromium instalado apenas nesses jobs.
+
+Para rodar localmente, a ordem abaixo continua válida:
+
 ```bash
 node scraper-memorias.js                # Memórias — Brasil (desativa todos da fonte)
 node scraper-memorias-inter-gremio.js   # Memórias — Inter e Grêmio (complemento)
@@ -159,7 +167,7 @@ node scraper-rillsports.js              # Rill Sports
 # node scraper-gecko-olx.js             # OLX via GeckoAPI (experimental; gera custo)
 ```
 
-**Tempo estimado total:** ~60–90 minutos
+**Tempo estimado total:** ~60–90 minutos em execução local sequencial. No GitHub Actions, a matriz paralela tende a reduzir o tempo de parede para o maior job individual.
 
 **Atenção — Memórias do Esporte:** rodar sempre o `scraper-memorias.js` antes do `scraper-memorias-inter-gremio.js`. O primeiro desativa todos os produtos da fonte. O segundo complementa sem desativar novamente.
 
@@ -291,6 +299,12 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 3. Filtra esgotados: `[data-hook="product-item-out-of-stock"]`
 4. Deduplica por link via `Set`
 5. Salva em lotes de 100
+
+**Proteções contra travamento:**
+- Timeout de 8 minutos por página da Fut Classics
+- Limite de 80 cliques no botão "ver mais"
+- Interrompe após 3 cliques seguidos sem novos produtos
+- Bloqueia imagens, mídia e fontes no Playwright para carregar menos recursos
 
 **Seletores:**
 ```js
