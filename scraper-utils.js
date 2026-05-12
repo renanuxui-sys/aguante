@@ -110,6 +110,7 @@ export const CLUBES_MAP = [
   { clube: 'Fortaleza',     termos: ['fortaleza'] },
   { clube: 'Bahia',         termos: ['bahia'] },
   { clube: 'Vitória',       termos: ['vitória', 'vitoria'] },
+  { clube: 'Sport',         termos: ['sport', 'sport recife', 'sport club do recife'] },
 ]
 
 export const SELECOES_MAP = [
@@ -133,8 +134,12 @@ export const SELECOES_MAP = [
   { clube: 'Portugal',       termos: ['portugal'] },
   { clube: 'Bélgica',        termos: ['bélgica', 'belgica', 'belgium'] },
   { clube: 'Croácia',        termos: ['croácia', 'croacia', 'croatia'] },
+  { clube: 'Grécia',         termos: ['grécia', 'grecia', 'greece'] },
+  { clube: 'Jamaica',        termos: ['jamaica'] },
   { clube: 'Japão',          termos: ['japão', 'japao', 'japan'] },
   { clube: 'Coreia do Sul',  termos: ['coreia do sul', 'coréia do sul', 'korea'] },
+  { clube: 'Noruega',        termos: ['noruega', 'norway'] },
+  { clube: 'Suécia',         termos: ['suécia', 'suecia', 'sweden'] },
   { clube: 'Nigéria',        termos: ['nigéria', 'nigeria'] },
   { clube: 'Camarões',       termos: ['camarões', 'camaroes', 'cameroon'] },
   { clube: 'Marrocos',       termos: ['marrocos', 'morocco'] },

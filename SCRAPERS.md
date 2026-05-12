@@ -143,7 +143,7 @@ GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduzir o tempo total e evitar que uma loja trave as próximas:
 
 - **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
-- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Xiru FC e Rill Sports em matriz paralela.
+- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC e Rill Sports em matriz paralela.
 - **Lojas Playwright**: Atrox e Fut Classics em matriz paralela, com Chromium instalado apenas nesses jobs.
 
 Para rodar localmente, a ordem abaixo continua válida:
@@ -160,6 +160,7 @@ node scraper-brechofc.js                # Brechó FC
 node scraper-mantosagrado.js            # Manto Sagrado Camisas
 node scraper-mundodabola.js             # Mundo da Bola
 node scraper-copero.js                  # Copero Brechó
+node scraper-digordo.js                 # Di Gordo
 node scraper-xirufc.js                  # Xiru FC
 node scraper-rillsports.js              # Rill Sports
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
@@ -444,7 +445,27 @@ $('.js-product-container').each((_, el) => {
 
 ---
 
-### 12. Rill Sports (Tray Commerce)
+### 12. Di Gordo (Nuvemshop)
+**Site:** `digordo.lojavirtualnuvem.com.br`
+**Arquivo:** `scraper-digordo.js`
+**Abordagem:** node-fetch + cheerio, usando JSON-LD de produto
+**Produtos:** a verificar
+**Paginação automática:** ✅ para após 2 páginas vazias por coleção
+
+**URLs rastreadas:** `/times-nacionais/`, `/selecoes/`
+
+**Comandos:**
+```bash
+node scraper-digordo.js --dry-run        # testa sem salvar no banco
+node scraper-digordo.js                  # desativa antigos da fonte e salva ativos
+node scraper-digordo.js --sem-desativar  # salva sem desativar antigos
+```
+
+**Seletores/dados:** a página expõe cada produto em `script[type="application/ld+json"]` com `@type: Product`. O scraper usa `name`, `image`, `offers.url`, `offers.price` e salva apenas `offers.availability` com `InStock`.
+
+---
+
+### 13. Rill Sports (Tray Commerce)
 **Site:** `rillsports.com.br`
 **Arquivo:** `scraper-rillsports.js`
 **Abordagem:** node-fetch + cheerio

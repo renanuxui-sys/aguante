@@ -72,6 +72,8 @@ jobs:
             script: scraper-mundodabola.js
           - nome: Copero Brechó
             script: scraper-copero.js
+          - nome: Di Gordo
+            script: scraper-digordo.js
           - nome: Xiru FC
             script: scraper-xirufc.js
           - nome: Rill Sports
@@ -153,4 +155,4 @@ jobs:
       - name: Relatório final
         run: |
           echo "✅ Rotina concluída em $(date)"
-          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Brechó FC, Fut Classics, Atrox, Manto Sagrado, Mundo da Bola, Copero Brechó, Rill Sports, Xiru FC"
+          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Brechó FC, Fut Classics, Atrox, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Rill Sports, Xiru FC"
