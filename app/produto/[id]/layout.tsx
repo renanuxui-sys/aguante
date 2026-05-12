@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { imagemComProxy } from '@/lib/image-url'
+import { formatarResumoProduto } from '@/lib/product-description'
 
 const siteUrl = 'https://aguante.com.br'
 const fallbackTitle = 'Camisa colecionável — Aguante'
@@ -11,6 +12,7 @@ type ProdutoMetadata = {
   titulo: string | null
   clube: string | null
   ano: string | null
+  tags: string[] | null
   imagem_url: string | null
   fonte_nome: string | null
 }
@@ -30,7 +32,7 @@ async function buscarProduto(id: string) {
 
   const { data } = await supabase
     .from('produtos')
-    .select('titulo, clube, ano, imagem_url, fonte_nome')
+    .select('titulo, clube, ano, tags, imagem_url, fonte_nome')
     .eq('id', id)
     .eq('ativo', true)
     .single<ProdutoMetadata>()
@@ -67,10 +69,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const title = `${produto.titulo || 'Camisa colecionável'} — Aguante`
   const description = [
-    produto.clube ? `Camisa do ${produto.clube}` : 'Camisa de futebol colecionável',
-    produto.ano ? `da temporada de ${produto.ano}` : null,
-    produto.fonte_nome ? `encontrada em ${produto.fonte_nome}` : 'encontrada pela Aguante',
-  ].filter(Boolean).join(' ')
+    formatarResumoProduto(produto),
+    produto.fonte_nome ? `Encontrada em ${produto.fonte_nome}.` : 'Encontrada pela Aguante.',
+  ].join(' ')
   const image = imagemComProxy(produto.imagem_url) || fallbackImage
 
   return {

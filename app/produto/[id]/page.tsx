@@ -1,5 +1,5 @@
 'use client'
-import { use, useEffect, useState } from 'react'
+import { use, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -7,6 +7,7 @@ import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
 import { imagemComProxy } from '@/lib/image-url'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
+import { formatarResumoProduto } from '@/lib/product-description'
 import type { Produto } from '@/types'
 
 const imgArrowLeft    = "/assets/arrow-left.svg"
@@ -33,11 +34,11 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   const [nomeAlerta, setNomeAlerta]     = useState('')
   const [emailAlerta, setEmailAlerta]   = useState('')
   const [statusAlerta, setStatusAlerta] = useState<StatusAlerta>('idle')
-  const [imgCarregada, setImgCarregada] = useState(false)
-  const [loading, setLoading]           = useState(true)
+  const [imagemCarregadaUrl, setImagemCarregadaUrl] = useState<string | null>(null)
+  const [produtoCarregadoId, setProdutoCarregadoId] = useState<string | null>(null)
   const [mostrarBotaoFixo, setMostrarBotaoFixo] = useState(false)
 
-  function registrarMetrica(tipo: 'views' | 'cliques' | 'likes', delta?: number) {
+  const registrarMetrica = useCallback((tipo: 'views' | 'cliques' | 'likes', delta?: number) => {
     const request = fetch('/api/metricas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -53,18 +54,16 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     }).catch(error => console.warn(`Não foi possível registrar ${tipo}:`, error))
 
     return request
-  }
+  }, [id])
 
   useEffect(() => {
-    setLoading(true)
-    setImgCarregada(false)
-    setProduto(null)
-    setRelacionados([])
-    setFavoritado(false)
+    let ativo = true
 
     async function carregar() {
       const { data: prod } = await supabase
         .from('produtos').select('*').eq('id', id).single()
+
+      if (!ativo) return
 
       setProduto(prod)
       setLikes(prod?.likes || 0)
@@ -76,20 +75,24 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
         setFavoritado(curtidos.includes(id))
       }
 
-      setLoading(false)
-
       if (prod) {
         registrarMetrica('views')
 
         const query = supabase.from('produtos').select(PRODUCT_CARD_SELECT).neq('id', id).eq('ativo', true).limit(5)
         if (prod.clube) query.eq('clube', prod.clube)
         const { data: rel } = await query
+        if (!ativo) return
         setRelacionados(rel || [])
+      } else {
+        setRelacionados([])
       }
+
+      setProdutoCarregadoId(id)
     }
 
     carregar()
-  }, [id])
+    return () => { ativo = false }
+  }, [id, registrarMetrica])
 
   useEffect(() => {
     const atualizarBotaoFixo = () => setMostrarBotaoFixo(window.scrollY > 160)
@@ -155,7 +158,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     setEmailAlerta('')
   }
 
-  if (loading) return (
+  if (produtoCarregadoId !== id) return (
     <main style={{ fontFamily: 'Onest, sans-serif', background: '#f8f8f8', minHeight: '100vh' }}>
       <Navbar />
       <div style={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -176,9 +179,10 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
   )
 
   const imagemProdutoUrl = imagemComProxy(produto.imagem_url)
+  const imgCarregada = imagemCarregadaUrl === imagemProdutoUrl
   const tagsVisiveis = (produto.tags || []).filter(tag => !TAGS_OCULTAS.has(tag.toLowerCase()))
 
-  const BlocoInfos = () => (
+  const renderBlocoInfos = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {tagsVisiveis.length > 0 && (
@@ -205,7 +209,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <p style={{ fontWeight: 700, fontSize: 12, color: '#000', letterSpacing: '-0.12px', lineHeight: 1.2 }}>Resumo do produto</p>
         <p style={{ fontWeight: 300, fontSize: 16, color: '#000', letterSpacing: '-0.16px', lineHeight: 1.2 }}>
-          {produto.clube ? `Camisa do ${produto.clube}` : produto.titulo}{produto.ano ? ` da temporada de ${produto.ano}, original da época` : ''}
+          {formatarResumoProduto(produto)}
         </p>
         <p style={{ fontWeight: 700, fontSize: 12, color: '#000', letterSpacing: '-0.12px', lineHeight: 1.2, opacity: 0.4 }}>
           Este anúncio foi encontrado em <span style={{ textDecoration: 'underline' }}>{produto.fonte_nome}</span>
@@ -214,7 +218,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     </div>
   )
 
-  const BotaoAnuncio = ({ fullWidth = false }: { fullWidth?: boolean }) => (
+  const renderBotaoAnuncio = (fullWidth = false) => (
     <a
       href={produto.link_original}
       target="_blank"
@@ -227,7 +231,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     </a>
   )
 
-  const CardAlerta = () => (
+  const renderCardAlerta = () => (
     <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <p style={{ fontWeight: 300, fontSize: 15, color: '#000', lineHeight: 1.3 }}>
         <strong style={{ fontWeight: 700 }}>Não encontrou o produto que procurava?</strong> Crie um alerta que te avisamos quando ele for encontrado.
@@ -239,7 +243,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
     </div>
   )
 
-  const AvisoTerceiros = () => (
+  const renderAvisoTerceiros = () => (
     <div style={{ borderTop: '1px solid #e0dee7', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <p style={{ fontWeight: 300, fontSize: 13, color: '#62748c', letterSpacing: '-0.13px', lineHeight: 1.35 }}>
         Os produtos e preços exibidos na Aguante podem sofrer alterações sem aviso prévio, conforme disponibilidade das lojas e vendedores responsáveis pelos anúncios.
@@ -296,7 +300,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                       </div>
                     )}
                     {imagemProdutoUrl && (
-                      <img key={imagemProdutoUrl} src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', borderRadius: 16, opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease', zIndex: 2 }} />
+                      <img key={imagemProdutoUrl} src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImagemCarregadaUrl(imagemProdutoUrl)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', borderRadius: 16, opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease', zIndex: 2 }} />
                     )}
                     {produto.alta_procura && (
                       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', height: 25, alignItems: 'flex-start', justifyContent: 'center', overflow: 'hidden', borderRadius: 16, boxShadow: '0px 14px 12.6px rgba(161,244,82,0.13), inset 0px -2px 28px rgba(116,216,22,0.51)', width: 'fit-content' }}>
@@ -317,10 +321,10 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
                   </div>
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 40 }}>
-                  <BlocoInfos />
-                  <BotaoAnuncio />
-                  <CardAlerta />
-                  <AvisoTerceiros />
+                  {renderBlocoInfos()}
+                  {renderBotaoAnuncio()}
+                  {renderCardAlerta()}
+                  {renderAvisoTerceiros()}
                 </div>
               </div>
             </div>
@@ -333,7 +337,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
           <div style={{ paddingTop: 76 }}>
             <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', background: '#ecebf0' }}>
               {imagemProdutoUrl && (
-                <img src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImgCarregada(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
+                <img src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImagemCarregadaUrl(imagemProdutoUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
               )}
               <button onClick={() => router.back()} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: 12, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
                 <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />
@@ -352,10 +356,10 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
               )}
             </div>
             <div style={{ padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 32 }}>
-              <BlocoInfos />
-              <BotaoAnuncio fullWidth />
-              <CardAlerta />
-              <AvisoTerceiros />
+              {renderBlocoInfos()}
+              {renderBotaoAnuncio(true)}
+              {renderCardAlerta()}
+              {renderAvisoTerceiros()}
             </div>
           </div>
         </div>
