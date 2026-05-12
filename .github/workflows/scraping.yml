@@ -64,8 +64,6 @@ jobs:
             script: scraper-brecho.js
           - nome: Jaiminho Camisas
             script: scraper-jaiminho.js
-          - nome: Meiuka
-            script: scraper-meiuka.js
           - nome: Brechó FC
             script: scraper-brechofc.js
 
@@ -145,4 +143,4 @@ jobs:
       - name: Relatório final
         run: |
           echo "✅ Rotina concluída em $(date)"
-          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Meiuka, Atrox, Fut Classics, Brechó FC"
+          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Atrox, Fut Classics, Brechó FC"
