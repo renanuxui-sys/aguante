@@ -12,6 +12,13 @@ export type Produto = {
   de_jogo: boolean
   novidade: boolean
   alta_procura: boolean
+  ativo?: boolean
+  views?: number
+  likes?: number
+  cliques_anuncio?: number
+  last_seen_at?: string | null
+  inactivated_at?: string | null
+  reactivated_at?: string | null
   created_at: string
   updated_at: string
 }

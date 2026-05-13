@@ -238,9 +238,10 @@ async function limparInvalidos(clubes) {
     }
 
     const ids = invalidos.map(produto => produto.id)
+    const agora = new Date().toISOString()
     const { error: updateError } = await supabase
       .from('produtos')
-      .update({ ativo: false })
+      .update({ ativo: false, inactivated_at: agora, updated_at: agora })
       .in('id', ids)
 
     if (updateError) {

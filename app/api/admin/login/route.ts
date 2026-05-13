@@ -52,11 +52,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { usuario, senha } = await req.json()
-  const usuarioCorreto = process.env.ADMIN_USERNAME
+  const usuarioCorreto = process.env.ADMIN_USERNAME || 'admin'
   const senhaCorreta = process.env.ADMIN_PASSWORD
 
-  if (!usuarioCorreto || !senhaCorreta) {
-    return NextResponse.json({ erro: 'ADMIN_USERNAME ou ADMIN_PASSWORD não configurados' }, { status: 500 })
+  if (!senhaCorreta) {
+    return NextResponse.json({ erro: 'ADMIN_PASSWORD não configurado' }, { status: 500 })
   }
 
   const credenciaisValidas = typeof usuario === 'string'

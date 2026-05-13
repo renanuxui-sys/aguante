@@ -24,19 +24,25 @@ export function criarSupabase() {
  * Produtos encontrados durante o scraping serão reativados via upsert.
  */
 export async function desativarProdutosDaFonte(supabase, fonteNome) {
-  const { error, count } = await supabase
+  const agora = new Date().toISOString()
+  const { data, error } = await supabase
     .from('produtos')
-    .update({ ativo: false })
+    .update({
+      ativo: false,
+      inactivated_at: agora,
+      updated_at: agora,
+    })
     .eq('fonte_nome', fonteNome)
     .eq('ativo', true)
+    .select('id')
 
   if (error) {
     console.error(`  ⚠️  Erro ao desativar produtos de "${fonteNome}":`, error.message)
     return 0
   }
 
-  console.log(`  🔄 ${count || 0} produtos de "${fonteNome}" marcados como inativos`)
-  return count || 0
+  console.log(`  🔄 ${data?.length || 0} produtos de "${fonteNome}" marcados como inativos`)
+  return data?.length || 0
 }
 
 /**
@@ -46,8 +52,19 @@ export async function desativarProdutosDaFonte(supabase, fonteNome) {
 export async function salvarProdutos(supabase, produtos) {
   if (produtos.length === 0) return 0
 
-  // Garante que todos os produtos salvos ficam ativos
-  const produtosAtivos = produtos.map(p => ({ ...p, ativo: true }))
+  const agora = new Date().toISOString()
+  const links = produtos.map(p => p.link_original).filter(Boolean)
+  const reativados = await buscarLinksInativos(supabase, links)
+
+  // Garante que todos os produtos encontrados ficam ativos e com presença registrada.
+  const produtosAtivos = produtos.map(p => ({
+    ...p,
+    ativo: true,
+    last_seen_at: agora,
+    inactivated_at: null,
+    updated_at: agora,
+    ...(reativados.has(p.link_original) ? { reactivated_at: agora } : {}),
+  }))
 
   const { data, error } = await supabase
     .from('produtos')
@@ -62,10 +79,36 @@ export async function salvarProdutos(supabase, produtos) {
   return data?.length || 0
 }
 
+async function buscarLinksInativos(supabase, links) {
+  const unicos = [...new Set(links)]
+  const inativos = new Set()
+  const TAMANHO_LOTE = 250
+
+  for (let i = 0; i < unicos.length; i += TAMANHO_LOTE) {
+    const lote = unicos.slice(i, i + TAMANHO_LOTE)
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('link_original')
+      .in('link_original', lote)
+      .eq('ativo', false)
+
+    if (error) {
+      console.warn('  ⚠️  Não foi possível detectar reativações:', error.message)
+      return inativos
+    }
+
+    ;(data || []).forEach(item => {
+      if (item.link_original) inativos.add(item.link_original)
+    })
+  }
+
+  return inativos
+}
+
 /**
  * Relatório final — mostra quantos foram reativados, desativados e novos.
  */
-export async function relatorioFinal(supabase, fonteNome, totalSalvos) {
+export async function relatorioFinal(supabase, fonteNome) {
   const { count: inativos } = await supabase
     .from('produtos')
     .select('*', { count: 'exact', head: true })

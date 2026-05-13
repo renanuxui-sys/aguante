@@ -24,7 +24,12 @@ export default function AdminLogin() {
     if (res.ok) {
       router.push('/admin')
     } else {
-      setErro(res.status === 429 ? 'Muitas tentativas. Tente novamente em alguns minutos.' : 'Usuário ou senha incorretos.')
+      const data = await res.json().catch(() => null)
+      setErro(
+        res.status === 429
+          ? 'Muitas tentativas. Tente novamente em alguns minutos.'
+          : data?.erro || 'Usuário ou senha incorretos.'
+      )
       setCarregando(false)
     }
   }
