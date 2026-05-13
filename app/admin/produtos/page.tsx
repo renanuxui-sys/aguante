@@ -13,6 +13,7 @@ type Produto = {
   id: string
   titulo: string
   clube: string | null
+  tipo_camisa: string | null
   preco: number | null
   imagem_url: string | null
   link_original: string
@@ -67,6 +68,7 @@ export default function AdminProdutos() {
     setCarregando(false)
   }, [pagina, busca, filtroClube, filtroAtivo])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { carregar() }, [carregar])
 
   useEffect(() => {
@@ -92,6 +94,8 @@ export default function AdminProdutos() {
   }
 
   async function toggleBadge(produto: Produto, campo: 'de_jogo' | 'novidade' | 'alta_procura') {
+    if (campo === 'de_jogo' && ehPreJogo(produto.titulo)) return
+
     await supabase
       .from('produtos')
       .update({ [campo]: !produto[campo], updated_at: new Date().toISOString() })
@@ -266,6 +270,7 @@ export default function AdminProdutos() {
                           key={b.campo}
                           onClick={() => toggleBadge(p, b.campo)}
                           title={`Toggle ${b.label}`}
+                          disabled={b.campo === 'de_jogo' && ehPreJogo(p.titulo)}
                           style={{
                             padding: '2px 8px',
                             borderRadius: 99,
@@ -274,7 +279,8 @@ export default function AdminProdutos() {
                             color: p[b.campo] ? b.cor : '#B0AEA8',
                             fontSize: 10, fontWeight: 600,
                             fontFamily: 'Onest, sans-serif',
-                            cursor: 'pointer',
+                            cursor: b.campo === 'de_jogo' && ehPreJogo(p.titulo) ? 'not-allowed' : 'pointer',
+                            opacity: b.campo === 'de_jogo' && ehPreJogo(p.titulo) ? 0.45 : 1,
                             whiteSpace: 'nowrap',
                           }}
                         >
@@ -522,5 +528,11 @@ export default function AdminProdutos() {
         </div>
       )}
     </div>
+  )
+}
+
+function ehPreJogo(titulo: string) {
+  return /\b(pre[-\s]?jogo|pre[-\s]?match)\b/i.test(
+    titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   )
 }

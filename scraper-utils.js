@@ -57,25 +57,32 @@ export async function salvarProdutos(supabase, produtos) {
   const reativados = await buscarLinksInativos(supabase, links)
 
   // Garante que todos os produtos encontrados ficam ativos e com presença registrada.
-  const produtosAtivos = produtos.map(p => ({
-    ...p,
-    ativo: true,
-    last_seen_at: agora,
-    inactivated_at: null,
-    updated_at: agora,
-    ...(reativados.has(p.link_original) ? { reactivated_at: agora } : {}),
-  }))
+  const produtosAtivos = produtos.map(p => {
+    const { tipo_camisa, ...produto } = p
+    void tipo_camisa
+
+    return {
+      ...produto,
+      ativo: true,
+      de_jogo: ehCamisaDeJogo(p.titulo),
+      last_seen_at: agora,
+      inactivated_at: null,
+      updated_at: agora,
+      ...(reativados.has(p.link_original) ? { reactivated_at: agora } : {}),
+    }
+  })
 
   const { data, error } = await supabase
     .from('produtos')
     .upsert(produtosAtivos, { onConflict: 'link_original', ignoreDuplicates: false })
-    .select('id')
+    .select('id,link_original,titulo,fonte_nome,clube,ano,preco')
 
   if (error) {
     console.error('  ❌ Erro ao salvar:', error.message)
     return 0
   }
 
+  await registrarHistoricoPrecos(supabase, data || [])
   return data?.length || 0
 }
 
@@ -103,6 +110,74 @@ async function buscarLinksInativos(supabase, links) {
   }
 
   return inativos
+}
+
+async function registrarHistoricoPrecos(supabase, produtos) {
+  const comPreco = produtos.filter(produto => produto.preco !== null && produto.preco !== undefined)
+  if (comPreco.length === 0) return
+
+  const ids = comPreco.map(produto => produto.id).filter(Boolean)
+  const ultimos = new Map()
+
+  for (let i = 0; i < ids.length; i += 250) {
+    const lote = ids.slice(i, i + 250)
+    const { data, error } = await supabase
+      .from('produto_precos_historico')
+      .select('produto_id,preco,registrado_em')
+      .in('produto_id', lote)
+      .order('registrado_em', { ascending: false })
+
+    if (error) {
+      console.warn('  ⚠️  Não foi possível carregar histórico de preços:', error.message)
+      return
+    }
+
+    ;(data || []).forEach(item => {
+      if (!ultimos.has(item.produto_id)) ultimos.set(item.produto_id, Number(item.preco))
+    })
+  }
+
+  const novos = comPreco
+    .filter(produto => Number(produto.preco) > 0 && ultimos.get(produto.id) !== Number(produto.preco))
+    .map(produto => ({
+      produto_id: produto.id,
+      link_original: produto.link_original,
+      titulo: produto.titulo,
+      fonte_nome: produto.fonte_nome,
+      clube: produto.clube,
+      ano: produto.ano,
+      tipo_camisa: identificarTipoCamisa(produto.titulo),
+      preco: produto.preco,
+    }))
+
+  if (novos.length === 0) return
+
+  const { error } = await supabase
+    .from('produto_precos_historico')
+    .insert(novos)
+
+  if (error) console.warn('  ⚠️  Não foi possível registrar histórico de preços:', error.message)
+}
+
+export function identificarTipoCamisa(titulo) {
+  const texto = normalizarTexto(titulo || '')
+
+  if (/\b(pre[-\s]?jogo|pre[-\s]?match)\b/.test(texto)) return 'pre_jogo'
+  if (/\b(goleiro|goalkeeper|keeper|gk)\b/.test(texto)) return 'goleiro'
+  if (/\b(away|fora|visitante)\b/.test(texto)) return 'away'
+  if (/\b(home|casa|mandante)\b/.test(texto)) return 'home'
+  if (/\b(third|terceira|3a|3ª)\b/.test(texto)) return 'third'
+  if (/\b(treino|training|trainning)\b/.test(texto)) return 'treino'
+
+  return null
+}
+
+export function ehCamisaDeJogo(titulo) {
+  const texto = normalizarTexto(titulo || '')
+  if (identificarTipoCamisa(texto) === 'pre_jogo') return false
+  if (/\bpre[-\s]?jogo\b/.test(texto) || /\bpre[-\s]?match\b/.test(texto)) return false
+
+  return /\b(de jogo|usada em jogo|match worn|matchworn|player issue|game worn|game issued)\b/.test(texto)
 }
 
 /**

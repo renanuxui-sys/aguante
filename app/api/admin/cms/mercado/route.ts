@@ -20,6 +20,18 @@ type ProdutoMercado = {
   cliques_anuncio: number | null
 }
 
+type PrecoHistorico = {
+  produto_id: string | null
+  link_original: string
+  titulo: string | null
+  fonte_nome: string | null
+  clube: string | null
+  ano: string | null
+  tipo_camisa: string | null
+  preco: number
+  registrado_em: string
+}
+
 type ClubeInfo = {
   nome: string
   categoria: string | null
@@ -104,6 +116,19 @@ function rotuloMes(chave: string) {
   return `${mes}/${ano.slice(2)}`
 }
 
+function rotuloTipoCamisa(tipo: string | null) {
+  const labels: Record<string, string> = {
+    pre_jogo: 'Pre-jogo',
+    goleiro: 'Goleiro',
+    away: 'Away',
+    home: 'Home',
+    third: 'Third',
+    treino: 'Treino',
+  }
+
+  return tipo ? labels[tipo] || tipo : ''
+}
+
 function criarRanking(produtos: ProdutoMercado[], chaveFn: (produto: ProdutoMercado) => string | null, labelFn = chaveFn) {
   const grupos = new Map<string, ProdutoMercado[]>()
 
@@ -117,6 +142,34 @@ function criarRanking(produtos: ProdutoMercado[], chaveFn: (produto: ProdutoMerc
   return [...grupos.entries()]
     .map(([chave, itens]) => rankingItem(chave, labelFn(itens[0]) || chave, itens))
     .sort((a, b) => b.total - a.total || a.diasMediano - b.diasMediano)
+}
+
+function criarRankingPrecos(historico: PrecoHistorico[], chaveFn: (item: PrecoHistorico) => string | null, labelFn = chaveFn) {
+  const grupos = new Map<string, PrecoHistorico[]>()
+
+  historico.forEach(item => {
+    const chave = chaveFn(item)
+    if (!chave) return
+    if (!grupos.has(chave)) grupos.set(chave, [])
+    grupos.get(chave)?.push(item)
+  })
+
+  return [...grupos.entries()]
+    .map(([chave, itens]) => {
+      const precos = itens.map(item => numero(item.preco)).filter(Boolean)
+      return {
+        chave,
+        label: labelFn(itens[0]) || chave,
+        total: itens.length,
+        precoMedio: arredondar(media(precos), 2),
+        diasMedio: 0,
+        diasMediano: 0,
+        ticketEstimado: arredondar(precos.reduce((total, preco) => total + preco, 0), 2),
+        cliques: 0,
+        likes: 0,
+      }
+    })
+    .sort((a, b) => b.precoMedio - a.precoMedio || b.total - a.total)
 }
 
 function rankingItem(chave: string, label: string, produtos: ProdutoMercado[]): RankingItem {
@@ -182,6 +235,48 @@ async function carregarProdutos(supabase: ReturnType<typeof criarSupabaseAdmin>,
   return rows
 }
 
+async function carregarHistoricoPrecos(supabase: ReturnType<typeof criarSupabaseAdmin>, params: URLSearchParams, categoriasPorClube: Map<string, string>) {
+  const inicio = normalizarInicio(params.get('inicio'))
+  const fim = normalizarFim(params.get('fim'))
+  const loja = params.get('loja') || ''
+  const clube = params.get('clube') || ''
+  const categoria = params.get('categoria') || ''
+  const ano = params.get('ano') || ''
+  const precoMin = params.get('precoMin')
+  const precoMax = params.get('precoMax')
+  const rows: PrecoHistorico[] = []
+  let offset = 0
+
+  while (rows.length < MAX_ROWS) {
+    let query = supabase
+      .from('produto_precos_historico')
+      .select('produto_id,link_original,titulo,fonte_nome,clube,ano,tipo_camisa,preco,registrado_em')
+      .gte('registrado_em', inicio)
+      .lte('registrado_em', fim)
+      .order('registrado_em', { ascending: false })
+      .range(offset, offset + PAGE - 1)
+
+    if (loja) query = query.eq('fonte_nome', loja)
+    if (clube) query = query.eq('clube', clube)
+    if (ano) query = query.eq('ano', ano)
+    if (precoMin) query = query.gte('preco', Number(precoMin))
+    if (precoMax) query = query.lte('preco', Number(precoMax))
+
+    const { data, error } = await query
+    if (error) {
+      if (error.code === '42P01' || error.code === '42703') return []
+      throw error
+    }
+    if (!data?.length) break
+    rows.push(...data as PrecoHistorico[])
+    if (data.length < PAGE) break
+    offset += PAGE
+  }
+
+  if (!categoria) return rows
+  return rows.filter(item => item.clube && categoriasPorClube.get(item.clube) === categoria)
+}
+
 export async function GET(request: Request) {
   const cookieStore = await cookies()
   if (!validarSessaoAdmin(cookieStore.get('admin_session')?.value)) {
@@ -216,6 +311,7 @@ export async function GET(request: Request) {
       if (clube.nome) categoriasPorClube.set(clube.nome, clube.categoria || 'Outros')
     })
 
+    const historicoPrecos = await carregarHistoricoPrecos(supabase, searchParams, categoriasPorClube)
     const vendas = filtrarPorCategoria(vendasBrutas, categoria, categoriasPorClube)
     const ativos = filtrarPorCategoria(ativosBrutos, categoria, categoriasPorClube)
     const precos = vendas.map(p => numero(p.preco)).filter(Boolean)
@@ -229,6 +325,10 @@ export async function GET(request: Request) {
 
     const porMes = criarRanking(vendas, p => p.inactivated_at ? mesChave(p.inactivated_at) : null, p => p.inactivated_at ? rotuloMes(mesChave(p.inactivated_at)) : '')
       .sort((a, b) => a.chave.localeCompare(b.chave))
+    const precoMedioPorMes = criarRankingPrecos(historicoPrecos, p => mesChave(p.registrado_em), p => rotuloMes(mesChave(p.registrado_em)))
+      .sort((a, b) => a.chave.localeCompare(b.chave))
+    const precoHistoricoClubeAno = criarRankingPrecos(historicoPrecos, p => p.clube && p.ano ? `${p.clube} · ${p.ano}` : null)
+    const precoHistoricoTipo = criarRankingPrecos(historicoPrecos, p => p.tipo_camisa || null, p => rotuloTipoCamisa(p.tipo_camisa))
 
     const estoquePorClube = criarRanking(ativos, p => p.clube || null)
     const estoqueMapa = new Map(estoquePorClube.map(item => [item.chave, item.total]))
@@ -298,11 +398,14 @@ export async function GET(request: Request) {
         rapidos: rapidos.slice(0, 15),
         precoPorLoja: [...lojas].sort((a, b) => b.precoMedio - a.precoMedio).slice(0, 15),
         precoPorClube: [...clubes].sort((a, b) => b.precoMedio - a.precoMedio).slice(0, 15),
+        precoHistoricoClubeAno: precoHistoricoClubeAno.slice(0, 15),
+        precoHistoricoTipo: precoHistoricoTipo.slice(0, 10),
         demanda: demanda.slice(0, 15),
         oportunidades,
       },
       graficos: {
         porMes,
+        precoMedioPorMes,
         liquidez,
       },
       encalhados,

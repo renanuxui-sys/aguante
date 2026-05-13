@@ -58,11 +58,14 @@ type MercadoResponse = {
     rapidos: RankingItem[]
     precoPorLoja: RankingItem[]
     precoPorClube: RankingItem[]
+    precoHistoricoClubeAno: RankingItem[]
+    precoHistoricoTipo: RankingItem[]
     demanda: RankingItem[]
     oportunidades: RankingItem[]
   }
   graficos: {
     porMes: RankingItem[]
+    precoMedioPorMes: RankingItem[]
     liquidez: RankingItem[]
   }
   encalhados: ProdutoEncalhado[]
@@ -235,6 +238,13 @@ function Conteudo({ dados, carregando }: { dados: MercadoResponse; carregando: b
         </Painel>
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 24, marginBottom: 24 }}>
+        <Painel titulo="Preço médio histórico" subtitulo="snapshots registrados pelos scrapers">
+          <BarChart dados={dados.graficos.precoMedioPorMes} campo="precoMedio" formato={valor => brl(valor)} />
+        </Painel>
+        <Ranking titulo="Preço por tipo" subtitulo="quando o título permite inferir" dados={dados.rankings.precoHistoricoTipo} valor="preco" />
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
         <Ranking titulo="Vendas por loja" subtitulo="quantidade e preço médio" dados={dados.rankings.lojas} valor="total" />
         <Ranking titulo="Clubes mais vendidos" subtitulo="produtos inativados no período" dados={dados.rankings.clubes} valor="total" />
@@ -248,6 +258,10 @@ function Conteudo({ dados, carregando }: { dados: MercadoResponse; carregando: b
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
         <Ranking titulo="Preço médio por loja" subtitulo="ticket estimado por origem" dados={dados.rankings.precoPorLoja} valor="preco" />
         <Ranking titulo="Preço médio por clube" subtitulo="referência dos produtos inativados" dados={dados.rankings.precoPorClube} valor="preco" />
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <Ranking titulo="Histórico de preço por clube/ano" subtitulo="média dos snapshots de preço, não apenas inativos" dados={dados.rankings.precoHistoricoClubeAno} valor="preco" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>

@@ -8,6 +8,7 @@ export type Produto = {
   fonte_nome: string
   fonte_url: string
   clube: string | null
+  tipo_camisa?: string | null
   tags: string[]
   de_jogo: boolean
   novidade: boolean

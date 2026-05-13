@@ -21,6 +21,7 @@ create table if not exists produtos (
   fonte_nome text,
   fonte_url text,
   clube text,
+  tipo_camisa text,
   tags text[] default '{}',
   de_jogo boolean default false,
   novidade boolean default true,
@@ -36,6 +37,7 @@ create index if not exists produtos_created_at_idx on produtos(created_at desc);
 
 -- Métricas usadas pelo CMS.
 alter table produtos add column if not exists fonte_url text;
+alter table produtos add column if not exists tipo_camisa text;
 alter table produtos add column if not exists ativo boolean default true;
 alter table produtos add column if not exists views integer default 0;
 alter table produtos add column if not exists likes integer default 0;
@@ -51,6 +53,38 @@ create index if not exists idx_produtos_inactivated_at on produtos(inactivated_a
 create index if not exists idx_produtos_last_seen_at on produtos(last_seen_at desc);
 create index if not exists idx_produtos_fonte_inactivated_at on produtos(fonte_nome, inactivated_at desc) where inactivated_at is not null;
 create index if not exists idx_produtos_clube_inactivated_at on produtos(clube, inactivated_at desc) where inactivated_at is not null;
+create index if not exists idx_produtos_tipo_camisa on produtos(tipo_camisa);
+
+-- Evita que camisas "pre-jogo" entrem no filtro "de jogo".
+update produtos
+set de_jogo = false, tipo_camisa = coalesce(tipo_camisa, 'pre_jogo')
+where de_jogo = true
+  and (
+    titulo ilike '%pré-jogo%' or
+    titulo ilike '%pre-jogo%' or
+    titulo ilike '%pré jogo%' or
+    titulo ilike '%pre jogo%' or
+    titulo ilike '%pre match%' or
+    titulo ilike '%pre-match%'
+  );
+
+-- Histórico de preços por produto, clube e temporada.
+create table if not exists produto_precos_historico (
+  id uuid default gen_random_uuid() primary key,
+  produto_id uuid references produtos(id) on delete cascade,
+  link_original text not null,
+  titulo text,
+  fonte_nome text,
+  clube text,
+  ano text,
+  tipo_camisa text,
+  preco numeric not null,
+  registrado_em timestamptz default now()
+);
+
+create index if not exists idx_produto_precos_historico_registrado_em on produto_precos_historico(registrado_em desc);
+create index if not exists idx_produto_precos_historico_clube_ano on produto_precos_historico(clube, ano, registrado_em desc);
+create index if not exists idx_produto_precos_historico_produto_id on produto_precos_historico(produto_id, registrado_em desc);
 
 -- Índices para as consultas públicas mais frequentes.
 create index if not exists idx_produtos_ativo_created_at on produtos(ativo, created_at desc);
