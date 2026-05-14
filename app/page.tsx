@@ -4,8 +4,6 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
-import { supabase } from '@/lib/supabase'
-import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import type { Produto } from '@/types'
 
 const imgCamisas       = "/assets/img-hero.png"
@@ -40,24 +38,31 @@ type HomeMetricas = {
   novos_24h: number | null
 }
 
-async function carregarMetricasHome(timeoutMs = 1600) {
+type HomeData = {
+  metricas: HomeMetricas | null
+  novidades: Produto[]
+  selecoes: Produto[]
+  emAlta: Produto[]
+  anos80: Produto[]
+  clubes: Clube[]
+}
+
+async function carregarHomeData(timeoutMs = 6000) {
   let timeout: number | null = null
-  const consulta = supabase
-    .from('home_metricas')
-    .select('total_produtos,novos_24h')
-    .eq('id', 'principal')
-    .maybeSingle()
+  const controller = new AbortController()
 
   try {
     const resultado = await Promise.race([
-      consulta,
+      fetch('/api/home', { signal: controller.signal }).then(res => res.ok ? res.json() : null),
       new Promise<null>(resolve => {
-        timeout = window.setTimeout(() => resolve(null), timeoutMs)
+        timeout = window.setTimeout(() => {
+          controller.abort()
+          resolve(null)
+        }, timeoutMs)
       }),
     ])
 
-    if (!resultado || resultado.error) return null
-    return resultado.data as HomeMetricas
+    return resultado as HomeData | null
   } catch {
     return null
   } finally {
@@ -142,53 +147,16 @@ export default function Home() {
     updateMobile()
     media.addEventListener('change', updateMobile)
 
-    carregarMetricasHome().then(metricas => {
-      if (!metricas) return
-      if (metricas.total_produtos !== null) setTotalProdutos(metricas.total_produtos)
-      if (metricas.novos_24h !== null) setNovosHoje(metricas.novos_24h)
+    carregarHomeData().then(data => {
+      if (!data) return
+      if (data.metricas?.total_produtos !== null && data.metricas?.total_produtos !== undefined) setTotalProdutos(data.metricas.total_produtos)
+      if (data.metricas?.novos_24h !== null && data.metricas?.novos_24h !== undefined) setNovosHoje(data.metricas.novos_24h)
+      setNovidades(embaralhar(data.novidades || []).slice(0, 6))
+      setSelecoes(embaralhar(data.selecoes || []))
+      setEmAlta(embaralhar(data.emAlta || []))
+      setAnos80(embaralhar(data.anos80 || []).slice(0, 6))
+      setClubes(data.clubes || [])
     })
-
-    supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
-      .order('created_at', { ascending: false }).limit(30)
-      .then(({ data }) => { if (data) setNovidades(embaralhar(data).slice(0, 6)) })
-
-    supabase.from('clubes_com_total_anuncios').select('nome,total_anuncios')
-      .eq('ativo', true)
-      .eq('categoria', 'Seleções')
-      .gt('total_anuncios', 0)
-      .order('ordem', { ascending: true })
-      .then(async ({ data, error }) => {
-        if (error || !data?.length) {
-          setSelecoes([])
-          return
-        }
-
-        const nomesSelecoes = data.map(clube => clube.nome)
-        const { data: produtosSelecoes } = await supabase.from('produtos')
-          .select(PRODUCT_CARD_SELECT)
-          .eq('ativo', true)
-          .in('clube', nomesSelecoes)
-          .order('views', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false })
-          .limit(50)
-
-        setSelecoes(embaralhar(produtosSelecoes || []))
-      })
-
-    supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
-      .order('views', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(50)
-      .then(({ data }) => { if (data) setEmAlta(embaralhar(data)) })
-
-    supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
-      .gte('ano', '1980').lte('ano', '1989').limit(20)
-      .then(({ data }) => { if (data) setAnos80(embaralhar(data).slice(0, 6)) })
-
-    supabase.from('clubes').select('id, nome, slug, escudo_url')
-      .eq('pais', 'Brasil').eq('destaque', true).eq('ativo', true)
-      .order('ordem', { ascending: true })
-      .then(({ data }) => { if (data) setClubes(data) })
 
     return () => {
       media.removeEventListener('change', updateMobile)
@@ -204,11 +172,9 @@ export default function Home() {
       }
 
       setClubePreferido(clube)
-      supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true).eq('clube', clube)
-        .order('views', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(30)
-        .then(({ data }) => setProdutosParaVoce(embaralhar(data || []).slice(0, isMobile ? 6 : 5)))
+      fetch(`/api/home/produtos-para-voce?clube=${encodeURIComponent(clube)}`)
+        .then(res => res.ok ? res.json() : { produtos: [] })
+        .then(({ produtos }: { produtos?: Produto[] }) => setProdutosParaVoce(embaralhar(produtos || []).slice(0, isMobile ? 6 : 5)))
     }
 
     carregarProdutosParaClube(localStorage.getItem(CLUBE_PREFERENCIA_STORAGE_KEY))

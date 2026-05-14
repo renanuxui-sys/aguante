@@ -4,8 +4,6 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
-import { supabase } from '@/lib/supabase'
-import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import type { Produto } from '@/types'
 
 const imgBgHero      = "/assets/bg-hero.png"
@@ -56,70 +54,30 @@ function SearchContent() {
     }, 0)
 
     async function carregarProdutos() {
-      let query = supabase.from('produtos').select(PRODUCT_CARD_SELECT, { count: 'exact' }).eq('ativo', true)
+      try {
+        const params = new URLSearchParams()
+        if (q) params.set('q', q)
+        if (categoria) params.set('categoria', categoria)
+        if (clubeExato) params.set('clube', clubeExato)
+        if (decada) params.set('decada', decada)
+        if (ordenar) params.set('ordenar', ordenar)
+        if (deJogo) params.set('de_jogo', 'true')
+        params.set('ordem', ordem)
+        params.set('pagina', String(paginaParam))
 
-      if (categoria) {
-        const { data: clubesCategoria } = await supabase
-          .from('clubes_com_total_anuncios')
-          .select('nome,total_anuncios')
-          .eq('ativo', true)
-          .eq('categoria', categoria)
-          .gt('total_anuncios', 0)
-
+        const res = await fetch(`/api/search?${params.toString()}`)
         if (!ativo) return
-
-        const nomes = (clubesCategoria || []).map(clube => clube.nome)
-        if (nomes.length === 0) {
-          setProdutos([])
-          setTotal(0)
-          setLoading(false)
-          return
-        }
-
-        query = query.in('clube', nomes)
+        const data = res.ok ? await res.json() : { produtos: [], total: 0 }
+        if (!ativo) return
+        setProdutos(data.produtos || [])
+        setTotal(data.total || 0)
+      } catch {
+        if (!ativo) return
+        setProdutos([])
+        setTotal(0)
+      } finally {
+        if (ativo) setLoading(false)
       }
-
-      // Busca exata por clube — vinda da navbar, sem pesquisar no título
-      if (clubeExato) {
-        query = query.eq('clube', clubeExato)
-      }
-
-      // Busca livre por múltiplos termos — pesquisa título, clube e ano
-      if (q) {
-        const termos = q.trim().split(/\s+/).filter(t => t.length > 0)
-        termos.forEach(termo => {
-          query = query.or(`titulo.ilike.%${termo}%,clube.ilike.%${termo}%,ano.ilike.%${termo}%`)
-        })
-      }
-
-      // Filtro por década (1980, 1990, etc.)
-      if (decada) {
-        const ini = decada.length === 2 ? `19${decada}` : decada
-        const inicio = parseInt(ini, 10)
-        const fim = inicio + 9
-        query = query.gte('ano', String(inicio)).lte('ano', String(fim))
-      }
-
-      if (deJogo) {
-        query = query.eq('de_jogo', true)
-      }
-
-      // Ordenação
-      if (ordenar === 'mais-vistos' || ordem === 'mais vistos') {
-        query = query.order('views', { ascending: false, nullsFirst: false })
-      } else if (ordem === 'menor preço') {
-        query = query.order('preco', { ascending: true, nullsFirst: false })
-      } else if (ordem === 'maior preço') {
-        query = query.order('preco', { ascending: false, nullsFirst: false })
-      } else {
-        query = query.order('created_at', { ascending: false })
-      }
-
-      const { data, count } = await query.range((paginaParam - 1) * POR_PAGINA, paginaParam * POR_PAGINA - 1)
-      if (!ativo) return
-      setProdutos(data || [])
-      setTotal(count || 0)
-      setLoading(false)
     }
 
     carregarProdutos()
