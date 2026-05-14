@@ -35,6 +35,36 @@ function embaralhar<T>(arr: T[]): T[] {
   return a
 }
 
+type HomeMetricas = {
+  total_produtos: number | null
+  novos_24h: number | null
+}
+
+async function carregarMetricasHome(timeoutMs = 1600) {
+  let timeout: number | null = null
+  const consulta = supabase
+    .from('home_metricas')
+    .select('total_produtos,novos_24h')
+    .eq('id', 'principal')
+    .maybeSingle()
+
+  try {
+    const resultado = await Promise.race([
+      consulta,
+      new Promise<null>(resolve => {
+        timeout = window.setTimeout(() => resolve(null), timeoutMs)
+      }),
+    ])
+
+    if (!resultado || resultado.error) return null
+    return resultado.data as HomeMetricas
+  } catch {
+    return null
+  } finally {
+    if (timeout) window.clearTimeout(timeout)
+  }
+}
+
 function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos: Produto[]; linkTodas: string }) {
   const router = useRouter()
   if (produtos.length === 0) return null
@@ -112,13 +142,11 @@ export default function Home() {
     updateMobile()
     media.addEventListener('change', updateMobile)
 
-    supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true)
-      .then(({ count }) => setTotalProdutos(count))
-
-    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    supabase.from('produtos').select('id', { count: 'exact', head: true })
-      .eq('ativo', true).gte('created_at', ontem)
-      .then(({ count }) => setNovosHoje(count))
+    carregarMetricasHome().then(metricas => {
+      if (!metricas) return
+      if (metricas.total_produtos !== null) setTotalProdutos(metricas.total_produtos)
+      if (metricas.novos_24h !== null) setNovosHoje(metricas.novos_24h)
+    })
 
     supabase.from('produtos').select(PRODUCT_CARD_SELECT).eq('ativo', true)
       .order('created_at', { ascending: false }).limit(30)
@@ -162,7 +190,9 @@ export default function Home() {
       .order('ordem', { ascending: true })
       .then(({ data }) => { if (data) setClubes(data) })
 
-    return () => media.removeEventListener('change', updateMobile)
+    return () => {
+      media.removeEventListener('change', updateMobile)
+    }
   }, [])
 
   useEffect(() => {
@@ -207,8 +237,10 @@ export default function Home() {
   const quantidadeDestaques = isMobile ? 6 : 5
   const emAltaVisiveis = emAlta.slice(0, isMobile ? 6 : 10)
 
-  const totalFmt = totalProdutos !== null ? totalProdutos.toLocaleString('pt-BR') : '...'
-  const novosFmt = novosHoje !== null ? novosHoje.toLocaleString('pt-BR') : '...'
+  const totalFmt = totalProdutos !== null ? totalProdutos.toLocaleString('pt-BR') : 'milhares de'
+  const novosLabel = novosHoje !== null
+    ? `${novosHoje.toLocaleString('pt-BR')} ${novosHoje === 1 ? 'novo anúncio' : 'novos anúncios'}`
+    : 'Novos anúncios'
 
   return (
     <>
@@ -345,7 +377,7 @@ export default function Home() {
               {/* Stats inline — só mobile */}
               <div className="ag-hero-stats-inline" style={{ flexDirection: 'column', gap: 8, marginTop: 20 }}>
                 <p style={{ textAlign:'center', fontSize: 14, color: '#282828', letterSpacing: '-0.01em', lineHeight: 1.4 }}>
-                  <strong style={{ color: '#550fed', fontWeight: 700 }}>{novosFmt} {novosHoje === 1 ? 'novo anúncio' : 'novos anúncios'}</strong> encontrados hoje.
+                  <strong style={{ color: '#550fed', fontWeight: 700 }}>{novosLabel}</strong> encontrados hoje.
                 </p>
                 <p style={{ textAlign:'center', fontSize: 14, color: '#282828', letterSpacing: '-0.01em', lineHeight: 1.4 }}>
                   <strong style={{ color: '#550fed', fontWeight: 700 }}>{totalFmt} camisas</strong> encontradas em diversos sites.
@@ -383,7 +415,7 @@ export default function Home() {
                   <img src={imgIconLightning} alt="" style={{ width: 24, height: 24 }} />
                 </div>
                 <p style={{ fontSize: 14, color: 'rgba(0,0,0,0.6)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                  <strong style={{ color: '#550fed', fontWeight: 700 }}>{novosFmt} {novosHoje === 1 ? 'novo anúncio' : 'novos anúncios'} </strong>
+                  <strong style={{ color: '#550fed', fontWeight: 700 }}>{novosLabel} </strong>
                   <span style={{ fontWeight: 400 }}>encontrados nas últimas 24h.</span>
                 </p>
               </div>
