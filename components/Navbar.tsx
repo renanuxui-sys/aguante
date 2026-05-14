@@ -39,8 +39,7 @@ type Categoria = { key: string; label: string; labelMobile: string; clubes: Club
 
 function montarCategorias(clubes: ClubeDB[]) {
   const comProdutos = clubes
-    .filter(c => c.total_anuncios > 0)
-    .sort((a, b) => b.total_anuncios - a.total_anuncios)
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 
   const grupos: Record<string, ClubeDB[]> = {}
   comProdutos.forEach(c => {
@@ -54,39 +53,16 @@ function montarCategorias(clubes: ClubeDB[]) {
     .map(k => ({ key: k, label: k, labelMobile: LABEL_MOBILE[k] || k, clubes: grupos[k] }))
 }
 
-async function carregarClubesComContagem() {
-  const { data: clubesComTotal, error } = await supabase
-    .from('clubes_com_total_anuncios')
-    .select('id,nome,slug,categoria,escudo_url,total_anuncios')
+async function carregarClubesMenu() {
+  const { data: clubes } = await supabase
+    .from('clubes')
+    .select('id,nome,slug,categoria,escudo_url')
     .eq('ativo', true)
-    .order('ordem', { ascending: true })
-
-  if (!error && clubesComTotal?.length) {
-    return clubesComTotal as ClubeDB[]
-  }
-
-  const [{ data: clubes }, { data: produtos }] = await Promise.all([
-    supabase
-      .from('clubes')
-      .select('id,nome,slug,categoria,escudo_url')
-      .eq('ativo', true)
-      .order('ordem', { ascending: true }),
-    supabase
-      .from('produtos')
-      .select('clube')
-      .eq('ativo', true)
-      .range(0, 9999),
-  ])
-
-  const totaisPorClube = new Map<string, number>()
-  produtos?.forEach(produto => {
-    if (!produto.clube) return
-    totaisPorClube.set(produto.clube, (totaisPorClube.get(produto.clube) || 0) + 1)
-  })
+    .order('nome', { ascending: true })
 
   return ((clubes || []) as ClubeBase[]).map(clube => ({
     ...clube,
-    total_anuncios: totaisPorClube.get(clube.nome) || 0,
+    total_anuncios: 0,
   }))
 }
 
@@ -105,7 +81,7 @@ export default function Navbar() {
 
   useEffect(() => {
     async function carregar() {
-      const clubes = await carregarClubesComContagem()
+      const clubes = await carregarClubesMenu()
       if (!clubes.length) return
       setCategorias(montarCategorias(clubes))
     }
@@ -115,7 +91,7 @@ export default function Navbar() {
   // Fallback com lista local — sem zerados (oculta badge quando 0)
   const cats: Categoria[] = categorias.length > 0 ? categorias : [{
     key: 'Clubes Brasileiros', label: 'Clubes Brasileiros', labelMobile: 'Clubes Brasileiros',
-    clubes: CLUBES_BRASILEIROS.map((nome, i) => ({
+    clubes: [...CLUBES_BRASILEIROS].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((nome, i) => ({
       id: String(i), nome, slug: nome.toLowerCase().replace(/[\s/]/g,'-'),
       categoria: 'Clubes Brasileiros', escudo_url: null, total_anuncios: 0,
     }))

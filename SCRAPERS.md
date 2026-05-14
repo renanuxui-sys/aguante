@@ -27,7 +27,10 @@ npx playwright install chromium
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` é usada apenas pelos scripts/rotina oficial para gravar dados administrativos, como histórico de preços, sem esbarrar nas regras de segurança do app público.
 
 Para integrações pagas/experimentais:
 ```

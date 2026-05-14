@@ -17,7 +17,8 @@ import {
   relatorioFinal,
   extrairAno,
   identificarClube,
-  carregarClubesMap,
+  carregarClubesMapPorCategoria,
+  combinarClubesMap,
   sleep,
 } from './scraper-utils.js'
 import 'dotenv/config'
@@ -30,14 +31,15 @@ const MAX_ERROS  = 3  // páginas consecutivas sem clube identificado
 const supabase = criarSupabase()
 
 const CATEGORIAS = [
-  { path: '/futebol-nacional',          clube: null, filtroSelecao: false },
+  { path: '/futebol-nacional', clube: null, filtroSelecao: false, categorias: ['Clubes Brasileiros'] },
   {
     path: '/futebol/camisas-de-futebol?loja=1381980&categoria=35&categories%5B%5D=Argentina&categories%5B%5D=Clubes%2BSul%2BAmericanos&categories%5B%5D=Col%25F4mbia&categories%5B%5D=Uruguai',
     clube: null,
     filtroSelecao: false,
+    categorias: ['Clubes Sulamericanos'],
     somenteIdentificados: true,
   },
-  { path: '/futebol/camisas-de-futebol', clube: null, filtroSelecao: true  },
+  { path: '/futebol/camisas-de-futebol', clube: null, filtroSelecao: true, categorias: ['Seleções'] },
 ]
 
 // Slugs espelhados do SELECOES_MAP do scraper-utils.js (versão sem acentos, formato URL Tray).
@@ -137,8 +139,16 @@ async function rasparPagina(path, page) {
   }
 }
 
-async function rasparCategoria({ path, clube, filtroSelecao, somenteIdentificados = false }, clubesMap) {
+async function rasparCategoria({ path, clube, filtroSelecao, categorias = ['Clubes Brasileiros'], somenteIdentificados = false }, clubesPorCategoria) {
   console.log(`\n⚽ ${clube || path}`)
+  const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
+  const clubesNaoSelecoesMap = filtroSelecao
+    ? combinarClubesMap(
+      clubesPorCategoria.get('Clubes Brasileiros') || [],
+      clubesPorCategoria.get('Clubes Sulamericanos') || [],
+      clubesPorCategoria.get('Clubes Europeus') || [],
+    )
+    : []
   let page = 1
   let errosSemClube = 0
   let totalCategoria = 0
@@ -162,6 +172,10 @@ async function rasparCategoria({ path, clube, filtroSelecao, somenteIdentificado
         // e descarta qualquer produto que não seja seleção conhecida
         const slug = extrairSlugSelecao(link)
         if (!slug || !SELECOES_SLUGS.has(slug)) {
+          descartados++
+          continue
+        }
+        if (identificarClube(titulo, clubesNaoSelecoesMap)) {
           descartados++
           continue
         }
@@ -241,11 +255,11 @@ async function main() {
   console.log('🚀 Scraper — Rill Sports\n')
 
   if (!DRY_RUN) await desativarProdutosDaFonte(supabase, FONTE_NOME)
-  const clubesMap = await carregarClubesMap(supabase)
+  const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0
   for (const categoria of CATEGORIAS) {
-    totalGeral += await rasparCategoria(categoria, clubesMap)
+    totalGeral += await rasparCategoria(categoria, clubesPorCategoria)
     await sleep(DELAY_MS)
   }
 
