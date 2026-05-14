@@ -17,7 +17,8 @@ export const CLUBES_BRASILEIROS = [
   'Remo','Chapecoense','Vila Nova','Fortaleza','São Bernardo','Criciúma',
   'Juventude','Ceará SC','Sport Recife','Náutico','Operário','Botafogo SP',
   'Avaí','Novorizontino','Athletic','Atlético-GO','Ponte Preta','Goiás',
-  'Cuiabá','Londrina','CRB','América-MG',
+  'Cuiabá','Londrina','CRB','América-MG','Paysandu','Guarani',
+  'Santa Cruz','Figueirense',
 ]
 export const TODOS_CLUBES = CLUBES_BRASILEIROS
 
