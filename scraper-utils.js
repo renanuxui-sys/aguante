@@ -17,7 +17,7 @@ export function criarSupabase() {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env.')
+    throw new Error('Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_ANON_KEY no .env.')
   }
 
   return createClient(supabaseUrl, supabaseKey, {
@@ -208,6 +208,40 @@ export async function relatorioFinal(supabase, fonteNome) {
   console.log(`\n📊 Relatório "${fonteNome}":`)
   console.log(`   ✅ Ativos (encontrados): ${ativos || 0}`)
   console.log(`   ⏸️  Inativos (não encontrados/vendidos): ${inativos || 0}`)
+
+  await atualizarHomeMetricas(supabase)
+}
+
+async function contar(query) {
+  const { count, error } = await query
+  if (error) throw new Error(error.message)
+  return count || 0
+}
+
+export async function atualizarHomeMetricas(supabase) {
+  try {
+    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+    const [totalProdutos, novos24h] = await Promise.all([
+      contar(supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true)),
+      contar(supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true).gte('created_at', ontem)),
+    ])
+
+    const { error } = await supabase
+      .from('home_metricas')
+      .upsert({
+        id: 'principal',
+        total_produtos: totalProdutos,
+        novos_24h: novos24h,
+        atualizado_em: new Date().toISOString(),
+      }, { onConflict: 'id' })
+
+    if (error) throw new Error(error.message)
+
+    console.log(`   🔢 Métricas da home atualizadas: ${totalProdutos} camisas ativas, ${novos24h} novos anúncios em 24h`)
+  } catch (error) {
+    console.warn('   ⚠️  Não foi possível atualizar métricas da home:', error.message)
+  }
 }
 
 export function extrairAno(titulo) {
