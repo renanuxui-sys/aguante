@@ -43,6 +43,12 @@ Rodar qualquer scraper:
 node nome-do-scraper.js
 ```
 
+Exemplo com Arara de Jogo:
+```bash
+node scraper-araradejogo.js --dry-run
+node scraper-araradejogo.js
+```
+
 ---
 
 ## Ciclo de vida dos scrapers (padrão v2)
