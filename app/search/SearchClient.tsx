@@ -10,6 +10,7 @@ const imgBgHero      = "/assets/bg-hero.png"
 const imgArrowLeft   = "/assets/arrow-left.svg"
 const imgChevronDown = "/assets/chevron-down.svg"
 const imgFire        = "/assets/fire-alt-solid.svg"
+const POR_PAGINA = 20
 
 type FiltroBusca = {
   label: string
@@ -64,7 +65,6 @@ export default function SearchClient({ initialData }: SearchClientProps) {
   const primeiraCarga = useRef(true)
   const [produtos, setProdutos] = useState<Produto[]>(initialData.produtos)
   const [total, setTotal]       = useState<number | null>(initialData.total)
-  const [temProxima, setTemProxima] = useState(initialData.temProxima)
   const [loading, setLoading]   = useState(false)
 
   useEffect(() => {
@@ -94,12 +94,10 @@ export default function SearchClient({ initialData }: SearchClientProps) {
         if (!ativo) return
         setProdutos(data.produtos || [])
         setTotal(data.total)
-        setTemProxima(Boolean(data.temProxima))
       } catch {
         if (!ativo) return
         setProdutos([])
         setTotal(0)
-        setTemProxima(false)
       } finally {
         if (ativo) setLoading(false)
       }
@@ -164,6 +162,24 @@ export default function SearchClient({ initialData }: SearchClientProps) {
   function filtroAtivo(params: Record<string, string>) {
     return Object.entries(params).every(([key, value]) => searchParams.get(key) === value)
   }
+
+  const totalPaginas = total ? Math.ceil(total / POR_PAGINA) : 0
+  const paginasVisiveis = (() => {
+    if (totalPaginas <= 7) {
+      return Array.from({ length: totalPaginas }, (_, index) => index + 1)
+    }
+
+    const paginas: Array<number | '...'> = [1]
+    const inicio = Math.max(2, paginaParam - 1)
+    const fim = Math.min(totalPaginas - 1, paginaParam + 1)
+
+    if (inicio > 2) paginas.push('...')
+    for (let pagina = inicio; pagina <= fim; pagina += 1) paginas.push(pagina)
+    if (fim < totalPaginas - 1) paginas.push('...')
+    paginas.push(totalPaginas)
+
+    return paginas
+  })()
 
   return (
     <>
@@ -302,18 +318,42 @@ export default function SearchClient({ initialData }: SearchClientProps) {
               </div>
             )}
 
-            {/* Paginação dinâmica */}
-            {!loading && (paginaParam > 1 || temProxima) && (
+            {/* Paginação */}
+            {!loading && totalPaginas > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 112 }}>
                 {paginaParam > 1 && (
                   <button onClick={() => irParaPagina(paginaParam - 1)} style={{ minWidth: 92, height: 36, borderRadius: 8, border: '1px solid #fff', background: '#ecebf0', color: '#444', fontSize: 12, fontWeight: 700, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', padding: '0 14px' }}>
                     anterior
                   </button>
                 )}
-                <span style={{ minWidth: 34, height: 34, borderRadius: 8, background: '#550fed', color: '#ebe8f2', fontSize: 12, fontWeight: 700, fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {paginaParam}
-                </span>
-                {temProxima && (
+                {paginasVisiveis.map((pagina, index) => (
+                  pagina === '...' ? (
+                    <span key={`ellipsis-${index}`} style={{ minWidth: 22, height: 34, color: '#62748c', fontSize: 12, fontWeight: 700, fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={pagina}
+                      onClick={() => irParaPagina(pagina)}
+                      aria-current={pagina === paginaParam ? 'page' : undefined}
+                      style={{
+                        minWidth: 34,
+                        height: 34,
+                        borderRadius: 8,
+                        border: '1px solid #fff',
+                        background: pagina === paginaParam ? '#550fed' : '#ecebf0',
+                        color: pagina === paginaParam ? '#ebe8f2' : '#444',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        fontFamily: 'Onest, sans-serif',
+                        cursor: pagina === paginaParam ? 'default' : 'pointer',
+                      }}
+                    >
+                      {pagina}
+                    </button>
+                  )
+                ))}
+                {paginaParam < totalPaginas && (
                   <button onClick={() => irParaPagina(paginaParam + 1)} style={{ minWidth: 92, height: 36, borderRadius: 8, border: '1px solid #fff', background: '#ecebf0', color: '#444', fontSize: 12, fontWeight: 700, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', padding: '0 14px' }}>
                     próxima
                   </button>

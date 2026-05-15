@@ -27,7 +27,7 @@ export async function carregarSearchData(params: SearchDataParams) {
 
   let query = supabase
     .from('produtos')
-    .select(PRODUCT_CARD_SELECT)
+    .select(PRODUCT_CARD_SELECT, { count: 'exact' })
     .eq('ativo', true)
 
   if (categoria) {
@@ -73,14 +73,14 @@ export async function carregarSearchData(params: SearchDataParams) {
   }
 
   const inicio = (pagina - 1) * POR_PAGINA
-  const { data, error } = await query.range(inicio, inicio + POR_PAGINA)
+  const { data, error, count } = await query.range(inicio, inicio + POR_PAGINA)
   if (error) throw error
 
   const produtos = data || []
 
   return {
     produtos: produtos.slice(0, POR_PAGINA),
-    total: pagina === 1 && produtos.length === 0 ? 0 : null,
+    total: count ?? 0,
     temProxima: produtos.length > POR_PAGINA,
   }
 }

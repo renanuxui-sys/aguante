@@ -124,7 +124,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const router = useRouter()
   const [query, setQuery]         = useState('')
   const [novidades] = useState<Produto[]>(() => (initialData.novidades || []).slice(0, 6))
-  const [produtosParaVoce, setProdutosParaVoce] = useState<Produto[]>([])
+  const [produtosParaVoceBase, setProdutosParaVoceBase] = useState<Produto[]>([])
   const [produtosParaVoceLoading, setProdutosParaVoceLoading] = useState(false)
   const [selecoes] = useState<Produto[]>(initialData.selecoes || [])
   const [clubePreferido, setClubePreferido] = useState('')
@@ -151,7 +151,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     function carregarProdutosParaClube(clube: string | null) {
       if (!clube || clube === 'nao_escolheu') {
         setClubePreferido('')
-        setProdutosParaVoce([])
+        setProdutosParaVoceBase([])
         return
       }
 
@@ -159,7 +159,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
       setProdutosParaVoceLoading(true)
       fetch(`/api/home/produtos-para-voce?clube=${encodeURIComponent(clube)}`)
         .then(res => res.ok ? res.json() : { produtos: [] })
-        .then(({ produtos }: { produtos?: Produto[] }) => setProdutosParaVoce(embaralhar(produtos || []).slice(0, isMobile ? 6 : 5)))
+        .then(({ produtos }: { produtos?: Produto[] }) => setProdutosParaVoceBase(embaralhar(produtos || [])))
         .finally(() => setProdutosParaVoceLoading(false))
     }
 
@@ -179,7 +179,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
       window.removeEventListener('storage', atualizarPorStorage)
       window.removeEventListener(CLUBE_PREFERENCIA_EVENT, atualizarPorEvento)
     }
-  }, [isMobile])
+  }, [])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -187,6 +187,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   }
 
   const quantidadeDestaques = isMobile ? 6 : 5
+  const produtosParaVoce = produtosParaVoceBase.slice(0, quantidadeDestaques)
   const emAltaVisiveis = emAlta.slice(0, isMobile ? 6 : 10)
 
   const totalFmt = totalProdutos !== null ? totalProdutos.toLocaleString('pt-BR') : 'milhares de'
