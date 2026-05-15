@@ -22,12 +22,12 @@ export async function carregarSearchData(params: SearchDataParams) {
   const decada = params.decada || null
   const ordenar = params.ordenar || null
   const deJogo = params.de_jogo === true || params.de_jogo === 'true'
-  const ordem = params.ordem || 'mais recente'
+  const ordem = params.ordem || 'mais recentes'
   const pagina = Math.max(1, Number(params.pagina || '1') || 1)
 
   let query = supabase
     .from('produtos')
-    .select(PRODUCT_CARD_SELECT, { count: 'exact' })
+    .select(PRODUCT_CARD_SELECT)
     .eq('ativo', true)
 
   if (categoria) {
@@ -40,7 +40,7 @@ export async function carregarSearchData(params: SearchDataParams) {
     if (error) throw error
 
     const nomes = (clubesCategoria || []).map(clube => clube.nome).filter(Boolean)
-    if (nomes.length === 0) return { produtos: [], total: 0 }
+    if (nomes.length === 0) return { produtos: [], total: 0, temProxima: false }
     query = query.in('clube', nomes)
   }
 
@@ -72,8 +72,15 @@ export async function carregarSearchData(params: SearchDataParams) {
     query = query.order('created_at', { ascending: false })
   }
 
-  const { data, count, error } = await query.range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1)
+  const inicio = (pagina - 1) * POR_PAGINA
+  const { data, error } = await query.range(inicio, inicio + POR_PAGINA)
   if (error) throw error
 
-  return { produtos: data || [], total: count || 0 }
+  const produtos = data || []
+
+  return {
+    produtos: produtos.slice(0, POR_PAGINA),
+    total: pagina === 1 && produtos.length === 0 ? 0 : null,
+    temProxima: produtos.length > POR_PAGINA,
+  }
 }

@@ -28,6 +28,7 @@ const MAX_PAGINAS_VAZIAS = 2
 const supabase = criarSupabase()
 const dryRun = process.argv.includes('--dry-run')
 const semDesativar = process.argv.includes('--sem-desativar')
+const detalhesCache = new Map()
 
 const COLECOES = [
   { path: '/brasileiros/', nome: 'Brasileiros', categorias: ['Clubes Brasileiros'] },
@@ -45,6 +46,30 @@ function urlDaPagina(path, page) {
 function produtoDisponivel(produto) {
   const availability = produto?.offers?.availability || ''
   return !availability || availability.toLowerCase().includes('instock')
+}
+
+function textoIndicaEsgotado(texto) {
+  const normalizado = (texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  return /\b(esgotado|sem estoque|fora de estoque|indisponivel|sold out|out of stock)\b/.test(normalizado)
+}
+
+function normalizarImagem(url) {
+  if (!url) return null
+  if (url.startsWith('//')) return `https:${url}`
+  if (url.startsWith('/')) return new URL(url, BASE_URL).toString()
+  return url
+}
+
+function extrairPrecoTexto(texto) {
+  if (!texto) return null
+  const match = texto.replace(/\s+/g, ' ').match(/R\$\s*([\d.]+,\d{2})/)
+  if (!match) return null
+  const valor = Number(match[1].replace(/\./g, '').replace(',', '.'))
+  return Number.isFinite(valor) ? valor : null
 }
 
 function extrairProdutoJsonLd(raw) {
@@ -65,8 +90,9 @@ function extrairProdutoJsonLd(raw) {
     return {
       titulo,
       link,
-      imagem: Array.isArray(produto.image) ? produto.image[0] : produto.image || null,
+      imagem: normalizarImagem(Array.isArray(produto.image) ? produto.image[0] : produto.image || null),
       preco: isNaN(preco) ? null : preco,
+      disponivel: true,
     }
   } catch {
     return null
@@ -84,8 +110,8 @@ function extrairProdutoContainer($, el) {
       const variants = JSON.parse(variantsRaw)
       if (variants.length > 0) {
         preco = variants[0].price_number || variants[0].price || null
-        const imgUrl = variants[0].image_url || ''
-        imagem = imgUrl ? (imgUrl.startsWith('//') ? `https:${imgUrl}` : imgUrl) : null
+        const imgUrl = variants[0].image_url || variants[0].image || ''
+        imagem = normalizarImagem(imgUrl)
       }
     } catch {}
   }
@@ -95,10 +121,28 @@ function extrairProdutoContainer($, el) {
   const link = $link.attr('href') || ''
   if (!titulo || !link) return null
 
+  if (
+    textoIndicaEsgotado($el.text()) ||
+    textoIndicaEsgotado($el.attr('class')) ||
+    $el.find('.label-stock, .label-sold-out, .sold-out, .js-label-sold-out').toArray().some(item => textoIndicaEsgotado($(item).text()))
+  ) {
+    return null
+  }
+
   if (!imagem) {
     const img = $el.find('img').first()
-    imagem = img.attr('data-src') || img.attr('src') || null
-    if (imagem?.startsWith('//')) imagem = `https:${imagem}`
+    imagem = normalizarImagem(
+      img.attr('data-src') ||
+      img.attr('data-original') ||
+      img.attr('data-srcset')?.split(',')[0]?.trim().split(' ')[0] ||
+      img.attr('srcset')?.split(',')[0]?.trim().split(' ')[0] ||
+      img.attr('src') ||
+      null
+    )
+  }
+
+  if (!preco) {
+    preco = extrairPrecoTexto($el.text())
   }
 
   return {
@@ -132,6 +176,54 @@ async function buscarHtml(url) {
   })
   if (!res.ok) throw new Error(`Status ${res.status}`)
   return res.text()
+}
+
+function extrairDetalhesProduto(html) {
+  const $ = cheerio.load(html)
+  let produtoJson = null
+
+  $('script[type="application/ld+json"]').each((_, el) => {
+    if (produtoJson) return
+    produtoJson = extrairProdutoJsonLd($(el).html())
+  })
+
+  const textoPagina = $.text()
+  const disponivel = !textoIndicaEsgotado(
+    $('.js-product-stock, .product-stock, .label-stock, .label-sold-out, .sold-out, .js-label-sold-out').text()
+  ) && !textoIndicaEsgotado($('.js-addtocart, .js-product-submit, [data-component="product.add-to-cart"]').text())
+
+  const imagem = produtoJson?.imagem ||
+    normalizarImagem($('meta[property="og:image"]').attr('content')) ||
+    normalizarImagem($('meta[name="twitter:image"]').attr('content')) ||
+    normalizarImagem($('.js-product-slide-img, .product-image img, .js-product-img').first().attr('data-src')) ||
+    normalizarImagem($('.js-product-slide-img, .product-image img, .js-product-img').first().attr('src'))
+
+  const preco = produtoJson?.preco ||
+    extrairPrecoTexto($('.js-price-display, .price, .product-price, [data-store="product-price"]').first().text()) ||
+    extrairPrecoTexto(textoPagina)
+
+  return { imagem, preco, disponivel }
+}
+
+async function completarProduto(produto) {
+  if (produto.imagem && produto.preco) return produto
+  if (detalhesCache.has(produto.link)) return { ...produto, ...detalhesCache.get(produto.link) }
+
+  try {
+    const html = await buscarHtml(produto.link)
+    const detalhes = extrairDetalhesProduto(html)
+    detalhesCache.set(produto.link, detalhes)
+    await sleep(300)
+    if (detalhes.disponivel === false) return { ...produto, indisponivel: true }
+    return {
+      ...produto,
+      imagem: produto.imagem || detalhes.imagem || null,
+      preco: produto.preco || detalhes.preco || null,
+    }
+  } catch (err) {
+    console.warn(`     ⚠️  Não foi possível completar detalhes: ${produto.titulo} (${err.message})`)
+    return produto
+  }
 }
 
 async function rasparPagina(path, page) {
@@ -169,7 +261,13 @@ async function rasparColecao({ path, nome, categorias, somenteIdentificados = fa
     } else {
       paginasVazias = 0
 
-      const convertidos = novos
+      const completos = []
+      for (const produto of novos) {
+        completos.push(await completarProduto(produto))
+      }
+
+      const convertidos = completos
+        .filter(produto => !produto.indisponivel)
         .map(p => ({
           titulo: p.titulo,
           link_original: p.link,

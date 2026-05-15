@@ -11,8 +11,6 @@ const imgArrowLeft   = "/assets/arrow-left.svg"
 const imgChevronDown = "/assets/chevron-down.svg"
 const imgFire        = "/assets/fire-alt-solid.svg"
 
-const POR_PAGINA = 20
-
 type FiltroBusca = {
   label: string
   params: Record<string, string>
@@ -29,6 +27,12 @@ const filtros: FiltroBusca[] = [
 ]
 const filtroKeys = ['ordenar', 'decada', 'de_jogo']
 
+type SearchData = {
+  produtos: Produto[]
+  total: number | null
+  temProxima: boolean
+}
+
 type SearchClientProps = {
   initialParams: {
     q: string
@@ -39,10 +43,7 @@ type SearchClientProps = {
     de_jogo: string | null
     pagina: string
   }
-  initialData: {
-    produtos: Produto[]
-    total: number
-  }
+  initialData: SearchData
 }
 
 export default function SearchClient({ initialData }: SearchClientProps) {
@@ -55,14 +56,16 @@ export default function SearchClient({ initialData }: SearchClientProps) {
   const clubeExato = searchParams.get('clube') || ''
   const decada     = searchParams.get('decada')
   const ordenar    = searchParams.get('ordenar')
+  const ordemParam = searchParams.get('ordem')
   const deJogo     = searchParams.get('de_jogo') === 'true'
   const paginaParam = Math.max(1, Number(searchParams.get('pagina') || '1') || 1)
+  const ordemUrl = ordemParam || (ordenar === 'mais-vistos' ? 'mais vistos' : 'mais recentes')
 
   const primeiraCarga = useRef(true)
   const [produtos, setProdutos] = useState<Produto[]>(initialData.produtos)
-  const [total, setTotal]       = useState(initialData.total)
+  const [total, setTotal]       = useState<number | null>(initialData.total)
+  const [temProxima, setTemProxima] = useState(initialData.temProxima)
   const [loading, setLoading]   = useState(false)
-  const [ordem, setOrdem]       = useState('mais recente')
 
   useEffect(() => {
     if (primeiraCarga.current) {
@@ -82,19 +85,21 @@ export default function SearchClient({ initialData }: SearchClientProps) {
         if (decada) params.set('decada', decada)
         if (ordenar) params.set('ordenar', ordenar)
         if (deJogo) params.set('de_jogo', 'true')
-        params.set('ordem', ordem)
+        params.set('ordem', ordemUrl)
         params.set('pagina', String(paginaParam))
 
         const res = await fetch(`/api/search?${params.toString()}`)
         if (!ativo) return
-        const data = res.ok ? await res.json() : { produtos: [], total: 0 }
+        const data: SearchData = res.ok ? await res.json() : { produtos: [], total: 0, temProxima: false }
         if (!ativo) return
         setProdutos(data.produtos || [])
-        setTotal(data.total || 0)
+        setTotal(data.total)
+        setTemProxima(Boolean(data.temProxima))
       } catch {
         if (!ativo) return
         setProdutos([])
         setTotal(0)
+        setTemProxima(false)
       } finally {
         if (ativo) setLoading(false)
       }
@@ -105,23 +110,11 @@ export default function SearchClient({ initialData }: SearchClientProps) {
     return () => {
       ativo = false
     }
-  }, [q, clubeExato, categoria, decada, ordenar, deJogo, ordem, paginaParam])
-
-  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
+  }, [q, clubeExato, categoria, decada, ordenar, deJogo, ordemUrl, paginaParam])
 
   // Título contextual: clube exato > busca livre > categoria
   const tituloContexto = 'Resultado de busca'
   const labelBusca = clubeExato || q || categoria || ''
-
-  // Páginas a exibir na paginação (max 5 + reticências + última)
-  function paginasParaExibir() {
-    if (totalPaginas <= 5) return Array.from({ length: totalPaginas }, (_, i) => i + 1)
-    const inicio = Math.max(1, paginaParam - 2)
-    const fim = Math.min(totalPaginas, inicio + 4)
-    return Array.from({ length: fim - inicio + 1 }, (_, i) => inicio + i)
-  }
-  const paginasExib = paginasParaExibir()
-  const mostrarReticencias = totalPaginas > 5 && paginasExib[paginasExib.length - 1] < totalPaginas
 
   function aplicarFiltro(params: Record<string, string>) {
     setLoading(true)
@@ -147,6 +140,25 @@ export default function SearchClient({ initialData }: SearchClientProps) {
     const qs = next.toString()
     router.push(qs ? `/search?${qs}` : '/search')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function alterarOrdenacao(valor: string) {
+    setLoading(true)
+
+    const next = new URLSearchParams(searchParams.toString())
+    next.delete('pagina')
+
+    if (valor === 'mais vistos') {
+      next.set('ordenar', 'mais-vistos')
+      next.delete('ordem')
+    } else {
+      next.delete('ordenar')
+      if (valor === 'mais recentes') next.delete('ordem')
+      else next.set('ordem', valor)
+    }
+
+    const qs = next.toString()
+    router.push(qs ? `/search?${qs}` : '/search')
   }
 
   function filtroAtivo(params: Record<string, string>) {
@@ -210,9 +222,9 @@ export default function SearchClient({ initialData }: SearchClientProps) {
                 </div>
                 {!loading && (
                   <p className="ag-result-summary" style={{ fontWeight: 300, fontSize: 24, color: '#000', letterSpacing: '-0.48px', lineHeight: 1.2, marginTop: 40 }}>
-                    {total > 0 ? (
+                    {produtos.length > 0 ? (
                       <>
-                        Encontramos <strong style={{ fontWeight: 700 }}>{total.toLocaleString('pt-BR')} {total === 1 ? 'camisa' : 'camisas'}</strong>
+                        Encontramos <strong style={{ fontWeight: 700 }}>{total !== null ? `${total.toLocaleString('pt-BR')} ${total === 1 ? 'camisa' : 'camisas'}` : 'camisas'}</strong>
                         {labelBusca && <> para <strong style={{ fontWeight: 700 }}>&quot;{labelBusca}&quot;</strong></>}
                       </>
                     ) : (
@@ -246,16 +258,16 @@ export default function SearchClient({ initialData }: SearchClientProps) {
                       })}
                     </div>
                   </div>
-                  {total > 0 && (
+                  {produtos.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                       <p style={{ fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2, whiteSpace: 'nowrap' as const }}>Ordenar por</p>
                       <div style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', cursor: 'pointer', position: 'relative' as const }}>
                         <select
-                          value={ordenar === 'mais-vistos' ? 'mais vistos' : ordem}
-                          onChange={e => { setLoading(true); setOrdem(e.target.value) }}
+                          value={ordemUrl}
+                          onChange={e => alterarOrdenacao(e.target.value)}
                           style={{ fontWeight: 700, fontSize: 12, color: '#62748c', letterSpacing: '-0.24px', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', appearance: 'none' as const, paddingRight: 24 }}
                         >
-                          <option>mais recente</option>
+                          <option>mais recentes</option>
                           <option>menor preço</option>
                           <option>maior preço</option>
                           <option>mais vistos</option>
@@ -291,20 +303,20 @@ export default function SearchClient({ initialData }: SearchClientProps) {
             )}
 
             {/* Paginação dinâmica */}
-            {!loading && totalPaginas > 1 && (
+            {!loading && (paginaParam > 1 || temProxima) && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 112 }}>
-                {paginasExib.map(n => (
-                  <button key={n} onClick={() => irParaPagina(n)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: paginaParam === n ? '#550fed' : '#ecebf0', color: paginaParam === n ? '#ebe8f2' : '#444', fontSize: 12, fontWeight: 400, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {n}
+                {paginaParam > 1 && (
+                  <button onClick={() => irParaPagina(paginaParam - 1)} style={{ minWidth: 92, height: 36, borderRadius: 8, border: '1px solid #fff', background: '#ecebf0', color: '#444', fontSize: 12, fontWeight: 700, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', padding: '0 14px' }}>
+                    anterior
                   </button>
-                ))}
-                {mostrarReticencias && (
-                  <>
-                    <span style={{ color: '#62748c', fontFamily: 'Onest, sans-serif' }}>...</span>
-                    <button onClick={() => irParaPagina(totalPaginas)} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #fff', background: paginaParam === totalPaginas ? '#550fed' : '#ecebf0', color: paginaParam === totalPaginas ? '#ebe8f2' : '#444', fontSize: 12, cursor: 'pointer', fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {totalPaginas}
-                    </button>
-                  </>
+                )}
+                <span style={{ minWidth: 34, height: 34, borderRadius: 8, background: '#550fed', color: '#ebe8f2', fontSize: 12, fontWeight: 700, fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {paginaParam}
+                </span>
+                {temProxima && (
+                  <button onClick={() => irParaPagina(paginaParam + 1)} style={{ minWidth: 92, height: 36, borderRadius: 8, border: '1px solid #fff', background: '#ecebf0', color: '#444', fontSize: 12, fontWeight: 700, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', padding: '0 14px' }}>
+                    próxima
+                  </button>
                 )}
               </div>
             )}
