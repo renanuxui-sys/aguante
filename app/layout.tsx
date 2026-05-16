@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import './globals.css'
 import ClubePreferenceModal from '@/components/ClubePreferenceModal'
-import Script from "next/script";
 
 const siteUrl = 'https://aguante.com.br'
 const siteTitle = 'Aguante — O buscador do colecionador'
