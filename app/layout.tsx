@@ -56,8 +56,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-
-       <!-- Meta Pixel Code -->
           <script>
           !function(f,b,e,v,n,t,s)
           {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -73,7 +71,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <noscript><img height="1" width="1" style="display:none"
           src="https://www.facebook.com/tr?id=1991008675135297&ev=PageView&noscript=1"
           /></noscript>
-        <!-- End Meta Pixel Code -->
       </head>
       <body>
         <noscript>
