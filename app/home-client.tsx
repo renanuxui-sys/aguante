@@ -6,7 +6,7 @@ import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
 import type { Produto } from '@/types'
 
-const imgCamisas       = "/assets/img-hero.png"
+const videoHero        = "/assets/0516b.mp4"
 const imgBgHero        = "/assets/bg-hero.png"
 const imgSearchIcon    = "/assets/ico-search.svg"
 const imgIconSearch    = "/assets/search-normal.svg"
@@ -207,6 +207,33 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-copa-section { margin-bottom: 88px; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         .ag-hero-img { display: block; }
+        .ag-hero-video {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 390px;
+          height: 508px;
+          object-fit: cover;
+          object-position: center center;
+          border-radius: 48px;
+          transform: translate(-50%, -50%) rotate(4deg);
+          box-shadow: 0 28px 48px rgba(63,45,17,0.16);
+        }
+        .ag-hero-stat-card {
+          position: absolute;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          background: rgba(255,255,255,0.75);
+          border-top: 1px solid rgba(255,255,255,0.8);
+          border-radius: 8px;
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          box-shadow: 8px 12px 36px rgba(0,0,0,0.08);
+          z-index: 10;
+          width: 278px;
+        }
         .ag-hero-stats-inline { display: none; }
         .ag-hero-blocos { display: flex; }
         .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
@@ -294,7 +321,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         <Navbar />
 
         {/* ══ HERO ══ */}
-        <section style={{ paddingTop: 76, position: 'relative', overflow: 'hidden' }}>
+        <section style={{ paddingTop: 76, position: 'relative' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 700, zIndex: 0, pointerEvents: 'none' }}>
             <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 1 }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, #f5f5f5)' }} />
@@ -360,20 +387,28 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
 
             {/* Coluna direita — foto + stats (só desktop) */}
             <div className="ag-hero-img" style={{ position: 'relative', width: 500, height: 545, flexShrink: 0, overflow: 'visible' }}>
-              <img src={imgCamisas} alt="Camisas colecionáveis" style={{ position: 'absolute', right: 0, top: 0, width: 381, height: 545, objectFit: 'cover', objectPosition: 'center top', borderRadius: 12 }} />
-              <div style={{ position: 'absolute', left: 59, top: 477, width: 280, height: 42, background: 'rgba(0,0,0,0.10)', borderRadius: '50%', filter: 'blur(20px)', zIndex: 1 }} />
+              <video
+                className="ag-hero-video"
+                src={videoHero}
+                autoPlay
+                muted
+                loop
+                playsInline
+                aria-label="Camisa de futebol colecionável em destaque"
+              />
+              <div style={{ position: 'absolute', left: 108, top: 486, width: 312, height: 46, background: 'rgba(0,0,0,0.12)', borderRadius: '50%', filter: 'blur(20px)', zIndex: 1 }} />
 
-              <div style={{ position: 'absolute', left: 56, top: 261, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', background: 'rgba(255,255,255,0.88)', borderTop: '1px solid white', borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 16, boxShadow: '8px 12px 36px rgba(0,0,0,0.08)', zIndex: 10, width: 278 }}>
+              <div className="ag-hero-stat-card" style={{ left: 14, top: 88 }}>
                 <div style={{ background: '#745cff', borderRadius: 8, width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <img src={imgIconLightning} alt="" style={{ width: 24, height: 24 }} />
                 </div>
                 <p style={{ fontSize: 14, color: 'rgba(0,0,0,0.6)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
                   <strong style={{ color: '#550fed', fontWeight: 700 }}>{novosLabel} </strong>
-                  <span style={{ fontWeight: 400 }}>encontrados nas últimas 24h.</span>
+                  <span style={{ fontWeight: 400 }}>encontrados hoje.</span>
                 </p>
               </div>
 
-              <div style={{ position: 'absolute', left: 222, top: 380, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', background: 'rgba(255,255,255,0.88)', borderTop: '1px solid white', borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 16, boxShadow: '8px 12px 36px rgba(0,0,0,0.08)', zIndex: 10, width: 278 }}>
+              <div className="ag-hero-stat-card" style={{ right: -72, top: 390 }}>
                 <div style={{ background: '#745cff', borderRadius: 8, width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <img src={imgIconGrid} alt="" style={{ width: 24, height: 24 }} />
                 </div>

@@ -335,6 +335,10 @@ function termosBaseClube(clube) {
     }
   }
 
+  if (termos.some(termo => normalizarTexto(termo) === 'boca juniors')) {
+    extras.push('boca', 'boca jr', 'boca jrs', 'boca junior')
+  }
+
   return [...termos, ...extras]
 }
 
