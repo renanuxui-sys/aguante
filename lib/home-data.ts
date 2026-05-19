@@ -1,28 +1,43 @@
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 
+function embaralhar<T>(itens: T[]) {
+  const copia = [...itens]
+  for (let i = copia.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copia[i], copia[j]] = [copia[j], copia[i]]
+  }
+  return copia
+}
+
+async function contar(query: PromiseLike<{ count: number | null; error: { message: string } | null }>) {
+  const { count, error } = await query
+  if (error) throw new Error(error.message)
+  return count || 0
+}
+
 export async function carregarHomeDataServidor() {
   const supabase = criarSupabaseAdmin()
+  const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
   const [
-    metricas,
+    totalProdutos,
+    novos24h,
     novidades,
     clubesSelecoes,
     emAlta,
     anos80,
     clubes,
   ] = await Promise.all([
-    supabase
-      .from('home_metricas')
-      .select('total_produtos,novos_24h')
-      .eq('id', 'principal')
-      .maybeSingle(),
+    contar(supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true)),
+    contar(supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true).gte('created_at', ontem)),
     supabase
       .from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
+      .gte('created_at', ontem)
       .order('created_at', { ascending: false })
-      .limit(30),
+      .limit(80),
     supabase
       .from('clubes')
       .select('nome')
@@ -64,9 +79,12 @@ export async function carregarHomeDataServidor() {
     : { data: [] }
 
   return {
-    metricas: metricas.data || null,
-    novidades: novidades.data || [],
-    selecoes: selecoes.data || [],
+    metricas: {
+      total_produtos: totalProdutos,
+      novos_24h: novos24h,
+    },
+    novidades: embaralhar(novidades.data || []),
+    selecoes: embaralhar(selecoes.data || []),
     emAlta: emAlta.data || [],
     anos80: anos80.data || [],
     clubes: clubes.data || [],

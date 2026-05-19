@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
       de_jogo: params.get('de_jogo'),
       ordem: params.get('ordem'),
       pagina: params.get('pagina'),
+      novidades: params.get('novidades'),
     }))
   } catch (error) {
     return NextResponse.json(

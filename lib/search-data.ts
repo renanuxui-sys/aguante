@@ -3,6 +3,23 @@ import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 
 const POR_PAGINA = 20
 
+function hashTexto(texto: string) {
+  let hash = 0
+  for (let i = 0; i < texto.length; i += 1) {
+    hash = ((hash << 5) - hash + texto.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+function embaralharEstavelPorDia<T extends { id?: string | number }>(itens: T[]) {
+  const dia = new Date().toISOString().slice(0, 10)
+  return [...itens].sort((a, b) => {
+    const hashA = hashTexto(`${dia}:${a.id || ''}`)
+    const hashB = hashTexto(`${dia}:${b.id || ''}`)
+    return hashA - hashB
+  })
+}
+
 export type SearchDataParams = {
   q?: string
   categoria?: string | null
@@ -12,6 +29,7 @@ export type SearchDataParams = {
   de_jogo?: string | boolean | null
   ordem?: string | null
   pagina?: string | number | null
+  novidades?: string | boolean | null
 }
 
 export async function carregarSearchData(params: SearchDataParams) {
@@ -24,6 +42,7 @@ export async function carregarSearchData(params: SearchDataParams) {
   const deJogo = params.de_jogo === true || params.de_jogo === 'true'
   const ordem = params.ordem || 'mais recentes'
   const pagina = Math.max(1, Number(params.pagina || '1') || 1)
+  const novidades = params.novidades === true || params.novidades === 'true'
 
   let query = supabase
     .from('produtos')
@@ -61,6 +80,25 @@ export async function carregarSearchData(params: SearchDataParams) {
   }
 
   if (deJogo) query = query.eq('de_jogo', true)
+
+  if (novidades) {
+    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data, error, count } = await query
+      .gte('created_at', ontem)
+      .order('created_at', { ascending: false })
+      .range(0, 999)
+
+    if (error) throw error
+
+    const produtos = embaralharEstavelPorDia(data || [])
+    const inicio = (pagina - 1) * POR_PAGINA
+
+    return {
+      produtos: produtos.slice(inicio, inicio + POR_PAGINA),
+      total: count ?? produtos.length,
+      temProxima: (count ?? produtos.length) > pagina * POR_PAGINA,
+    }
+  }
 
   if (ordenar === 'mais-vistos' || ordem === 'mais vistos') {
     query = query.order('views', { ascending: false, nullsFirst: false })

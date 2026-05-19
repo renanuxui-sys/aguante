@@ -476,7 +476,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           />
         )}
         <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
-        <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search" />
+        <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 
         {/* Em alta */}
