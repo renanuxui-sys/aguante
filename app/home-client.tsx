@@ -14,8 +14,35 @@ const imgIconMagic     = "/assets/magic-star.svg"
 const imgIconLightning = "/assets/Vector.svg"
 const imgIconGrid      = "/assets/element-plus.svg"
 const imgChevronRight  = "/assets/chevron-right.svg"
+const imgIconMore      = "/assets/ico-more.svg"
 const CLUBE_PREFERENCIA_STORAGE_KEY = 'aguante_clube_preferencia'
 const CLUBE_PREFERENCIA_EVENT = 'aguante:clube-preferencia'
+
+const mercadosAtalhos = [
+  { titulo: 'Raridades', imagem: 'raridades.png', href: '/search?raridades=true' },
+  { titulo: 'Clubes Brasileiros', imagem: 'clubes-brasileiros.png', href: '/search?categoria=Clubes Brasileiros' },
+  { titulo: 'Clubes Europeus', imagem: 'clubes-europeus.png', href: '/search?categoria=Clubes Europeus' },
+  { titulo: 'América do Sul', imagem: 'clubes-sulamericanos.png', href: '/search?categoria=Clubes Sulamericanos' },
+  { titulo: 'Seleções', imagem: 'selecoes.png', href: '/search?categoria=Seleções' },
+]
+
+const selecoesCopa = [
+  { nome: 'Brasil', bandeira: 'brasil.png' },
+  { nome: 'Argentina', bandeira: 'argentina.png' },
+  { nome: 'Uruguai', bandeira: 'uruguai.png' },
+  { nome: 'Colômbia', bandeira: 'colombia.png' },
+  { nome: 'Equador', bandeira: 'equador.png' },
+  { nome: 'México', bandeira: 'mexico.png' },
+  { nome: 'Estados Unidos', bandeira: 'estados-unidos.png' },
+  { nome: 'Alemanha', bandeira: 'alemanha.png' },
+  { nome: 'Espanha', bandeira: 'espanha.png' },
+  { nome: 'França', bandeira: 'franca.png' },
+  { nome: 'Inglaterra', bandeira: 'inglaterra.png' },
+  { nome: 'Portugal', bandeira: 'portugal.png' },
+  { nome: 'Holanda', bandeira: 'holanda.png' },
+  { nome: 'Bélgica', bandeira: 'belgica.png' },
+  { nome: 'Japão', bandeira: 'japao.png' },
+]
 
 type Clube = {
   id: string
@@ -120,6 +147,34 @@ function SecaoCardsLoading({ titulo }: { titulo: string }) {
   )
 }
 
+function SecaoMercados() {
+  const router = useRouter()
+
+  return (
+    <section style={{ background: '#f5f5f5', paddingBottom: 56 }}>
+      <div className="ag-container">
+        <h2 className="ag-mercados-title" style={{ fontWeight: 300, fontSize: 20, color: '#000', letterSpacing: '-0.04em', marginBottom: 28 }}>
+          Explore <strong style={{ fontWeight: 700 }}>todos os mercados</strong>
+        </h2>
+        <div className="ag-mercados-grid">
+          {mercadosAtalhos.map(mercado => (
+            <button
+              key={mercado.titulo}
+              type="button"
+              className="ag-mercado-card"
+              onClick={() => router.push(mercado.href)}
+              aria-label={`Explorar ${mercado.titulo}`}
+            >
+              <img src={`/assets/${mercado.imagem}`} alt="" />
+              <span>{mercado.titulo}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const router = useRouter()
   const [query, setQuery]         = useState('')
@@ -130,11 +185,10 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const [clubePreferido, setClubePreferido] = useState('')
   const [emAlta]       = useState<Produto[]>(initialData.emAlta || [])
   const [anos80]       = useState<Produto[]>(() => (initialData.anos80 || []).slice(0, 6))
-  const [clubes]       = useState<Clube[]>(initialData.clubes || [])
   const [totalProdutos] = useState<number | null>(initialData.metricas?.total_produtos ?? null)
   const [novosHoje] = useState<number | null>(initialData.metricas?.novos_24h ?? null)
   const [isMobile, setIsMobile]   = useState(false)
-  const [clubesManualScroll, setClubesManualScroll] = useState(false)
+  const [selecoesManualScroll, setSelecoesManualScroll] = useState(false)
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 768px)')
@@ -238,6 +292,20 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-hero-blocos { display: flex; }
         .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
         .ag-clubes-mobile-track { display: none; }
+        .ag-selecoes-wrapper { width: 100%; }
+        .ag-selecoes-list { display: flex; align-items: center; justify-content: center; gap: 19px; flex-wrap: nowrap; }
+        .ag-selecao-btn { width: 50px; height: 50px; padding: 0; border: none; background: transparent; border-radius: 999px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 180ms ease, opacity 180ms ease; flex-shrink: 0; }
+        .ag-selecao-btn:hover { transform: translateY(-2px) scale(1.04); opacity: 0.9; }
+        .ag-selecao-btn img { width: 50px; height: 50px; object-fit: contain; display: block; }
+        .ag-selecao-more { background: #fff; border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 8px 24px rgba(40,40,40,0.08); }
+        .ag-selecao-more img { width: 19px; height: 19px; }
+        .ag-mercados-title { text-align: left; }
+        .ag-mercados-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+        .ag-mercado-card { position: relative; height: 104px; border: none; border-radius: 8px; overflow: hidden; padding: 0; background: #282828; cursor: pointer; text-align: right; font-family: Onest, sans-serif; }
+        .ag-mercado-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 220ms ease; }
+        .ag-mercado-card::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.34); }
+        .ag-mercado-card span { position: absolute; right: 16px; bottom: 18px; z-index: 1; color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+        .ag-mercado-card:hover img { transform: scale(1.04); }
         .ag-ver-todas-txt { display: inline; }
         .ag-section-link { flex-shrink: 0; }
         @keyframes ag-clubes-slide {
@@ -308,6 +376,47 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           }
           .ag-clubes-wrapper.manual .ag-clubes-mobile-set[aria-hidden="true"] {
             display: none !important;
+          }
+          .ag-selecoes-wrapper {
+            margin: 0 -24px !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
+          .ag-selecoes-wrapper::-webkit-scrollbar { display: none; }
+          .ag-selecoes-list {
+            justify-content: flex-start;
+            flex-wrap: nowrap;
+            gap: 12px;
+            width: max-content;
+            padding: 0 24px 8px;
+          }
+          .ag-selecao-btn,
+          .ag-selecao-btn img {
+            width: 54px;
+            height: 54px;
+          }
+          .ag-selecao-more img {
+            width: 19px;
+            height: 19px;
+          }
+          .ag-mercados-title {
+            font-size: 20px !important;
+            margin-bottom: 20px !important;
+          }
+          .ag-mercados-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .ag-mercado-card {
+            width: 100% !important;
+            height: 128px !important;
+          }
+          .ag-mercado-card span {
+            right: 18px;
+            bottom: 18px;
+            font-size: 20px;
           }
         }
 
@@ -421,49 +530,46 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           </div>
         </section>
 
-        {/* ══ CLUBES ══ */}
-        {clubes.length > 0 && (
-          <section style={{ background: '#f5f5f5', paddingTop: 24, paddingBottom: 88 }}>
-            <div className="ag-container">
-              <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
-                Os <strong>mais populares</strong> do Brasil
-              </p>
-              <div
-                className={`ag-clubes-wrapper${clubesManualScroll ? ' manual' : ''}`}
-                onPointerDown={() => setClubesManualScroll(true)}
-                onTouchStart={() => setClubesManualScroll(true)}
-                onWheel={event => {
-                  if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) setClubesManualScroll(true)
-                }}
-              >
-                <div className="ag-clubes-grid">
-                  {clubes.map(c => (
-                    <button key={c.id} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {c.escudo_url
-                        ? <img src={c.escudo_url} alt={c.nome} style={{ width: 48, height: 48, objectFit: 'contain' }} />
-                        : <span style={{ fontSize: 12, color: '#62748c', fontFamily: 'Onest, sans-serif' }}>{c.nome}</span>
-                      }
-                    </button>
-                  ))}
-                </div>
-                <div className="ag-clubes-mobile-track">
-                  {[0, 1].map(copia => (
-                    <div key={copia} className="ag-clubes-mobile-set" aria-hidden={copia === 1 ? true : undefined}>
-                      {clubes.map(c => (
-                        <button key={`${c.id}-${copia}`} onClick={() => router.push(`/search?q=${c.nome}`)} title={c.nome} tabIndex={copia === 1 ? -1 : undefined} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {c.escudo_url
-                            ? <img src={c.escudo_url} alt={c.nome} style={{ width: 48, height: 48, objectFit: 'contain' }} />
-                            : <span style={{ fontSize: 12, color: '#62748c', fontFamily: 'Onest, sans-serif' }}>{c.nome}</span>
-                          }
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+        {/* Temporário Copa do Mundo: seleções substituem os clubes. Depois da Copa, reativar a vitrine usando initialData.clubes. */}
+        <section style={{ background: '#f5f5f5', paddingTop: 24, paddingBottom: 88 }}>
+          <div className="ag-container">
+            <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
+              Camisas de <strong>seleções</strong>
+            </p>
+            <div
+              className={`ag-selecoes-wrapper${selecoesManualScroll ? ' manual' : ''}`}
+              onPointerDown={() => setSelecoesManualScroll(true)}
+              onTouchStart={() => setSelecoesManualScroll(true)}
+              onWheel={event => {
+                if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) setSelecoesManualScroll(true)
+              }}
+            >
+              <div className="ag-selecoes-list" aria-label="Seleções">
+                {selecoesCopa.map(selecao => (
+                  <button
+                    key={selecao.nome}
+                    type="button"
+                    className="ag-selecao-btn"
+                    onClick={() => router.push(`/search?clube=${encodeURIComponent(selecao.nome)}`)}
+                    title={selecao.nome}
+                    aria-label={`Buscar camisas de ${selecao.nome}`}
+                  >
+                    <img src={`/assets/flags/${selecao.bandeira}`} alt="" />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="ag-selecao-btn ag-selecao-more"
+                  onClick={() => router.push('/search?categoria=Seleções')}
+                  title="Ver todas as seleções"
+                  aria-label="Ver todas as seleções"
+                >
+                  <img src={imgIconMore} alt="" />
+                </button>
               </div>
             </div>
-          </section>
-        )}
+          </div>
+        </section>
 
         {clubePreferido && produtosParaVoceLoading && produtosParaVoce.length === 0 && (
           <SecaoCardsLoading titulo="Produtos para você" />
@@ -477,6 +583,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         )}
         <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
         <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
+        <SecaoMercados />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 
         {/* Em alta */}

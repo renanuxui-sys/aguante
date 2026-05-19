@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       ordem: params.get('ordem'),
       pagina: params.get('pagina'),
       novidades: params.get('novidades'),
+      raridades: params.get('raridades'),
     }))
   } catch (error) {
     return NextResponse.json(

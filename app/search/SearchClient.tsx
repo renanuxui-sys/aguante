@@ -43,6 +43,7 @@ type SearchClientProps = {
     ordenar: string | null
     de_jogo: string | null
     novidades?: string | null
+    raridades?: string | null
     pagina: string
   }
   initialData: SearchData
@@ -61,6 +62,7 @@ export default function SearchClient({ initialData }: SearchClientProps) {
   const ordemParam = searchParams.get('ordem')
   const deJogo     = searchParams.get('de_jogo') === 'true'
   const novidades  = searchParams.get('novidades') === 'true'
+  const raridades  = searchParams.get('raridades') === 'true'
   const paginaParam = Math.max(1, Number(searchParams.get('pagina') || '1') || 1)
   const ordemUrl = ordemParam || (ordenar === 'mais-vistos' ? 'mais vistos' : 'mais recentes')
 
@@ -88,6 +90,7 @@ export default function SearchClient({ initialData }: SearchClientProps) {
         if (ordenar) params.set('ordenar', ordenar)
         if (deJogo) params.set('de_jogo', 'true')
         if (novidades) params.set('novidades', 'true')
+        if (raridades) params.set('raridades', 'true')
         params.set('ordem', ordemUrl)
         params.set('pagina', String(paginaParam))
 
@@ -111,7 +114,7 @@ export default function SearchClient({ initialData }: SearchClientProps) {
     return () => {
       ativo = false
     }
-  }, [q, clubeExato, categoria, decada, ordenar, deJogo, novidades, ordemUrl, paginaParam])
+  }, [q, clubeExato, categoria, decada, ordenar, deJogo, novidades, raridades, ordemUrl, paginaParam])
 
   // Título contextual: clube exato > busca livre > categoria
   const tituloContexto = 'Resultado de busca'

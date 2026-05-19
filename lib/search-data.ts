@@ -30,6 +30,7 @@ export type SearchDataParams = {
   ordem?: string | null
   pagina?: string | number | null
   novidades?: string | boolean | null
+  raridades?: string | boolean | null
 }
 
 export async function carregarSearchData(params: SearchDataParams) {
@@ -43,6 +44,7 @@ export async function carregarSearchData(params: SearchDataParams) {
   const ordem = params.ordem || 'mais recentes'
   const pagina = Math.max(1, Number(params.pagina || '1') || 1)
   const novidades = params.novidades === true || params.novidades === 'true'
+  const raridades = params.raridades === true || params.raridades === 'true'
 
   let query = supabase
     .from('produtos')
@@ -80,6 +82,8 @@ export async function carregarSearchData(params: SearchDataParams) {
   }
 
   if (deJogo) query = query.eq('de_jogo', true)
+
+  if (raridades) query = query.gte('ano', '1970').lte('ano', '1989')
 
   if (novidades) {
     const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()

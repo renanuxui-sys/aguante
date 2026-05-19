@@ -19,6 +19,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     ordenar: valor(params?.ordenar) || null,
     de_jogo: valor(params?.de_jogo) || null,
     novidades: valor(params?.novidades) || null,
+    raridades: valor(params?.raridades) || null,
     pagina: valor(params?.pagina) || '1',
   }
   const initialData = await carregarSearchData(initialParams)
