@@ -379,7 +379,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             display: none !important;
           }
           .ag-selecoes-wrapper {
-            margin: 0 -24px !important;
+            margin-left: calc(50% - 50vw) !important;
+            margin-right: calc(50% - 50vw) !important;
+            width: 100vw !important;
             overflow: hidden !important;
           }
           .ag-selecoes-list {
