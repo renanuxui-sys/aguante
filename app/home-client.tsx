@@ -294,6 +294,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-clubes-mobile-track { display: none; }
         .ag-selecoes-wrapper { width: 100%; }
         .ag-selecoes-list { display: flex; align-items: center; justify-content: center; gap: 19px; flex-wrap: nowrap; }
+        .ag-selecoes-mobile-track { display: none; }
         .ag-selecao-btn { width: 50px; height: 50px; padding: 0; border: none; background: transparent; border-radius: 999px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 180ms ease, opacity 180ms ease; flex-shrink: 0; }
         .ag-selecao-btn:hover { transform: translateY(-2px) scale(1.04); opacity: 0.9; }
         .ag-selecao-btn img { width: 50px; height: 50px; object-fit: contain; display: block; }
@@ -379,18 +380,44 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           }
           .ag-selecoes-wrapper {
             margin: 0 -24px !important;
+            overflow: hidden !important;
+          }
+          .ag-selecoes-list {
+            display: none !important;
+          }
+          .ag-selecoes-mobile-track {
+            display: flex !important;
+            width: max-content !important;
+            animation: ag-clubes-slide 32s linear infinite !important;
+            will-change: transform;
+          }
+          .ag-selecoes-mobile-set {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            padding: 0 24px 8px;
+            flex-shrink: 0;
+          }
+          .ag-selecoes-mobile-set + .ag-selecoes-mobile-set {
+            padding-left: 0;
+          }
+          .ag-selecoes-wrapper.manual {
             overflow-x: auto !important;
             overflow-y: hidden !important;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            touch-action: pan-x;
           }
-          .ag-selecoes-wrapper::-webkit-scrollbar { display: none; }
-          .ag-selecoes-list {
-            justify-content: flex-start;
-            flex-wrap: nowrap;
-            gap: 12px;
-            width: max-content;
-            padding: 0 24px 8px;
+          .ag-selecoes-wrapper.manual::-webkit-scrollbar {
+            display: none;
+          }
+          .ag-selecoes-wrapper.manual .ag-selecoes-mobile-track {
+            animation: none !important;
+            transform: none !important;
+          }
+          .ag-selecoes-wrapper.manual .ag-selecoes-mobile-set[aria-hidden="true"] {
+            display: none !important;
           }
           .ag-selecao-btn,
           .ag-selecao-btn img {
@@ -566,6 +593,35 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
                 >
                   <img src={imgIconMore} alt="" />
                 </button>
+              </div>
+              <div className="ag-selecoes-mobile-track" aria-label="Seleções">
+                {[0, 1].map(copia => (
+                  <div key={copia} className="ag-selecoes-mobile-set" aria-hidden={copia === 1 ? true : undefined}>
+                    {selecoesCopa.map(selecao => (
+                      <button
+                        key={`${selecao.nome}-${copia}`}
+                        type="button"
+                        className="ag-selecao-btn"
+                        onClick={() => router.push(`/search?clube=${encodeURIComponent(selecao.nome)}`)}
+                        title={selecao.nome}
+                        aria-label={`Buscar camisas de ${selecao.nome}`}
+                        tabIndex={copia === 1 ? -1 : undefined}
+                      >
+                        <img src={`/assets/flags/${selecao.bandeira}`} alt="" />
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="ag-selecao-btn ag-selecao-more"
+                      onClick={() => router.push('/search?categoria=Seleções')}
+                      title="Ver todas as seleções"
+                      aria-label="Ver todas as seleções"
+                      tabIndex={copia === 1 ? -1 : undefined}
+                    >
+                      <img src={imgIconMore} alt="" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
