@@ -534,7 +534,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         <section style={{ background: '#f5f5f5', paddingTop: 24, paddingBottom: 88 }}>
           <div className="ag-container">
             <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
-              Camisas de <strong>seleções</strong>
+              <strong>Copa do Mundo</strong> 2026
             </p>
             <div
               className={`ag-selecoes-wrapper${selecoesManualScroll ? ' manual' : ''}`}
