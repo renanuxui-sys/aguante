@@ -78,7 +78,7 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
   const router = useRouter()
   if (produtos.length === 0) return null
   return (
-    <section style={{ background: '#f5f5f5', paddingBottom: 56 }}>
+    <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 40 }}>
       <div className="ag-container">
         <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -106,11 +106,11 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
   const router = useRouter()
   if (produtos.length === 0) return null
   return (
-    <section className="ag-copa-section" style={{ background: '#ecebf0', padding: '88px 0' }}>
+    <section className="ag-copa-section" style={{ background: '#f5f5f5', padding: '28px 0 40px' }}>
       <div className="ag-container">
         <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
           <div style={{ maxWidth: 620 }}>
-            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', marginBottom: 8 }}>🌍 Copa do Mundo</h2>
+            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', marginBottom: 8 }}>Camisas das Seleções</h2>
             <p style={{ fontWeight: 400, fontSize: 16, lineHeight: 1.2, color: '#4a4845', letterSpacing: '-0.01em' }}>A copa está chegando e te ajudamos a encontrar as camisas das seleções do mundo todo.</p>
           </div>
           <button
@@ -132,14 +132,14 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
 
 function SecaoCardsLoading({ titulo }: { titulo: string }) {
   return (
-    <section style={{ background: '#f5f5f5', paddingBottom: 56 }}>
+    <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 40 }}>
       <div className="ag-container">
         <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em' }}>{titulo}</h2>
         </div>
         <div className="ag-cards">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} style={{ width: '100%', minHeight: 325, borderRadius: 16, background: '#ecebf0', marginBottom: 32 }} />
+            <div key={i} style={{ width: '100%', height: 285, borderRadius: 16, background: '#ecebf0' }} />
           ))}
         </div>
       </div>
@@ -151,7 +151,7 @@ function SecaoMercados() {
   const router = useRouter()
 
   return (
-    <section style={{ background: '#f5f5f5', paddingBottom: 56 }}>
+    <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 40 }}>
       <div className="ag-container">
         <h2 className="ag-mercados-title" style={{ fontWeight: 300, fontSize: 20, color: '#000', letterSpacing: '-0.04em', marginBottom: 28 }}>
           Explore <strong style={{ fontWeight: 700 }}>todos os mercados</strong>
@@ -254,11 +254,11 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         .ag-container { max-width: 1140px; margin: 0 auto; padding: 0 24px; width: 100%; }
-        .ag-card { width: 100%; min-height: 325px; height: 100%; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; margin-bottom: 32px; }
+        .ag-card { width: 100%; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; }
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
         .ag-copa-card-grid .ag-card { margin-bottom: 0; }
-        .ag-copa-section { margin-bottom: 88px; }
+        .ag-copa-section { margin-bottom: 28px; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         .ag-hero-img { display: block; }
         .ag-hero-video {
@@ -318,7 +318,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-ver-todas-txt { display: inline !important; }
           .ag-section-head { align-items: flex-end !important; flex-direction: row !important; justify-content: space-between !important; gap: 32px !important; }
           .ag-section-link { margin-bottom: 0 !important; }
-          .ag-copa-section { margin-bottom: 56px; }
+          .ag-copa-section { margin-bottom: 32px; }
           .ag-cards { grid-template-columns: repeat(2,1fr) !important; }
           .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
@@ -560,7 +560,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         </section>
 
         {/* Temporário Copa do Mundo: seleções substituem os clubes. Depois da Copa, reativar a vitrine usando initialData.clubes. */}
-        <section style={{ background: '#f5f5f5', paddingTop: 24, paddingBottom: 88 }}>
+        <section style={{ background: '#f5f5f5', paddingTop: 16, paddingBottom: 48 }}>
           <div className="ag-container">
             <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
               <strong>Copa do Mundo</strong> 2026
@@ -646,7 +646,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
 
         {/* Em alta */}
         {emAlta.length > 0 && (
-          <section style={{ background: '#f5f5f5', paddingBottom: 80 }}>
+          <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 48 }}>
             <div className="ag-container">
               <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

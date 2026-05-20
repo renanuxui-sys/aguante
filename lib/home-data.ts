@@ -85,7 +85,7 @@ export async function carregarHomeDataServidor() {
     },
     novidades: embaralhar(novidades.data || []),
     selecoes: embaralhar(selecoes.data || []),
-    emAlta: emAlta.data || [],
+    emAlta: embaralhar(emAlta.data || []),
     anos80: anos80.data || [],
     clubes: clubes.data || [],
   }
