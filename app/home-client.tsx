@@ -106,7 +106,7 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
   const router = useRouter()
   if (produtos.length === 0) return null
   return (
-    <section className="ag-copa-section" style={{ background: '#f5f5f5', padding: '28px 0 40px' }}>
+    <section className="ag-copa-section" style={{ background: '#f5f5f5', padding: '24px 0 0' }}>
       <div className="ag-container">
         <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
           <div style={{ maxWidth: 620 }}>
@@ -151,9 +151,9 @@ function SecaoMercados() {
   const router = useRouter()
 
   return (
-    <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 40 }}>
+    <section style={{ background: '#f5f5f5', paddingTop: 0, paddingBottom: 48 }}>
       <div className="ag-container">
-        <h2 className="ag-mercados-title" style={{ fontWeight: 300, fontSize: 20, color: '#000', letterSpacing: '-0.04em', marginBottom: 28 }}>
+        <h2 className="ag-mercados-title" style={{ fontWeight: 300, fontSize: 20, color: '#000', letterSpacing: '-0.04em', marginBottom: 20 }}>
           Explore <strong style={{ fontWeight: 700 }}>todos os mercados</strong>
         </h2>
         <div className="ag-mercados-grid">
@@ -258,7 +258,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
         .ag-copa-card-grid .ag-card { margin-bottom: 0; }
-        .ag-copa-section { margin-bottom: 28px; }
+        .ag-copa-section { margin-bottom: 0; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         .ag-hero-img { display: block; }
         .ag-hero-video {
@@ -318,7 +318,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-ver-todas-txt { display: inline !important; }
           .ag-section-head { align-items: flex-end !important; flex-direction: row !important; justify-content: space-between !important; gap: 32px !important; }
           .ag-section-link { margin-bottom: 0 !important; }
-          .ag-copa-section { margin-bottom: 32px; }
+          .ag-copa-section { margin-bottom: 0; }
           .ag-cards { grid-template-columns: repeat(2,1fr) !important; }
           .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
