@@ -1,9 +1,11 @@
 import type { MetadataRoute } from 'next'
+import { carregarClubesAtivos } from '@/lib/clube-data'
 
 const siteUrl = 'https://aguante.com.br'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
+  const clubes = await carregarClubesAtivos().catch(() => [])
 
   return [
     {
@@ -24,5 +26,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.6,
     },
+    ...clubes.map(clube => ({
+      url: `${siteUrl}/clubes/${clube.slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.8,
+    })),
   ]
 }

@@ -286,10 +286,9 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
               <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 1 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 56%, #f8f8f8)' }} />
             </div>
-            <div className="ag-container" style={{ paddingTop: 40, paddingBottom: 48, position: 'relative', zIndex: 1 }}>
-              <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', marginBottom: 24 }}>
+            <div className="ag-container" style={{ paddingTop: 48, paddingBottom: 48, position: 'relative', zIndex: 1 }}>
+              <button onClick={() => router.back()} aria-label="Voltar" style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFF', border: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0, marginBottom: 24 }}>
                 <img src={imgArrowLeft} alt="" style={{ width: 24, height: 24 }} />
-                <span style={{ fontWeight: 700, fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2 }}>voltar</span>
               </button>
               <div style={{ display: 'flex', gap: 48, alignItems: 'flex-start' }}>
                 <div style={{ width: 557, flexShrink: 0 }}>
@@ -339,7 +338,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
               {imagemProdutoUrl && (
                 <img src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImagemCarregadaUrl(imagemProdutoUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
               )}
-              <button onClick={() => router.back()} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: 12, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
+              <button onClick={() => router.back()} style={{ position: 'absolute', top: 48, left: 16, background: '#FFF', backdropFilter: 'blur(8px)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
                 <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />
               </button>
               <button onClick={toggleCurtida} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 12, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>

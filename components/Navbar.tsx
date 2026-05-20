@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { gerarSlugClube } from '@/lib/clube-utils'
 
 const imgLogo      = "/assets/logo.svg"
 const imgChevron   = "/assets/chevron-down.svg"
@@ -93,7 +94,7 @@ export default function Navbar() {
   const cats: Categoria[] = categorias.length > 0 ? categorias : [{
     key: 'Clubes Brasileiros', label: 'Clubes Brasileiros', labelMobile: 'Clubes Brasileiros',
     clubes: [...CLUBES_BRASILEIROS].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((nome, i) => ({
-      id: String(i), nome, slug: nome.toLowerCase().replace(/[\s/]/g,'-'),
+      id: String(i), nome, slug: gerarSlugClube(nome),
       categoria: 'Clubes Brasileiros', escudo_url: null, total_anuncios: 0,
     }))
   }]
@@ -106,12 +107,9 @@ export default function Navbar() {
     if (q) { router.push(`/search?q=${encodeURIComponent(q)}`); setQuery(''); setMenuMobile(false); setBuscaMobile(false) }
   }
 
-  // Navegação pelo submenu/menu mobile usa ?clube= para busca exata por clube,
-  // evitando que a busca por título traga resultados irrelevantes
-  // (ex: "Brasil" trazia camisas com "Brasileiro" ou "Copa do Brasil" no título)
-  function navegar(nome: string) {
+  function navegar(clube: Pick<ClubeDB, 'nome' | 'slug'>) {
     setSubmenu(false); setMenuMobile(false)
-    router.push(`/search?clube=${encodeURIComponent(nome)}`)
+    router.push(`/clubes/${clube.slug || gerarSlugClube(clube.nome)}`)
   }
 
   function onSubmenuEnter() {
@@ -223,7 +221,7 @@ export default function Navbar() {
             {catAtivaData && catAtivaData.clubes.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0 40px' }}>
                 {catAtivaData.clubes.map(clube => (
-                  <div key={clube.id} onClick={() => navegar(clube.nome)}
+                  <div key={clube.id} onClick={() => navegar(clube)}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e0dee7', cursor: 'pointer', transition: 'padding-left 150ms ease' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '6px'; (e.currentTarget.firstChild as HTMLElement).style.color = '#550fed' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '0'; (e.currentTarget.firstChild as HTMLElement).style.color = '#000' }}>
@@ -283,7 +281,7 @@ export default function Navbar() {
                     {aberta && cat.clubes.length > 0 && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px', paddingBottom: 16 }}>
                         {cat.clubes.map(clube => (
-                          <button key={clube.id} onClick={() => navegar(clube.nome)}
+                          <button key={clube.id} onClick={() => navegar(clube)}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', background: 'none', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'Onest, sans-serif', width: '100%', textAlign: 'left' }}>
                             <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em' }}>{clube.nome}</span>
                             {clube.total_anuncios > 0 && (

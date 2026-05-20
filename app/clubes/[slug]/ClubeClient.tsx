@@ -1,24 +1,41 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
 import type { Produto } from '@/types'
 
-const imgBgHero      = "/assets/bg-hero.png"
-const imgArrowLeft   = "/assets/arrow-left.svg"
-const imgChevronDown = "/assets/chevron-down.svg"
-const imgFire        = "/assets/fire-alt-solid.svg"
+const imgBgHero = '/assets/bg-hero.png'
+const imgArrowLeft = '/assets/arrow-left.svg'
+const imgChevronDown = '/assets/chevron-down.svg'
+const imgFire = '/assets/fire-alt-solid.svg'
 const POR_PAGINA = 20
 
-type FiltroBusca = {
+type ClubeInfo = {
+  nome: string
+  slug: string
+  descricao: string
+}
+
+type SearchData = {
+  produtos: Produto[]
+  total: number | null
+  temProxima: boolean
+}
+
+type ClubeClientProps = {
+  clube: ClubeInfo
+  initialData: SearchData
+}
+
+type FiltroClube = {
   label: string
   params: Record<string, string>
   icon?: string
 }
 
-const filtros: FiltroBusca[] = [
+const filtros: FiltroClube[] = [
   { label: 'em alta', params: { ordenar: 'mais-vistos' }, icon: imgFire },
   { label: 'de jogo', params: { de_jogo: 'true' } },
   { label: 'Anos 70', params: { decada: '70' } },
@@ -28,48 +45,21 @@ const filtros: FiltroBusca[] = [
 ]
 const filtroKeys = ['ordenar', 'decada', 'de_jogo']
 
-type SearchData = {
-  produtos: Produto[]
-  total: number | null
-  temProxima: boolean
-}
-
-type SearchClientProps = {
-  initialParams: {
-    q: string
-    categoria: string | null
-    clube: string
-    decada: string | null
-    ordenar: string | null
-    de_jogo: string | null
-    novidades?: string | null
-    raridades?: string | null
-    pagina: string
-  }
-  initialData: SearchData
-}
-
-export default function SearchClient({ initialData }: SearchClientProps) {
+export default function ClubeClient({ clube, initialData }: ClubeClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const q          = searchParams.get('q') || ''
-  const categoria  = searchParams.get('categoria')
-  // ?clube=Brasil → busca exata pelo campo clube (vinda da navbar/submenu)
-  // Evita que "Brasil" traga camisas com "Brasileiro" ou "Copa do Brasil" no título
-  const clubeExato = searchParams.get('clube') || ''
-  const decada     = searchParams.get('decada')
-  const ordenar    = searchParams.get('ordenar')
+  const primeiraCarga = useRef(true)
+
+  const decada = searchParams.get('decada')
+  const ordenar = searchParams.get('ordenar')
   const ordemParam = searchParams.get('ordem')
-  const deJogo     = searchParams.get('de_jogo') === 'true'
-  const novidades  = searchParams.get('novidades') === 'true'
-  const raridades  = searchParams.get('raridades') === 'true'
+  const deJogo = searchParams.get('de_jogo') === 'true'
   const paginaParam = Math.max(1, Number(searchParams.get('pagina') || '1') || 1)
   const ordemUrl = ordemParam || (ordenar === 'mais-vistos' ? 'mais vistos' : 'mais recentes')
 
-  const primeiraCarga = useRef(true)
   const [produtos, setProdutos] = useState<Produto[]>(initialData.produtos)
-  const [total, setTotal]       = useState<number | null>(initialData.total)
-  const [loading, setLoading]   = useState(false)
+  const [total, setTotal] = useState<number | null>(initialData.total)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (primeiraCarga.current) {
@@ -83,14 +73,10 @@ export default function SearchClient({ initialData }: SearchClientProps) {
     async function carregarProdutos() {
       try {
         const params = new URLSearchParams()
-        if (q) params.set('q', q)
-        if (categoria) params.set('categoria', categoria)
-        if (clubeExato) params.set('clube', clubeExato)
+        params.set('clube', clube.nome)
         if (decada) params.set('decada', decada)
         if (ordenar) params.set('ordenar', ordenar)
         if (deJogo) params.set('de_jogo', 'true')
-        if (novidades) params.set('novidades', 'true')
-        if (raridades) params.set('raridades', 'true')
         params.set('ordem', ordemUrl)
         params.set('pagina', String(paginaParam))
 
@@ -114,41 +100,29 @@ export default function SearchClient({ initialData }: SearchClientProps) {
     return () => {
       ativo = false
     }
-  }, [q, clubeExato, categoria, decada, ordenar, deJogo, novidades, raridades, ordemUrl, paginaParam])
+  }, [clube.nome, decada, ordenar, deJogo, ordemUrl, paginaParam])
 
-  // Título contextual: clube exato > busca livre > categoria
-  const tituloContexto = 'Resultado de busca'
-  const labelBusca = clubeExato || q || categoria || ''
+  function filtroAtivo(params: Record<string, string>) {
+    return Object.entries(params).every(([key, value]) => searchParams.get(key) === value)
+  }
+
+  function irParaUrl(params: URLSearchParams) {
+    const qs = params.toString()
+    router.push(qs ? `/clubes/${clube.slug}?${qs}` : `/clubes/${clube.slug}`)
+  }
 
   function aplicarFiltro(params: Record<string, string>) {
     setLoading(true)
     const next = new URLSearchParams(searchParams.toString())
     const ativo = filtroAtivo(params)
     filtroKeys.forEach(key => next.delete(key))
-    if (!ativo) {
-      Object.entries(params).forEach(([key, value]) => next.set(key, value))
-    }
+    if (!ativo) Object.entries(params).forEach(([key, value]) => next.set(key, value))
     next.delete('pagina')
-    const qs = next.toString()
-    router.push(qs ? `/search?${qs}` : '/search')
-  }
-
-  function irParaPagina(n: number) {
-    setLoading(true)
-    const next = new URLSearchParams(searchParams.toString())
-    if (n <= 1) {
-      next.delete('pagina')
-    } else {
-      next.set('pagina', String(n))
-    }
-    const qs = next.toString()
-    router.push(qs ? `/search?${qs}` : '/search')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    irParaUrl(next)
   }
 
   function alterarOrdenacao(valor: string) {
     setLoading(true)
-
     const next = new URLSearchParams(searchParams.toString())
     next.delete('pagina')
 
@@ -161,19 +135,21 @@ export default function SearchClient({ initialData }: SearchClientProps) {
       else next.set('ordem', valor)
     }
 
-    const qs = next.toString()
-    router.push(qs ? `/search?${qs}` : '/search')
+    irParaUrl(next)
   }
 
-  function filtroAtivo(params: Record<string, string>) {
-    return Object.entries(params).every(([key, value]) => searchParams.get(key) === value)
+  function irParaPagina(n: number) {
+    setLoading(true)
+    const next = new URLSearchParams(searchParams.toString())
+    if (n <= 1) next.delete('pagina')
+    else next.set('pagina', String(n))
+    irParaUrl(next)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const totalPaginas = total ? Math.ceil(total / POR_PAGINA) : 0
   const paginasVisiveis = (() => {
-    if (totalPaginas <= 7) {
-      return Array.from({ length: totalPaginas }, (_, index) => index + 1)
-    }
+    if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, index) => index + 1)
 
     const paginas: Array<number | '...'> = [1]
     const inicio = Math.max(2, paginaParam - 1)
@@ -195,9 +171,9 @@ export default function SearchClient({ initialData }: SearchClientProps) {
         .ag-card { width: 100%; min-height: 325px; height: 100%; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; }
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 40px; align-items: stretch; }
-        .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
+        .ag-clube-hero { max-width: 900px; }
         .ag-listing-head { display: flex; align-items: flex-start; flex-direction: column; gap: 28px; }
-        .ag-title-row { display: flex; align-items: center; gap: 28px; }
+        .ag-title-row { display: flex; align-items: center; gap: 20px; }
         .ag-filter-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; width: 100%; }
         .ag-filter-tags-wrap { max-width: 100%; min-width: 0; position: relative; }
         .ag-filter-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -206,9 +182,9 @@ export default function SearchClient({ initialData }: SearchClientProps) {
         @media (max-width: 768px) {
           .ag-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; }
           .ag-card { height: auto !important; min-height: 112px; }
-          .ag-cta-form { flex-direction: column !important; }
           .ag-title-row { gap: 12px; }
-          .ag-title-row p { font-size: 26px !important; white-space: normal !important; }
+          .ag-clube-title { font-size: 30px !important; white-space: normal !important; }
+          .ag-clube-description { font-size: 17px !important; }
           .ag-result-summary { font-size: 18px !important; }
           .ag-filter-row { align-items: flex-start; flex-direction: column; }
           .ag-filter-tags-wrap { width: 100%; }
@@ -225,38 +201,39 @@ export default function SearchClient({ initialData }: SearchClientProps) {
       <main style={{ fontFamily: 'Onest, sans-serif', background: '#f5f5f5', minHeight: '100vh' }}>
         <Navbar />
 
-        <section style={{ paddingTop: 76, position: 'relative', minHeight: 290, background: '#f5f5f5' }}>
+        <section style={{ paddingTop: 76, position: 'relative', minHeight: 380, background: '#f5f5f5' }}>
           <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
             <img src={imgBgHero} alt="" style={{ position: 'absolute', width: '100%', height: '115%', top: '-15%', objectFit: 'cover', opacity: 1 }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(245,245,245,0.7) 80%, #f5f5f5 95%)' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 44%, rgba(245,245,245,0.75) 78%, #f5f5f5 96%)' }} />
           </div>
 
-          <div className="ag-container" style={{ position: 'relative', zIndex: 2, paddingTop: 48, paddingBottom: 40 }}>
+          <div className="ag-container" style={{ position: 'relative', zIndex: 2, paddingTop: 48, paddingBottom: 42 }}>
             <div className="ag-listing-head">
-              <div>
-                <button onClick={() => router.back()} aria-label="Voltar" style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFF', border: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0, marginBottom: 18 }}>
-                  <img src={imgArrowLeft} alt="" style={{ width: 24, height: 24 }} />
-                </button>
-                <div className="ag-title-row">
-                  <p style={{ fontWeight: 700, fontSize: 32, color: '#000', letterSpacing: '-0.64px', whiteSpace: 'nowrap' as const }}>
-                    {tituloContexto}
+              <div className="ag-clube-hero">
+                <div>
+                  <button onClick={() => router.back()} aria-label="Voltar" style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFF', border: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0, marginBottom: 18 }}>
+                    <img src={imgArrowLeft} alt="" style={{ width: 24, height: 24 }} />
+                  </button>
+                  <div className="ag-title-row">
+                    <h1 className="ag-clube-title" style={{ fontWeight: 700, fontSize: 42, color: '#000', letterSpacing: '-0.02em', lineHeight: 1.05, margin: 0 }}>
+                      {clube.nome}
+                    </h1>
+                  </div>
+                  <p className="ag-clube-description" style={{ fontWeight: 300, fontSize: 20, color: '#000', letterSpacing: '-0.02em', lineHeight: 1.45, marginTop: 24, maxWidth: 760 }}>
+                    {clube.descricao}
                   </p>
+                  {!loading && (
+                    <p className="ag-result-summary" style={{ fontWeight: 300, fontSize: 22, color: '#000', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: 30 }}>
+                      {produtos.length > 0 ? (
+                        <>
+                          Encontramos <strong style={{ fontWeight: 700 }}>{total !== null ? `${total.toLocaleString('pt-BR')} ${total === 1 ? 'camisa' : 'camisas'}` : 'camisas'}</strong> do <strong style={{ fontWeight: 700 }}>{clube.nome}</strong>
+                        </>
+                      ) : (
+                        <>Nenhuma camisa encontrada do <strong style={{ fontWeight: 700 }}>{clube.nome}</strong></>
+                      )}
+                    </p>
+                  )}
                 </div>
-                {!loading && (
-                  <p className="ag-result-summary" style={{ fontWeight: 300, fontSize: 24, color: '#000', letterSpacing: '-0.48px', lineHeight: 1.2, marginTop: 40 }}>
-                    {produtos.length > 0 ? (
-                      <>
-                        Encontramos <strong style={{ fontWeight: 700 }}>{total !== null ? `${total.toLocaleString('pt-BR')} ${total === 1 ? 'camisa' : 'camisas'}` : 'camisas'}</strong>
-                        {labelBusca && <> para <strong style={{ fontWeight: 700 }}>&quot;{labelBusca}&quot;</strong></>}
-                      </>
-                    ) : (
-                      <>
-                        Nenhuma camisa encontrada
-                        {labelBusca && <> para <strong style={{ fontWeight: 700 }}>&quot;{labelBusca}&quot;</strong></>}
-                      </>
-                    )}
-                  </p>
-                )}
               </div>
 
               {!loading && (
@@ -282,19 +259,19 @@ export default function SearchClient({ initialData }: SearchClientProps) {
                   </div>
                   {produtos.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                      <p style={{ fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2, whiteSpace: 'nowrap' as const }}>Ordenar por</p>
-                      <div style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', cursor: 'pointer', position: 'relative' as const }}>
+                      <p style={{ fontSize: 14, color: '#000', letterSpacing: '-0.14px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Ordenar por</p>
+                      <div style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', cursor: 'pointer', position: 'relative' }}>
                         <select
                           value={ordemUrl}
                           onChange={e => alterarOrdenacao(e.target.value)}
-                          style={{ fontWeight: 700, fontSize: 12, color: '#62748c', letterSpacing: '-0.24px', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', appearance: 'none' as const, paddingRight: 24 }}
+                          style={{ fontWeight: 700, fontSize: 12, color: '#62748c', letterSpacing: '-0.24px', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif', appearance: 'none', paddingRight: 24 }}
                         >
                           <option>mais recentes</option>
                           <option>menor preço</option>
                           <option>maior preço</option>
                           <option>mais vistos</option>
                         </select>
-                        <img src={imgChevronDown} alt="" style={{ width: 16, height: 16, position: 'absolute' as const, right: 8, pointerEvents: 'none' as const }} />
+                        <img src={imgChevronDown} alt="" style={{ width: 16, height: 16, position: 'absolute', right: 8, pointerEvents: 'none' }} />
                       </div>
                     </div>
                   )}
@@ -324,7 +301,6 @@ export default function SearchClient({ initialData }: SearchClientProps) {
               </div>
             )}
 
-            {/* Paginação */}
             {!loading && totalPaginas > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 112 }}>
                 {paginaParam > 1 && (
