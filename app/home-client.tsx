@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -75,7 +76,6 @@ type HomeData = {
 }
 
 function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos: Produto[]; linkTodas: string }) {
-  const router = useRouter()
   if (produtos.length === 0) return null
   return (
     <section style={{ background: '#f5f5f5', paddingTop: 16, paddingBottom: 48 }}>
@@ -85,14 +85,14 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
             {titulo}
           </h2>
           {/* Ver todas — 18px com chevron-right.svg */}
-          <button
+          <Link
             className="ag-section-link"
-            onClick={() => router.push(linkTodas)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em' }}
+            href={linkTodas}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em', textDecoration: 'none' }}
           >
             <span className="ag-ver-todas-txt">ver todos</span>
             <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
-          </button>
+          </Link>
         </div>
         <div className="ag-cards">
           {produtos.map(p => <CardProduto key={p.id} produto={p} />)}
@@ -103,7 +103,6 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
 }
 
 function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
-  const router = useRouter()
   if (produtos.length === 0) return null
   return (
     <section className="ag-copa-section" style={{ background: '#f5f5f5', padding: '32px 0 24px' }}>
@@ -112,14 +111,14 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
           <div style={{ maxWidth: 620 }}>
             <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', marginBottom: 8 }}>Camisas das Seleções</h2>
           </div>
-          <button
+          <Link
             className="ag-section-link"
-            onClick={() => router.push('/search?categoria=Seleções')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em', flexShrink: 0, padding: 0, marginBottom: 2 }}
+            href="/search?categoria=Seleções"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em', flexShrink: 0, padding: 0, marginBottom: 2, textDecoration: 'none' }}
           >
             <span className="ag-ver-todas-txt">ver todas</span>
             <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
-          </button>
+          </Link>
         </div>
         <div className="ag-cards ag-copa-card-grid">
           {produtos.map(p => <CardProduto key={`copa-${p.id}`} produto={p} />)}
@@ -147,8 +146,6 @@ function SecaoCardsLoading({ titulo }: { titulo: string }) {
 }
 
 function SecaoMercados() {
-  const router = useRouter()
-
   return (
     <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 56 }}>
       <div className="ag-container">
@@ -157,16 +154,15 @@ function SecaoMercados() {
         </h2>
         <div className="ag-mercados-grid">
           {mercadosAtalhos.map(mercado => (
-            <button
+            <Link
               key={mercado.titulo}
-              type="button"
+              href={mercado.href}
               className="ag-mercado-card"
-              onClick={() => router.push(mercado.href)}
               aria-label={`Explorar ${mercado.titulo}`}
             >
               <img src={`/assets/${mercado.imagem}`} alt="" />
               <span>{mercado.titulo}</span>
-            </button>
+            </Link>
           ))}
         </div>
       </div>
@@ -301,7 +297,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-selecao-more img { width: 19px; height: 19px; }
         .ag-mercados-title { text-align: left; }
         .ag-mercados-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-        .ag-mercado-card { position: relative; height: 104px; border: none; border-radius: 8px; overflow: hidden; padding: 0; background: #282828; cursor: pointer; text-align: right; font-family: Onest, sans-serif; }
+        .ag-mercado-card { position: relative; display: block; height: 104px; border: none; border-radius: 8px; overflow: hidden; padding: 0; background: #282828; cursor: pointer; text-align: right; text-decoration: none; font-family: Onest, sans-serif; }
         .ag-mercado-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 220ms ease; }
         .ag-mercado-card::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.34); }
         .ag-mercado-card span { position: absolute; right: 16px; bottom: 18px; z-index: 1; color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }

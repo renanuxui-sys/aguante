@@ -1,48 +1,16 @@
 import type { Metadata } from 'next'
-import { createClient } from '@supabase/supabase-js'
 import { imagemComProxy } from '@/lib/image-url'
 import { formatarResumoProduto } from '@/lib/product-description'
+import { carregarProdutoAtivo } from '@/lib/produto-data'
 
 const siteUrl = 'https://aguante.com.br'
 const fallbackTitle = 'Camisa colecionável — Aguante'
 const fallbackDescription = 'Veja detalhes desta camisa de futebol colecionável encontrada pela Aguante.'
 const fallbackImage = '/assets/compartilhamento.jpg'
 
-type ProdutoMetadata = {
-  titulo: string | null
-  clube: string | null
-  ano: string | null
-  tags: string[] | null
-  imagem_url: string | null
-  fonte_nome: string | null
-}
-
-async function buscarProduto(id: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!url || !key) return null
-
-  const supabase = createClient(url, key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
-
-  const { data } = await supabase
-    .from('produtos')
-    .select('titulo, clube, ano, tags, imagem_url, fonte_nome')
-    .eq('id', id)
-    .eq('ativo', true)
-    .single<ProdutoMetadata>()
-
-  return data
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
-  const produto = await buscarProduto(id)
+  const produto = await carregarProdutoAtivo(id)
   const canonical = `/produto/${id}`
 
   if (!produto) {

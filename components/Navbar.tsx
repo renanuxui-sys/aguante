@@ -107,11 +107,6 @@ export default function Navbar() {
     if (q) { router.push(`/search?q=${encodeURIComponent(q)}`); setQuery(''); setMenuMobile(false); setBuscaMobile(false) }
   }
 
-  function navegar(clube: Pick<ClubeDB, 'nome' | 'slug'>) {
-    setSubmenu(false); setMenuMobile(false)
-    router.push(`/clubes/${clube.slug || gerarSlugClube(clube.nome)}`)
-  }
-
   function onSubmenuEnter() {
     if (leaveTimer.current) clearTimeout(leaveTimer.current)
     setSubmenu(true)
@@ -221,17 +216,17 @@ export default function Navbar() {
             {catAtivaData && catAtivaData.clubes.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0 40px' }}>
                 {catAtivaData.clubes.map(clube => (
-                  <div key={clube.id} onClick={() => navegar(clube)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e0dee7', cursor: 'pointer', transition: 'padding-left 150ms ease' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '6px'; (e.currentTarget.firstChild as HTMLElement).style.color = '#550fed' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.paddingLeft = '0'; (e.currentTarget.firstChild as HTMLElement).style.color = '#000' }}>
+                  <Link key={clube.id} href={`/clubes/${clube.slug || gerarSlugClube(clube.nome)}`} onClick={() => setSubmenu(false)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e0dee7', cursor: 'pointer', transition: 'padding-left 150ms ease', textDecoration: 'none' }}
+                    onMouseEnter={e => { e.currentTarget.style.paddingLeft = '6px'; (e.currentTarget.firstChild as HTMLElement).style.color = '#550fed' }}
+                    onMouseLeave={e => { e.currentTarget.style.paddingLeft = '0'; (e.currentTarget.firstChild as HTMLElement).style.color = '#000' }}>
                     <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em', lineHeight: 1.2, transition: 'color 150ms ease' }}>{clube.nome}</span>
                     {clube.total_anuncios > 0 && (
                       <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 12 }}>
                         {clube.total_anuncios.toLocaleString('pt-BR')}
                       </span>
                     )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -281,15 +276,15 @@ export default function Navbar() {
                     {aberta && cat.clubes.length > 0 && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px', paddingBottom: 16 }}>
                         {cat.clubes.map(clube => (
-                          <button key={clube.id} onClick={() => navegar(clube)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', background: 'none', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'Onest, sans-serif', width: '100%', textAlign: 'left' }}>
+                          <Link key={clube.id} href={`/clubes/${clube.slug || gerarSlugClube(clube.nome)}`} onClick={() => setMenuMobile(false)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', background: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'Onest, sans-serif', width: '100%', textAlign: 'left', textDecoration: 'none' }}>
                             <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em' }}>{clube.nome}</span>
                             {clube.total_anuncios > 0 && (
                               <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>
                                 {clube.total_anuncios.toLocaleString('pt-BR')}
                               </span>
                             )}
-                          </button>
+                          </Link>
                         ))}
                       </div>
                     )}

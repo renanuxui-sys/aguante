@@ -30,6 +30,26 @@ create table if not exists produtos (
   updated_at timestamptz default now()
 );
 
+-- Links afiliados de ofertas de camisas novas.
+create table if not exists ofertas_afiliadas (
+  id uuid default gen_random_uuid() primary key,
+  loja text not null check (loja in ('Mercado Livre', 'Netshoes')),
+  titulo text not null,
+  preco numeric,
+  imagem_url text,
+  link_afiliado text not null,
+  link_produto text,
+  ativo boolean not null default true,
+  ordem integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_ofertas_afiliadas_home
+on ofertas_afiliadas(ativo, ordem, created_at desc);
+
+alter table ofertas_afiliadas enable row level security;
+
 -- Index para buscas
 create index if not exists produtos_clube_idx on produtos(clube);
 create index if not exists produtos_titulo_idx on produtos using gin(to_tsvector('portuguese', titulo));

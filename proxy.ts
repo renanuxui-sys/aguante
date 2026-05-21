@@ -6,8 +6,9 @@ const vercelHost = 'aguante.vercel.app'
 
 export function proxy(request: NextRequest) {
   const host = request.headers.get('host')
+  const protocol = request.headers.get('x-forwarded-proto')
 
-  if (host === vercelHost) {
+  if (host === vercelHost || (host === primaryHost && protocol === 'http')) {
     const url = request.nextUrl.clone()
     url.hostname = primaryHost
     url.protocol = 'https'

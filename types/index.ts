@@ -33,3 +33,17 @@ export type Fonte = {
   total_produtos: number
   created_at: string
 }
+
+export type OfertaAfiliada = {
+  id: string
+  loja: 'Mercado Livre' | 'Netshoes'
+  titulo: string
+  preco: number | null
+  imagem_url: string | null
+  link_afiliado: string
+  link_produto: string | null
+  ativo: boolean
+  ordem: number
+  created_at: string
+  updated_at: string
+}
