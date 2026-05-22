@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { carregarClubesAtivos } from '@/lib/clube-data'
+import { carregarLojasAtivas } from '@/lib/loja-data'
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 
 const siteUrl = 'https://aguante.com.br'
@@ -7,6 +8,7 @@ const siteUrl = 'https://aguante.com.br'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   const clubes = await carregarClubesAtivos().catch(() => [])
+  const lojas = await carregarLojasAtivas().catch(() => [])
   const produtos = await carregarProdutosAtivos()
 
   return [
@@ -33,6 +35,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: 'daily' as const,
       priority: 0.8,
+    })),
+    ...lojas.map(loja => ({
+      url: `${siteUrl}/lojas/${loja.slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.7,
     })),
     ...produtos.map(produto => ({
       url: `${siteUrl}/produto/${produto.id}`,

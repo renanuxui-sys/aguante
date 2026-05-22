@@ -12,10 +12,14 @@ const imgChevronDown = '/assets/chevron-down.svg'
 const imgFire = '/assets/fire-alt-solid.svg'
 const POR_PAGINA = 20
 
-type ClubeInfo = {
+export type CatalogoInfo = {
   nome: string
   slug: string
   descricao: string
+  baseUrl: '/clubes' | '/lojas'
+  filtroParam: 'clube' | 'fonte'
+  prefixoResultado: string
+  termoVazio: string
 }
 
 type SearchData = {
@@ -25,7 +29,7 @@ type SearchData = {
 }
 
 type ClubeClientProps = {
-  clube: ClubeInfo
+  catalogo: CatalogoInfo
   initialData: SearchData
 }
 
@@ -45,7 +49,7 @@ const filtros: FiltroClube[] = [
 ]
 const filtroKeys = ['ordenar', 'decada', 'de_jogo']
 
-export default function ClubeClient({ clube, initialData }: ClubeClientProps) {
+export default function ClubeClient({ catalogo, initialData }: ClubeClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const primeiraCarga = useRef(true)
@@ -73,7 +77,7 @@ export default function ClubeClient({ clube, initialData }: ClubeClientProps) {
     async function carregarProdutos() {
       try {
         const params = new URLSearchParams()
-        params.set('clube', clube.nome)
+        params.set(catalogo.filtroParam, catalogo.nome)
         if (decada) params.set('decada', decada)
         if (ordenar) params.set('ordenar', ordenar)
         if (deJogo) params.set('de_jogo', 'true')
@@ -100,7 +104,7 @@ export default function ClubeClient({ clube, initialData }: ClubeClientProps) {
     return () => {
       ativo = false
     }
-  }, [clube.nome, decada, ordenar, deJogo, ordemUrl, paginaParam])
+  }, [catalogo.filtroParam, catalogo.nome, decada, ordenar, deJogo, ordemUrl, paginaParam])
 
   function filtroAtivo(params: Record<string, string>) {
     return Object.entries(params).every(([key, value]) => searchParams.get(key) === value)
@@ -108,7 +112,7 @@ export default function ClubeClient({ clube, initialData }: ClubeClientProps) {
 
   function irParaUrl(params: URLSearchParams) {
     const qs = params.toString()
-    router.push(qs ? `/clubes/${clube.slug}?${qs}` : `/clubes/${clube.slug}`)
+    router.push(qs ? `${catalogo.baseUrl}/${catalogo.slug}?${qs}` : `${catalogo.baseUrl}/${catalogo.slug}`)
   }
 
   function aplicarFiltro(params: Record<string, string>) {
@@ -216,20 +220,20 @@ export default function ClubeClient({ clube, initialData }: ClubeClientProps) {
                   </button>
                   <div className="ag-title-row">
                     <h1 className="ag-clube-title" style={{ fontWeight: 700, fontSize: 42, color: '#000', letterSpacing: '-0.02em', lineHeight: 1.05, margin: 0 }}>
-                      {clube.nome}
+                      {catalogo.nome}
                     </h1>
                   </div>
                   <p className="ag-clube-description" style={{ fontWeight: 300, fontSize: 20, color: '#000', letterSpacing: '-0.02em', lineHeight: 1.45, marginTop: 24, maxWidth: 760 }}>
-                    {clube.descricao}
+                    {catalogo.descricao}
                   </p>
                   {!loading && (
                     <p className="ag-result-summary" style={{ fontWeight: 300, fontSize: 22, color: '#000', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: 30 }}>
                       {produtos.length > 0 ? (
                         <>
-                          Encontramos <strong style={{ fontWeight: 700 }}>{total !== null ? `${total.toLocaleString('pt-BR')} ${total === 1 ? 'camisa' : 'camisas'}` : 'camisas'}</strong> do <strong style={{ fontWeight: 700 }}>{clube.nome}</strong>
+                          Encontramos <strong style={{ fontWeight: 700 }}>{total !== null ? `${total.toLocaleString('pt-BR')} ${total === 1 ? 'camisa' : 'camisas'}` : 'camisas'}</strong> {catalogo.prefixoResultado} <strong style={{ fontWeight: 700 }}>{catalogo.nome}</strong>
                         </>
                       ) : (
-                        <>Nenhuma camisa encontrada do <strong style={{ fontWeight: 700 }}>{clube.nome}</strong></>
+                        <>Nenhuma camisa encontrada {catalogo.termoVazio} <strong style={{ fontWeight: 700 }}>{catalogo.nome}</strong></>
                       )}
                     </p>
                   )}

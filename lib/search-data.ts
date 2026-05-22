@@ -24,6 +24,7 @@ export type SearchDataParams = {
   q?: string
   categoria?: string | null
   clube?: string
+  fonte?: string
   decada?: string | null
   ordenar?: string | null
   de_jogo?: string | boolean | null
@@ -38,6 +39,7 @@ export async function carregarSearchData(params: SearchDataParams) {
   const q = params.q || ''
   const categoria = params.categoria || null
   const clubeExato = params.clube || ''
+  const fonteExata = params.fonte || ''
   const decada = params.decada || null
   const ordenar = params.ordenar || null
   const deJogo = params.de_jogo === true || params.de_jogo === 'true'
@@ -66,6 +68,7 @@ export async function carregarSearchData(params: SearchDataParams) {
   }
 
   if (clubeExato) query = query.eq('clube', clubeExato)
+  if (fonteExata) query = query.eq('fonte_nome', fonteExata)
 
   if (q) {
     const termos = q.trim().split(/\s+/).filter(Boolean)

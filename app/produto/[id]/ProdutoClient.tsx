@@ -1,11 +1,13 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
 import { imagemComProxy } from '@/lib/image-url'
+import { gerarSlugLoja } from '@/lib/loja-utils'
 import { formatarResumoProduto } from '@/lib/product-description'
 import type { Produto } from '@/types'
 
@@ -164,7 +166,10 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
           {formatarResumoProduto(produto)}
         </p>
         <p style={{ fontWeight: 700, fontSize: 12, color: '#000', letterSpacing: '-0.12px', lineHeight: 1.2, opacity: 0.4 }}>
-          Este anúncio foi encontrado em <span style={{ textDecoration: 'underline' }}>{produto.fonte_nome}</span>
+          Este anúncio foi encontrado em{' '}
+          <Link href={`/lojas/${gerarSlugLoja(produto.fonte_nome)}`} style={{ color: 'inherit', textDecoration: 'underline' }}>
+            {produto.fonte_nome}
+          </Link>
         </p>
       </div>
     </div>

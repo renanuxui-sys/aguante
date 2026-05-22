@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
       q: params.get('q') || '',
       categoria: params.get('categoria'),
       clube: params.get('clube') || '',
+      fonte: params.get('fonte') || '',
       decada: params.get('decada'),
       ordenar: params.get('ordenar'),
       de_jogo: params.get('de_jogo'),

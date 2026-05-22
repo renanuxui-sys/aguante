@@ -89,10 +89,14 @@ export default async function ClubePage({ params, searchParams }: ClubePageProps
 
   return (
     <ClubeClient
-      clube={{
+      catalogo={{
         nome: clube.nome,
         slug: clube.slug,
         descricao: descricaoCurtaClube(clube.nome),
+        baseUrl: '/clubes',
+        filtroParam: 'clube',
+        prefixoResultado: 'do',
+        termoVazio: 'do',
       }}
       initialData={initialData}
     />
