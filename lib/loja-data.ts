@@ -15,6 +15,7 @@ export const carregarLojasAtivas = cache(async () => {
     .from('fontes')
     .select('id,nome,url')
     .eq('ativa', true)
+    .eq('visivel_site', true)
     .order('nome', { ascending: true })
 
   if (error) throw error

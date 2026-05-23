@@ -566,6 +566,8 @@ ML_REFRESH_TOKEN=...
 **Comandos:**
 ```bash
 node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --debug
+node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --html-listing --debug
+node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --browser-listing --debug
 node scraper-gecko-mercadolivre.js --query="camisa flamengo usada" --max-paginas=1 --debug
 node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --com-pdp --max-pdp=3 --debug
 node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --salvar --sem-desativar
@@ -578,6 +580,8 @@ node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --salvar --
 - `--max-paginas=` controla custo; o scraper usa e limita no máximo a `3` inicialmente
 - `--salvar` grava no Supabase; sem isso roda em modo teste
 - `--sem-desativar` evita marcar Mercado Livre antigos como inativos
+- `--html-listing` tenta ler a listagem HTML do Mercado Livre e extrair foto do card, evitando chamadas PDP
+- `--browser-listing` renderiza a listagem com Playwright antes de extrair os cards, útil quando o HTML inicial vem sem produtos
 - `--com-pdp` completa produtos aprovados com a PDP para trazer foto, estoque e URL canônica; `--salvar` liga PDP automaticamente
 - `--max-pdp=` limita quantos produtos aprovados por página recebem chamada PDP durante testes
 - `--sem-filtro-camisa` desliga o filtro local de títulos com "camisa"

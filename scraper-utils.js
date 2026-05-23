@@ -33,6 +33,12 @@ export function criarSupabase() {
  * Produtos encontrados durante o scraping serão reativados via upsert.
  */
 export async function desativarProdutosDaFonte(supabase, fonteNome) {
+  const deveContinuar = await fonteAtivaParaScraping(supabase, fonteNome)
+  if (!deveContinuar) {
+    console.log(`  ⏸️  Fonte "${fonteNome}" inativa no CMS. Scraping ignorado.`)
+    process.exit(0)
+  }
+
   const agora = new Date().toISOString()
   const { data, error } = await supabase
     .from('produtos')
@@ -52,6 +58,21 @@ export async function desativarProdutosDaFonte(supabase, fonteNome) {
 
   console.log(`  🔄 ${data?.length || 0} produtos de "${fonteNome}" marcados como inativos`)
   return data?.length || 0
+}
+
+async function fonteAtivaParaScraping(supabase, fonteNome) {
+  const { data, error } = await supabase
+    .from('fontes')
+    .select('ativa')
+    .eq('nome', fonteNome)
+    .maybeSingle()
+
+  if (error) {
+    console.warn(`  ⚠️  Não foi possível verificar status da fonte "${fonteNome}":`, error.message)
+    return true
+  }
+
+  return data?.ativa !== false
 }
 
 /**

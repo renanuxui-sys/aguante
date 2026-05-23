@@ -1,5 +1,6 @@
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
+import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
 
 const POR_PAGINA = 20
 
@@ -36,6 +37,7 @@ export type SearchDataParams = {
 
 export async function carregarSearchData(params: SearchDataParams) {
   const supabase = criarSupabaseAdmin()
+  const fontesOcultas = await carregarNomesFontesOcultas(supabase)
   const q = params.q || ''
   const categoria = params.categoria || null
   const clubeExato = params.clube || ''
@@ -48,10 +50,10 @@ export async function carregarSearchData(params: SearchDataParams) {
   const novidades = params.novidades === true || params.novidades === 'true'
   const raridades = params.raridades === true || params.raridades === 'true'
 
-  let query = supabase
+  let query = aplicarFiltroFontesVisiveis(supabase
     .from('produtos')
     .select(PRODUCT_CARD_SELECT, { count: 'exact' })
-    .eq('ativo', true)
+    .eq('ativo', true), fontesOcultas)
 
   if (categoria) {
     const { data: clubesCategoria, error } = await supabase

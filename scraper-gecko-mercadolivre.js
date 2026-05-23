@@ -9,6 +9,8 @@
  */
 
 import fetch from 'node-fetch'
+import * as cheerio from 'cheerio'
+import { writeFile } from 'node:fs/promises'
 import {
   criarSupabase,
   desativarProdutosDaFonte,
@@ -24,11 +26,13 @@ import 'dotenv/config'
 
 const FONTE_NOME = 'Mercado Livre'
 const FONTE_URL = 'https://www.mercadolivre.com.br'
+const BUSCA_URL = 'https://lista.mercadolivre.com.br'
 const GECKO_API_URL = 'https://api.geckoapi.com.br/v1/extract'
 const MAX_PAGINAS_PADRAO = 3
 const MAX_PAGINAS_LIMITE = 3
 const DELAY_MS = 1200
 const RETRIES_PADRAO = 2
+const SELECTOR_CARDS_HTML = '.poly-card, .ui-search-result, .andes-card.poly-card, li.ui-search-layout__item'
 
 const supabase = criarSupabase()
 
@@ -50,9 +54,11 @@ function parseArgs() {
     ),
     salvar: args.includes('--salvar'),
     semDesativar: args.includes('--sem-desativar'),
+    htmlListing: args.includes('--html-listing'),
+    browserListing: args.includes('--browser-listing'),
     filtrarCamisas: !args.includes('--sem-filtro-camisa'),
     filtrarUsados: !args.includes('--sem-filtro-usados'),
-    comPdp: args.includes('--com-pdp') || args.includes('--salvar'),
+    comPdp: !args.includes('--html-listing') && !args.includes('--browser-listing') && (args.includes('--com-pdp') || args.includes('--salvar')),
     maxPdp: valorArg('max-pdp') ? Math.max(1, Number(valorArg('max-pdp')) || 1) : null,
     debug: args.includes('--debug'),
     retries: Math.max(0, Number(valorArg('retries') || RETRIES_PADRAO) || RETRIES_PADRAO),
@@ -94,12 +100,166 @@ function tituloDoItem(item) {
   return primeiroValor(item.name, item.title, item.titulo, '')
 }
 
+function limparUrlProduto(url) {
+  if (!url) return ''
+
+  try {
+    const parsed = new URL(url, FONTE_URL)
+    parsed.hash = ''
+    return parsed.toString()
+  } catch {
+    return String(url).split('#')[0]
+  }
+}
+
 function linkDoItem(item) {
-  return primeiroValor(item.url, item.link, item.permalink, item.canonicalUrl, '')
+  return limparUrlProduto(primeiroValor(item.url, item.link, item.permalink, item.canonicalUrl, ''))
 }
 
 function precoDoItem(item) {
   return parsePreco(primeiroValor(item.price, item.priceValue, item.prices?.mainValue, item.value))
+}
+
+function slugBusca(query) {
+  return normalizarTexto(query)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function montarUrlHtml(busca, page) {
+  if (busca.url) {
+    const url = new URL(busca.url)
+    if (page > 1 && !url.pathname.includes('_Desde_')) {
+      url.pathname = `${url.pathname.replace(/\/$/, '')}_Desde_${((page - 1) * 48) + 1}`
+    }
+    return url.toString()
+  }
+
+  const desde = page > 1 ? `_Desde_${((page - 1) * 48) + 1}` : ''
+  return `${BUSCA_URL}/${slugBusca(busca.query)}${desde}`
+}
+
+async function buscarHtml(url) {
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+    },
+    timeout: 20000,
+  })
+  if (!res.ok) throw new Error(`Status ${res.status}`)
+  return res.text()
+}
+
+async function buscarHtmlRenderizado(url) {
+  const { chromium } = await import('playwright')
+  const browser = await chromium.launch({ headless: true })
+
+  try {
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      viewport: { width: 1366, height: 900 },
+      locale: 'pt-BR',
+    })
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 })
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+    const temIntermediaria = await page.locator('#continue-button, .micro-landing-container').count()
+    if (temIntermediaria > 0) {
+      console.log('  Validando tela intermediária do Mercado Livre...')
+      await context.addCookies([{
+        name: '_bm_skipml',
+        value: 'true',
+        domain: '.mercadolivre.com.br',
+        path: '/',
+        expires: Math.floor(Date.now() / 1000) + 300,
+      }])
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {})
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+    }
+    await page.waitForSelector(SELECTOR_CARDS_HTML, { timeout: 30000 }).catch(() => {})
+    const html = await page.content()
+    if (/suspicious-traffic|account-verification|negative_traffic|Olá! Para continuar, acesse/.test(html)) {
+      const path = '/tmp/mercadolivre-listing-debug.html'
+      await writeFile(path, html.slice(0, 500000))
+      throw new Error(`Mercado Livre classificou o browser como tráfego suspeito. Diagnóstico salvo em ${path}`)
+    }
+    if (!html.match(/poly-card|ui-search-result|ui-search-layout__item/)) {
+      const path = '/tmp/mercadolivre-listing-debug.html'
+      await writeFile(path, html.slice(0, 500000))
+      console.warn(`  ⚠️  Nenhum card renderizado encontrado. HTML salvo para diagnóstico: ${path}`)
+    }
+    return html
+  } finally {
+    await browser.close()
+  }
+}
+
+function maiorImagemSrcset(srcset) {
+  if (!srcset) return null
+  const candidatos = srcset
+    .split(',')
+    .map(item => {
+      const [url, largura] = item.trim().split(/\s+/)
+      return { url, largura: Number((largura || '').replace(/\D/g, '')) || 0 }
+    })
+    .filter(item => item.url)
+    .sort((a, b) => b.largura - a.largura)
+
+  return candidatos[0]?.url || null
+}
+
+function extrairPrecoCard($, $card) {
+  const aria = $card.find('.andes-money-amount[aria-label]').first().attr('aria-label')
+  const precoAria = parsePreco(aria
+    ?.replace(/\s*reais?\s*/i, ',')
+    .replace(/\s*com\s*/i, '')
+    .replace(/\s*centavos?.*/i, ''))
+  if (precoAria !== null) return precoAria
+
+  const fracao = $card.find('.andes-money-amount__fraction').first().text().trim()
+  const centavos = $card.find('.andes-money-amount__cents').first().text().trim()
+  if (!fracao) return null
+
+  return parsePreco(`${fracao}${centavos ? `,${centavos}` : ''}`)
+}
+
+function extrairCardsHtml(html) {
+  const $ = cheerio.load(html)
+  const produtos = []
+  const vistos = new Set()
+
+  $(SELECTOR_CARDS_HTML).each((_, el) => {
+    const $card = $(el)
+    const $link = $card.find('a.poly-component__title, a.poly-component__link, a[href*="mercadolivre.com"]').first()
+    const titulo = $card.find('.poly-component__title').first().text().trim() || $link.text().trim() || $link.attr('title') || ''
+    const link = limparUrlProduto($link.attr('href') || '')
+    const $img = $card.find('img.poly-component__picture, img[data-testid="picture"], img').first()
+    const imagem = primeiroValor(
+      $img.attr('src'),
+      maiorImagemSrcset($img.attr('srcset')),
+      $img.attr('data-src')
+    )
+    const condicao = $card.find('.poly-component__item-condition').first().text().trim()
+    const preco = extrairPrecoCard($, $card)
+    const chave = link || `${normalizarTexto(titulo)}|${preco}|${imagem}`
+
+    if (!titulo || !link) return
+    if (vistos.has(chave)) return
+
+    vistos.add(chave)
+
+    produtos.push({
+      name: titulo,
+      title: titulo,
+      url: link,
+      image: imagem,
+      price: preco,
+      condition: condicao,
+    })
+  })
+
+  return produtos
 }
 
 function itemDisponivel(item) {
@@ -328,9 +488,22 @@ async function rasparBusca(busca, options) {
   let totalBusca = 0
 
   for (let page = 1; page <= options.maxPaginas; page++) {
-    const payload = montarPayload(busca, page)
-    const data = await chamarGeckoComRetry(payload, options)
-    const items = extrairItems(data)
+    let items = []
+
+    if (options.browserListing) {
+      const url = montarUrlHtml(busca, page)
+      console.log(`  Browser consultado: ${url}`)
+      items = extrairCardsHtml(await buscarHtmlRenderizado(url))
+    } else if (options.htmlListing) {
+      const url = montarUrlHtml(busca, page)
+      console.log(`  HTML consultado: ${url}`)
+      items = extrairCardsHtml(await buscarHtml(url))
+    } else {
+      const payload = montarPayload(busca, page)
+      const data = await chamarGeckoComRetry(payload, options)
+      items = extrairItems(data)
+    }
+
     if (options.debug) diagnosticarPrimeiroItem(items)
     const aprovados = filtrarProdutos(items.map(item => converterItem(item, busca.clube)), busca, options)
     const produtos = options.comPdp ? await completarComPdp(aprovados, options) : aprovados
@@ -367,6 +540,8 @@ async function main() {
   if (options.url) console.log(`URL pronta: ${options.url}`)
   console.log(`Páginas por busca: ${options.maxPaginas}`)
   console.log(`Filtro local de usados: ${options.filtrarUsados ? 'ligado' : 'desligado'}`)
+  console.log(`Listagem HTML: ${options.htmlListing ? 'ligada' : 'desligada'}`)
+  console.log(`Listagem browser: ${options.browserListing ? 'ligada' : 'desligada'}`)
   console.log(`Enriquecimento PDP: ${options.comPdp ? 'ligado' : 'desligado'}`)
   if (options.maxPdp) console.log(`Limite PDP por página: ${options.maxPdp}`)
   if (!options.salvar) console.log('Use --salvar para gravar no Supabase.')

@@ -1,18 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Fonte = {
   id: string
   nome: string
   url: string
   ativa: boolean
+  visivel_site: boolean
   ultimo_scraping: string | null
   total_produtos: number
   seletor_produto: string | null
@@ -27,6 +22,7 @@ const FONTE_VAZIA: Omit<Fonte, 'id'> = {
   nome: '',
   url: '',
   ativa: true,
+  visivel_site: true,
   ultimo_scraping: null,
   total_produtos: 0,
   seletor_produto: '',
@@ -44,18 +40,29 @@ export default function AdminFontes() {
   const [editando, setEditando] = useState<Fonte | null>(null)
   const [form, setForm] = useState<Omit<Fonte, 'id'>>(FONTE_VAZIA)
   const [salvando, setSalvando] = useState(false)
+  const [sincronizando, setSincronizando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
   const [confirmarDelete, setConfirmarDelete] = useState<string | null>(null)
 
-  async function carregar() {
-    const { data } = await supabase
-      .from('fontes')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setFontes(data || [])
+  async function carregar(sincronizar = true) {
+    setErro(null)
+    if (sincronizar) setSincronizando(true)
+    const res = await fetch('/api/admin/cms/fontes', { cache: 'no-store' })
+    const json = await res.json()
+    if (!res.ok) {
+      setErro(json.error || 'Não foi possível carregar as fontes.')
+      setFontes([])
+    } else {
+      setFontes(json.fontes || [])
+    }
+    if (sincronizar) setSincronizando(false)
     setCarregando(false)
   }
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => {
+    const timeout = window.setTimeout(() => { void carregar() }, 0)
+    return () => window.clearTimeout(timeout)
+  }, [])
 
   function abrirNova() {
     setEditando(null)
@@ -69,6 +76,7 @@ export default function AdminFontes() {
       nome: fonte.nome,
       url: fonte.url,
       ativa: fonte.ativa,
+      visivel_site: fonte.visivel_site !== false,
       ultimo_scraping: fonte.ultimo_scraping,
       total_produtos: fonte.total_produtos,
       seletor_produto: fonte.seletor_produto || '',
@@ -89,6 +97,7 @@ export default function AdminFontes() {
       nome: form.nome,
       url: form.url,
       ativa: form.ativa,
+      visivel_site: form.visivel_site,
       seletor_produto: form.seletor_produto || null,
       seletor_titulo: form.seletor_titulo || null,
       seletor_preco: form.seletor_preco || null,
@@ -98,29 +107,47 @@ export default function AdminFontes() {
       updated_at: new Date().toISOString(),
     }
 
-    if (editando) {
-      await supabase.from('fontes').update(dados).eq('id', editando.id)
-    } else {
-      await supabase.from('fontes').insert(dados)
-    }
+    const res = await fetch('/api/admin/cms/fontes', {
+      method: editando ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editando ? { id: editando.id, ...dados } : dados),
+    })
+
+    const json = await res.json()
+    if (!res.ok) setErro(json.error || 'Não foi possível salvar a fonte.')
 
     setSalvando(false)
-    setModalAberto(false)
-    carregar()
+    if (res.ok) {
+      setModalAberto(false)
+      carregar(false)
+    }
   }
 
   async function toggleAtiva(fonte: Fonte) {
-    await supabase
-      .from('fontes')
-      .update({ ativa: !fonte.ativa, updated_at: new Date().toISOString() })
-      .eq('id', fonte.id)
-    carregar()
+    await atualizarFonte(fonte.id, { ativa: !fonte.ativa })
+  }
+
+  async function toggleVisivel(fonte: Fonte) {
+    await atualizarFonte(fonte.id, { visivel_site: fonte.visivel_site === false })
+  }
+
+  async function atualizarFonte(id: string, dados: Record<string, unknown>) {
+    const res = await fetch('/api/admin/cms/fontes', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...dados }),
+    })
+    const json = await res.json()
+    if (!res.ok) setErro(json.error || 'Não foi possível atualizar a fonte.')
+    carregar(false)
   }
 
   async function deletar(id: string) {
-    await supabase.from('fontes').delete().eq('id', id)
+    const res = await fetch(`/api/admin/cms/fontes?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    const json = await res.json()
+    if (!res.ok) setErro(json.error || 'Não foi possível remover a fonte.')
     setConfirmarDelete(null)
-    carregar()
+    carregar(false)
   }
 
   function formatarData(iso: string | null) {
@@ -151,23 +178,48 @@ export default function AdminFontes() {
             Sites rastreados pelo scraper
           </p>
         </div>
-        <button
-          onClick={abrirNova}
-          style={{
-            padding: '10px 20px',
-            background: '#1A1A1A',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            fontFamily: 'Onest, sans-serif',
-            cursor: 'pointer',
-          }}
-        >
-          + Nova fonte
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => carregar(true)}
+            disabled={sincronizando}
+            style={{
+              padding: '10px 18px',
+              background: '#F0EFEB',
+              color: '#4A4845',
+              border: 'none',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: 'Onest, sans-serif',
+              cursor: sincronizando ? 'wait' : 'pointer',
+            }}
+          >
+            {sincronizando ? 'Sincronizando...' : 'Sincronizar produtos'}
+          </button>
+          <button
+            onClick={abrirNova}
+            style={{
+              padding: '10px 20px',
+              background: '#1A1A1A',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: 'Onest, sans-serif',
+              cursor: 'pointer',
+            }}
+          >
+            + Nova fonte
+          </button>
+        </div>
       </div>
+
+      {erro && (
+        <div style={{ background: '#FFF4F2', border: '1px solid #F2C7C0', color: '#A33A2B', borderRadius: 10, padding: '12px 14px', fontSize: 13, marginBottom: 18 }}>
+          {erro}
+        </div>
+      )}
 
       {/* Tabela */}
       {carregando ? (
@@ -193,7 +245,7 @@ export default function AdminFontes() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #E8E6DF' }}>
-                {['Site', 'Status', 'Último scraping', 'Produtos', 'Ações'].map(h => (
+                {['Site', 'Scraping', 'Site público', 'Último scraping', 'Produtos', 'Ações'].map(h => (
                   <th key={h} style={{
                     padding: '12px 20px',
                     textAlign: 'left',
@@ -226,7 +278,7 @@ export default function AdminFontes() {
                     </div>
                   </td>
 
-                  {/* Status */}
+                  {/* Scraping */}
                   <td style={{ padding: '14px 20px' }}>
                     <button
                       onClick={() => toggleAtiva(fonte)}
@@ -243,6 +295,26 @@ export default function AdminFontes() {
                       }}
                     >
                       {fonte.ativa ? '● Ativa' : '○ Inativa'}
+                    </button>
+                  </td>
+
+                  {/* Site público */}
+                  <td style={{ padding: '14px 20px' }}>
+                    <button
+                      onClick={() => toggleVisivel(fonte)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 99,
+                        border: 'none',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        fontFamily: 'Onest, sans-serif',
+                        cursor: 'pointer',
+                        background: fonte.visivel_site !== false ? '#EEF2FF' : '#FFF4F2',
+                        color: fonte.visivel_site !== false ? '#3949AB' : '#A33A2B',
+                      }}
+                    >
+                      {fonte.visivel_site !== false ? 'Visível' : 'Oculta'}
                     </button>
                   </td>
 
@@ -367,6 +439,27 @@ export default function AdminFontes() {
                 </button>
                 <span style={{ fontSize: 13, color: '#4A4845' }}>
                   {form.ativa ? 'Fonte ativa (será rastreada)' : 'Fonte inativa (não será rastreada)'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                <button
+                  onClick={() => setForm(f => ({ ...f, visivel_site: !f.visivel_site }))}
+                  style={{
+                    width: 40, height: 22, borderRadius: 99,
+                    background: form.visivel_site ? '#1A1A1A' : '#E8E6DF',
+                    border: 'none', cursor: 'pointer',
+                    position: 'relative', transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 3,
+                    left: form.visivel_site ? 21 : 3,
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+                <span style={{ fontSize: 13, color: '#4A4845' }}>
+                  {form.visivel_site ? 'Produtos visíveis no site' : 'Produtos ocultos no site público'}
                 </span>
               </div>
             </div>

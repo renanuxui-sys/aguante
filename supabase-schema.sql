@@ -65,6 +65,14 @@ alter table produtos add column if not exists cliques_anuncio integer default 0;
 alter table produtos add column if not exists last_seen_at timestamptz;
 alter table produtos add column if not exists inactivated_at timestamptz;
 alter table produtos add column if not exists reactivated_at timestamptz;
+alter table fontes add column if not exists visivel_site boolean not null default true;
+alter table fontes add column if not exists updated_at timestamptz default now();
+alter table fontes add column if not exists seletor_produto text;
+alter table fontes add column if not exists seletor_titulo text;
+alter table fontes add column if not exists seletor_preco text;
+alter table fontes add column if not exists seletor_imagem text;
+alter table fontes add column if not exists seletor_link text;
+alter table fontes add column if not exists observacoes text;
 
 create index if not exists idx_produtos_views on produtos(views desc);
 create index if not exists idx_produtos_cliques_anuncio on produtos(cliques_anuncio desc);
@@ -74,6 +82,8 @@ create index if not exists idx_produtos_last_seen_at on produtos(last_seen_at de
 create index if not exists idx_produtos_fonte_inactivated_at on produtos(fonte_nome, inactivated_at desc) where inactivated_at is not null;
 create index if not exists idx_produtos_clube_inactivated_at on produtos(clube, inactivated_at desc) where inactivated_at is not null;
 create index if not exists idx_produtos_tipo_camisa on produtos(tipo_camisa);
+create index if not exists idx_fontes_visivel_site on fontes(visivel_site);
+create index if not exists idx_fontes_ativa_visivel_site on fontes(ativa, visivel_site);
 
 -- Evita que camisas "pre-jogo" entrem no filtro "de jogo".
 update produtos

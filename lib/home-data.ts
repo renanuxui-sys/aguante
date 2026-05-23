@@ -1,5 +1,6 @@
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
+import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
 
 function embaralhar<T>(itens: T[]) {
   const copia = [...itens]
@@ -19,6 +20,11 @@ async function contar(query: PromiseLike<{ count: number | null; error: { messag
 export async function carregarHomeDataServidor() {
   const supabase = criarSupabaseAdmin()
   const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const fontesOcultas = await carregarNomesFontesOcultas(supabase)
+  const produtosPublicos = () => aplicarFiltroFontesVisiveis(
+    supabase.from('produtos'),
+    fontesOcultas
+  )
 
   const [
     totalProdutos,
@@ -29,10 +35,9 @@ export async function carregarHomeDataServidor() {
     anos80,
     clubes,
   ] = await Promise.all([
-    contar(supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true)),
-    contar(supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true).gte('created_at', ontem)),
-    supabase
-      .from('produtos')
+    contar(produtosPublicos().select('id', { count: 'exact', head: true }).eq('ativo', true)),
+    contar(produtosPublicos().select('id', { count: 'exact', head: true }).eq('ativo', true).gte('created_at', ontem)),
+    produtosPublicos()
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
       .gte('created_at', ontem)
@@ -43,15 +48,13 @@ export async function carregarHomeDataServidor() {
       .select('nome')
       .eq('ativo', true)
       .eq('categoria', 'Seleções'),
-    supabase
-      .from('produtos')
+    produtosPublicos()
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
       .order('views', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(50),
-    supabase
-      .from('produtos')
+    produtosPublicos()
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
       .gte('ano', '1980')
@@ -68,8 +71,7 @@ export async function carregarHomeDataServidor() {
 
   const nomesSelecoes = (clubesSelecoes.data || []).map(clube => clube.nome).filter(Boolean)
   const selecoes = nomesSelecoes.length
-    ? await supabase
-        .from('produtos')
+    ? await produtosPublicos()
         .select(PRODUCT_CARD_SELECT)
         .eq('ativo', true)
         .in('clube', nomesSelecoes)

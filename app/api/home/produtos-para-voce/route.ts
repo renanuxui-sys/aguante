@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
+import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,14 +11,15 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = criarSupabaseAdmin()
-    const { data, error } = await supabase
+    const fontesOcultas = await carregarNomesFontesOcultas(supabase)
+    const { data, error } = await aplicarFiltroFontesVisiveis(supabase
       .from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
       .eq('clube', clube)
       .order('views', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(30)
+      .limit(30), fontesOcultas)
 
     if (error) throw error
 

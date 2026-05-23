@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { carregarClubesAtivos } from '@/lib/clube-data'
+import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
 import { carregarLojasAtivas } from '@/lib/loja-data'
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 
@@ -54,11 +55,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 async function carregarProdutosAtivos() {
   try {
     const supabase = criarSupabaseAdmin()
-    const { data, error } = await supabase
+    const fontesOcultas = await carregarNomesFontesOcultas(supabase)
+    const { data, error } = await aplicarFiltroFontesVisiveis(supabase
       .from('produtos')
       .select('id,updated_at')
       .eq('ativo', true)
-      .order('updated_at', { ascending: false })
+      .order('updated_at', { ascending: false }), fontesOcultas)
 
     if (error) throw error
     return data || []
