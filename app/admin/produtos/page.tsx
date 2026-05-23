@@ -47,6 +47,7 @@ export default function AdminProdutos() {
   const [clubes, setClubes] = useState<string[]>([])
   const [editando, setEditando] = useState<Produto | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -86,39 +87,52 @@ export default function AdminProdutos() {
   }, [])
 
   async function toggleAtivo(produto: Produto) {
-    await supabase
-      .from('produtos')
-      .update({ ativo: !produto.ativo, updated_at: new Date().toISOString() })
-      .eq('id', produto.id)
-    carregar()
+    await atualizarProduto(produto.id, { ativo: !produto.ativo })
   }
 
   async function toggleBadge(produto: Produto, campo: 'de_jogo' | 'novidade' | 'alta_procura') {
     if (campo === 'de_jogo' && ehPreJogo(produto.titulo)) return
 
-    await supabase
-      .from('produtos')
-      .update({ [campo]: !produto[campo], updated_at: new Date().toISOString() })
-      .eq('id', produto.id)
+    await atualizarProduto(produto.id, { [campo]: !produto[campo] })
+  }
+
+  async function atualizarProduto(id: string, dados: Record<string, boolean>) {
+    setErro(null)
+    const res = await fetch('/api/admin/cms/produtos', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...dados }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setErro(json.error || 'Não foi possível atualizar o produto.')
+      return
+    }
     carregar()
   }
 
   async function salvarEdicao() {
     if (!editando) return
     setSalvando(true)
-    await supabase
-      .from('produtos')
-      .update({
+    setErro(null)
+    const res = await fetch('/api/admin/cms/produtos', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: editando.id,
         ativo: editando.ativo,
         de_jogo: editando.de_jogo,
         novidade: editando.novidade,
         alta_procura: editando.alta_procura,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', editando.id)
+      }),
+    })
+    const json = await res.json()
+    if (!res.ok) setErro(json.error || 'Não foi possível salvar o produto.')
     setSalvando(false)
-    setEditando(null)
-    carregar()
+    if (res.ok) {
+      setEditando(null)
+      carregar()
+    }
   }
 
   const totalPaginas = Math.ceil(total / POR_PAGINA)
@@ -137,6 +151,12 @@ export default function AdminProdutos() {
           {total.toLocaleString('pt-BR')} produtos indexados
         </p>
       </div>
+
+      {erro && (
+        <div style={{ background: '#FFF4F2', border: '1px solid #F2C7C0', color: '#A33A2B', borderRadius: 10, padding: '12px 14px', fontSize: 13, marginBottom: 18 }}>
+          {erro}
+        </div>
+      )}
 
       {/* Filtros */}
       <div style={{

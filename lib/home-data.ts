@@ -21,10 +21,7 @@ export async function carregarHomeDataServidor() {
   const supabase = criarSupabaseAdmin()
   const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const fontesOcultas = await carregarNomesFontesOcultas(supabase)
-  const produtosPublicos = () => aplicarFiltroFontesVisiveis(
-    supabase.from('produtos'),
-    fontesOcultas
-  )
+  const produtosPublicos = <T,>(query: T) => aplicarFiltroFontesVisiveis(query, fontesOcultas)
 
   const [
     totalProdutos,
@@ -35,31 +32,31 @@ export async function carregarHomeDataServidor() {
     anos80,
     clubes,
   ] = await Promise.all([
-    contar(produtosPublicos().select('id', { count: 'exact', head: true }).eq('ativo', true)),
-    contar(produtosPublicos().select('id', { count: 'exact', head: true }).eq('ativo', true).gte('created_at', ontem)),
-    produtosPublicos()
+    contar(produtosPublicos(supabase.from('produtos').select('id', { count: 'exact', head: true })).eq('ativo', true)),
+    contar(produtosPublicos(supabase.from('produtos').select('id', { count: 'exact', head: true })).eq('ativo', true).gte('created_at', ontem)),
+    produtosPublicos(supabase.from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
       .gte('created_at', ontem)
       .order('created_at', { ascending: false })
-      .limit(80),
+      .limit(80)),
     supabase
       .from('clubes')
       .select('nome')
       .eq('ativo', true)
       .eq('categoria', 'Seleções'),
-    produtosPublicos()
+    produtosPublicos(supabase.from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
       .order('views', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(50),
-    produtosPublicos()
+      .limit(50)),
+    produtosPublicos(supabase.from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
       .gte('ano', '1980')
       .lte('ano', '1989')
-      .limit(20),
+      .limit(20)),
     supabase
       .from('clubes')
       .select('id,nome,slug,escudo_url')
@@ -71,13 +68,13 @@ export async function carregarHomeDataServidor() {
 
   const nomesSelecoes = (clubesSelecoes.data || []).map(clube => clube.nome).filter(Boolean)
   const selecoes = nomesSelecoes.length
-    ? await produtosPublicos()
+    ? await produtosPublicos(supabase.from('produtos')
         .select(PRODUCT_CARD_SELECT)
         .eq('ativo', true)
         .in('clube', nomesSelecoes)
         .order('views', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
-        .limit(50)
+        .limit(50))
     : { data: [] }
 
   return {

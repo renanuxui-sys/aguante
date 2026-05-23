@@ -195,6 +195,7 @@ export async function PATCH(request: Request) {
       .single()
 
     if (error) return Response.json({ error: error.message }, { status: 500 })
+
     return Response.json({ fonte: data })
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'Erro ao atualizar fonte.' }, { status: 500 })
