@@ -79,9 +79,9 @@ export default function ContatoPage() {
         .contato-title {
           margin: 23px 0 60px;
           color: #050505;
-          font-size: 82px;
+          font-size: 64px;
           font-weight: 300;
-          line-height: 0.92;
+          line-height: 1;
           letter-spacing: -0.065em;
         }
 

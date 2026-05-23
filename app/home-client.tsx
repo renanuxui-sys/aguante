@@ -107,9 +107,9 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
   return (
     <section className="ag-copa-section" style={{ background: '#f5f5f5', padding: '32px 0 24px' }}>
       <div className="ag-container">
-        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
           <div style={{ maxWidth: 620 }}>
-            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', marginBottom: 8 }}>Camisas das Seleções</h2>
+            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em'}}>Camisas das Seleções</h2>
           </div>
           <Link
             className="ag-section-link"
@@ -132,7 +132,7 @@ function SecaoCardsLoading({ titulo }: { titulo: string }) {
   return (
     <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 40 }}>
       <div className="ag-container">
-        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em' }}>{titulo}</h2>
         </div>
         <div className="ag-cards">

@@ -71,7 +71,7 @@ export default function SobrePage() {
           color: #050505;
           font-size: 64px;
           font-weight: 100;
-          line-height: 0.92;
+          line-height: 1;
           letter-spacing: -0.065em;
         }
 

@@ -189,6 +189,7 @@ node scraper-originaisdofut.js          # Originais do Fut
 node scraper-camisadoze.js              # Camisa Doze
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
+# node scraper-gecko-mercadolivre.js    # Mercado Livre via GeckoAPI (experimental; validar PLP)
 # node scraper-gecko-olx.js             # OLX via GeckoAPI (experimental; gera custo)
 ```
 
@@ -553,6 +554,35 @@ ML_REFRESH_TOKEN=...
 **Status:** 📋 Experimental — gera custo por resultado
 
 **Variável necessária:** `APIFY_TOKEN=...`
+
+---
+
+### Mercado Livre via GeckoAPI
+**Arquivo:** `scraper-gecko-mercadolivre.js`
+**Status:** 📋 Experimental — validar retorno real de PLP e fotos antes de salvar em volume
+
+**Variável necessária:** `GECKO_API_KEY=...`
+
+**Comandos:**
+```bash
+node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --debug
+node scraper-gecko-mercadolivre.js --query="camisa flamengo usada" --max-paginas=1 --debug
+node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --com-pdp --max-pdp=3 --debug
+node scraper-gecko-mercadolivre.js --clubes=flamengo --max-paginas=1 --salvar --sem-desativar
+```
+
+**Flags:**
+- `--query=` busca manual sem depender dos clubes do banco
+- `--url=` usa uma URL pronta de listagem do Mercado Livre
+- `--clubes=` limita clubes quando usa as buscas cadastradas
+- `--max-paginas=` controla custo; o scraper usa e limita no máximo a `3` inicialmente
+- `--salvar` grava no Supabase; sem isso roda em modo teste
+- `--sem-desativar` evita marcar Mercado Livre antigos como inativos
+- `--com-pdp` completa produtos aprovados com a PDP para trazer foto, estoque e URL canônica; `--salvar` liga PDP automaticamente
+- `--max-pdp=` limita quantos produtos aprovados por página recebem chamada PDP durante testes
+- `--sem-filtro-camisa` desliga o filtro local de títulos com "camisa"
+- `--sem-filtro-usados` desliga o filtro local de `condition=used`
+- `--debug` imprime uma amostra do primeiro item retornado pela GeckoAPI
 
 ---
 
