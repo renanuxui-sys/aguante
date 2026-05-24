@@ -9,5 +9,5 @@ export function gerarSlugLoja(nome: string) {
 }
 
 export function descricaoCurtaLoja(nome: string) {
-  return `Encontre camisas antigas, retrô, históricas e colecionáveis encontradas em ${nome}. A Aguante monitora anúncios e lojas diariamente para ajudar torcedores e colecionadores a descobrir novas peças disponíveis em diferentes acervos, lojas especializadas e marketplaces.`
+  return `Camisas antigas, históricas e colecionáveis encontradas em ${nome}`
 }

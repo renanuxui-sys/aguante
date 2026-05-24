@@ -183,6 +183,7 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
         .ag-filter-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .ag-filter-tag { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 12px; border-radius: 8px; border: none; background: #fff; color: #000; font: 400 14px/1.2 Onest, sans-serif; letter-spacing: -0.14px; cursor: pointer; }
         .ag-filter-tag-active { background: #550fed; color: #fff; }
+        .ag-pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 112px; max-width: 100%; }
         @media (max-width: 768px) {
           .ag-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; }
           .ag-card { height: auto !important; min-height: 112px; }
@@ -196,6 +197,9 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
           .ag-filter-tags { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
           .ag-filter-tags::-webkit-scrollbar { display: none; }
           .ag-filter-tag { flex-shrink: 0; }
+          .ag-pagination { gap: 4px; overflow: hidden; }
+          .ag-page-number { min-width: 32px !important; width: 32px; }
+          .ag-page-ellipsis { min-width: 18px !important; width: 18px; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
           .ag-cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
@@ -306,15 +310,10 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
             )}
 
             {!loading && totalPaginas > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 112 }}>
-                {paginaParam > 1 && (
-                  <button onClick={() => irParaPagina(paginaParam - 1)} style={{ minWidth: 92, height: 36, borderRadius: 8, border: '1px solid #fff', background: '#ecebf0', color: '#444', fontSize: 12, fontWeight: 700, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', padding: '0 14px' }}>
-                    anterior
-                  </button>
-                )}
+              <div className="ag-pagination">
                 {paginasVisiveis.map((pagina, index) => (
                   pagina === '...' ? (
-                    <span key={`ellipsis-${index}`} style={{ minWidth: 22, height: 34, color: '#62748c', fontSize: 12, fontWeight: 700, fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span key={`ellipsis-${index}`} className="ag-page-ellipsis" style={{ minWidth: 22, height: 34, color: '#62748c', fontSize: 12, fontWeight: 700, fontFamily: 'Onest, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       ...
                     </span>
                   ) : (
@@ -322,6 +321,7 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
                       key={pagina}
                       onClick={() => irParaPagina(pagina)}
                       aria-current={pagina === paginaParam ? 'page' : undefined}
+                      className="ag-page-number"
                       style={{
                         minWidth: 34,
                         height: 34,
@@ -339,11 +339,6 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
                     </button>
                   )
                 ))}
-                {paginaParam < totalPaginas && (
-                  <button onClick={() => irParaPagina(paginaParam + 1)} style={{ minWidth: 92, height: 36, borderRadius: 8, border: '1px solid #fff', background: '#ecebf0', color: '#444', fontSize: 12, fontWeight: 700, letterSpacing: '-0.12px', cursor: 'pointer', fontFamily: 'Onest, sans-serif', padding: '0 14px' }}>
-                    próxima
-                  </button>
-                )}
               </div>
             )}
           </div>
