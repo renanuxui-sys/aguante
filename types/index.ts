@@ -5,6 +5,7 @@ export type Produto = {
   preco: number | null
   imagem_url: string | null
   link_original: string
+  fonte_id?: string | null
   fonte_nome: string
   fonte_url: string
   clube: string | null
@@ -44,6 +45,22 @@ export type OfertaAfiliada = {
   link_produto: string | null
   ativo: boolean
   ordem: number
+  created_at: string
+  updated_at: string
+}
+
+export type StoreCoupon = {
+  id: string
+  store_id: string | null
+  store_name: string
+  code: string
+  discount_label: string
+  description: string | null
+  rules: string | null
+  valid_from: string | null
+  valid_until: string | null
+  is_active: boolean
+  campaign: string | null
   created_at: string
   updated_at: string
 }

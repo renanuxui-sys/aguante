@@ -112,6 +112,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const proximoTotal = Number(produto.cliques_anuncio || 0) + 1
   const agora = new Date().toISOString()
   const cupomRevelado = ['1', 'true', 'sim'].includes((req.nextUrl.searchParams.get('cupom_revelado') || '').toLowerCase())
+  const couponId = limitarTexto(req.nextUrl.searchParams.get('coupon_id'), 120)
+  const couponCode = limitarTexto(req.nextUrl.searchParams.get('coupon_code'), 120)
   const statusUsuario = 'anonimo'
 
   const [{ error: updateError }, { error: eventoError }] = await Promise.all([
@@ -135,6 +137,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
         usuario_status: statusUsuario,
         usuario_id: null,
         cupom_revelado: cupomRevelado,
+        ...(cupomRevelado ? { coupon_id: couponId, coupon_code: couponCode } : {}),
         destino_original: produto.link_original,
         destino_com_utm: saida.toString(),
         user_agent: limitarTexto(req.headers.get('user-agent'), 1000),

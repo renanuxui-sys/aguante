@@ -3,6 +3,9 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+const cuponsTesteAtivos = process.env.NEXT_PUBLIC_ENABLE_COUPONS_TEST === 'true'
+  || process.env.VERCEL_ENV === 'preview'
+
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: '▦' },
   { href: '/admin/fontes', label: 'Fontes', icon: '⊕' },
@@ -11,6 +14,7 @@ const NAV = [
   { href: '/admin/alertas', label: 'Alertas', icon: '◌' },
   { href: '/admin/preferencias-clubes', label: 'Escolhas', icon: '▣' },
   { href: '/admin/ofertas', label: 'Ofertas', icon: '▥' },
+  ...(cuponsTesteAtivos ? [{ href: '/admin/cupons', label: 'Cupons teste', icon: '%' }] : []),
   { href: '/admin/lojas', label: 'Lojas', icon: '🏪' },
   { href: '/admin/cliques-saida', label: 'Cliques saída', icon: '↗' },
   { href: '/admin/mercado', label: 'Mercado', icon: '▤' },
