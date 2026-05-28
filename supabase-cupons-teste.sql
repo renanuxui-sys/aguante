@@ -54,6 +54,16 @@ alter table public.cliques_saida
   add column if not exists coupon_id uuid references public.store_coupons(id) on delete set null,
   add column if not exists coupon_code text;
 
+-- Alinha produtos antigos à loja cadastrada quando ainda só possuem nome/url.
+update public.produtos p
+set fonte_id = f.id
+from public.fontes f
+where p.fonte_id is null
+  and (
+    p.fonte_url = f.url
+    or lower(trim(p.fonte_nome)) = lower(trim(f.nome))
+  );
+
 alter table public.store_coupons enable row level security;
 alter table public.coupon_events enable row level security;
 

@@ -14,7 +14,12 @@ function texto(valor: unknown) {
 
 function dataOuNull(valor: unknown) {
   const limpo = texto(valor)
-  return limpo ? new Date(`${limpo}T12:00:00`).toISOString() : null
+  return limpo ? new Date(`${limpo}T00:00:00.000-03:00`).toISOString() : null
+}
+
+function dataFimOuNull(valor: unknown) {
+  const limpo = texto(valor)
+  return limpo ? new Date(`${limpo}T23:59:59.999-03:00`).toISOString() : null
 }
 
 async function carregarMetricas(couponIds: string[]) {
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
         description: texto(body.description) || null,
         rules: texto(body.rules) || null,
         valid_from: dataOuNull(body.valid_from),
-        valid_until: dataOuNull(body.valid_until),
+        valid_until: dataFimOuNull(body.valid_until),
         is_active: body.is_active !== false,
         campaign: texto(body.campaign) || null,
       })
