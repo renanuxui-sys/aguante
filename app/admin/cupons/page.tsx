@@ -6,6 +6,7 @@ import type { StoreCoupon } from '@/types'
 type Loja = { id: string; nome: string }
 type Metricas = Record<string, { reveals: number; copies: number }>
 type Alcance = Record<string, number>
+type Exemplos = Record<string, Array<{ id: string; titulo: string | null; fonte_nome: string | null }>>
 
 const campoStyle = {
   background: '#fff',
@@ -25,6 +26,7 @@ export default function AdminCupons() {
   const [lojas, setLojas] = useState<Loja[]>([])
   const [metricas, setMetricas] = useState<Metricas>({})
   const [alcance, setAlcance] = useState<Alcance>({})
+  const [exemplos, setExemplos] = useState<Exemplos>({})
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -54,6 +56,7 @@ export default function AdminCupons() {
     setLojas(json.lojas || [])
     setMetricas(json.metricas || {})
     setAlcance(json.alcance || {})
+    setExemplos(json.exemplos || {})
     setCarregando(false)
   }
 
@@ -151,7 +154,7 @@ export default function AdminCupons() {
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #E8E6DF' }}>
-                {['Loja', 'Cupom', 'Benefício', 'Campanha', 'Produtos', 'Revelados', 'Copiados', 'Status'].map(coluna => (
+                {['Loja', 'Cupom', 'Benefício', 'Campanha', 'Produtos', 'Exemplos', 'Revelados', 'Copiados', 'Status'].map(coluna => (
                   <th key={coluna} style={{ color: '#8A8880', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', padding: '12px 16px', textAlign: 'left', textTransform: 'uppercase' }}>{coluna}</th>
                 ))}
               </tr>
@@ -166,6 +169,17 @@ export default function AdminCupons() {
                   <td style={{ ...celulaStyle, color: (alcance[cupom.id] || 0) > 0 ? '#087443' : '#A23B3B', fontWeight: 700 }}>
                     {(alcance[cupom.id] || 0).toLocaleString('pt-BR')}
                   </td>
+                  <td style={{ ...celulaStyle, maxWidth: 280 }}>
+                    {(exemplos[cupom.id] || []).length === 0 ? '-' : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {(exemplos[cupom.id] || []).map(produto => (
+                          <a key={produto.id} href={`/produto/${produto.id}`} target="_blank" rel="noreferrer" style={{ color: '#550fed', fontSize: 12, fontWeight: 700, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none' }}>
+                            {produto.titulo || produto.id}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td style={celulaStyle}>{(metricas[cupom.id]?.reveals || 0).toLocaleString('pt-BR')}</td>
                   <td style={celulaStyle}>{(metricas[cupom.id]?.copies || 0).toLocaleString('pt-BR')}</td>
                   <td style={celulaStyle}>
@@ -177,7 +191,7 @@ export default function AdminCupons() {
               ))}
               {cupons.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ color: '#8A8880', fontSize: 14, padding: 28 }}>Nenhum cupom cadastrado.</td>
+                  <td colSpan={9} style={{ color: '#8A8880', fontSize: 14, padding: 28 }}>Nenhum cupom cadastrado.</td>
                 </tr>
               )}
             </tbody>

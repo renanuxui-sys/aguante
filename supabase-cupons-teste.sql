@@ -80,6 +80,19 @@ where (
   )
   and p.fonte_id is distinct from f.id;
 
+-- Vincula também quando a URL salva no produto é uma página/categoria da loja.
+-- Ex.: produto com link_original/fonte_url em memoriasdoesporteoficial.com.br
+-- e fonte cadastrada como https://memoriasdoesporteoficial.com.br.
+update public.produtos p
+set
+  fonte_id = f.id,
+  fonte_nome = coalesce(nullif(p.fonte_nome, ''), f.nome),
+  fonte_url = coalesce(nullif(p.fonte_url, ''), f.url)
+from public.fontes f
+where p.fonte_id is distinct from f.id
+  and lower(split_part(regexp_replace(coalesce(p.fonte_url, p.link_original, ''), '^https?://(www\.)?', ''), '/', 1))
+    = lower(split_part(regexp_replace(f.url, '^https?://(www\.)?', ''), '/', 1));
+
 alter table public.store_coupons enable row level security;
 alter table public.coupon_events enable row level security;
 

@@ -28,6 +28,16 @@ function nomesParecidos(a: string | null | undefined, b: string | null | undefin
   return textoA.includes(textoB) || textoB.includes(textoA) || slugA.includes(slugB) || slugB.includes(slugA)
 }
 
+function hostUrl(url: string | null | undefined) {
+  if (!url) return ''
+
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]
+  }
+}
+
 function cupomVigente(cupom: StoreCoupon, agora: Date) {
   const inicioOk = !cupom.valid_from || new Date(cupom.valid_from) <= agora
   const fimOk = !cupom.valid_until || new Date(cupom.valid_until) >= agora
@@ -57,7 +67,28 @@ async function resolverFonteProduto(produto: Produto) {
     return null
   }
 
-  return data
+  if (data) return data
+
+  const hostProduto = hostUrl(produto.fonte_url || produto.link_original)
+  if (!hostProduto && !produto.fonte_nome) return null
+
+  const { data: fontes, error: fontesError } = await supabase
+    .from('fontes')
+    .select('id,nome,url')
+    .limit(1000)
+    .returns<Array<{ id: string; nome: string; url: string }>>()
+
+  if (fontesError) {
+    console.warn('Não foi possível resolver loja do produto para cupom:', fontesError.message)
+    return null
+  }
+
+  return (fontes || []).find(fonte => {
+    const mesmoNome = nomesParecidos(fonte.nome, produto.fonte_nome)
+    const hostFonte = hostUrl(fonte.url)
+    const mesmoHost = Boolean(hostFonte && hostProduto && hostFonte === hostProduto)
+    return mesmoNome || mesmoHost
+  }) || null
 }
 
 export const carregarCupomAtivoProduto = cache(async (produto: Produto) => {

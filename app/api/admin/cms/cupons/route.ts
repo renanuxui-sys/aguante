@@ -41,43 +41,70 @@ async function carregarMetricas(couponIds: string[]) {
   }, {})
 }
 
-function normalizarLoja(valor: string | null | undefined) {
-  return (valor || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
+function hostUrl(url: string | null | undefined) {
+  if (!url) return ''
+
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]
+  }
 }
 
-function lojasParecidas(a: string | null | undefined, b: string | null | undefined) {
-  const lojaA = normalizarLoja(a)
-  const lojaB = normalizarLoja(b)
-  if (!lojaA || !lojaB) return false
-  return lojaA === lojaB || lojaA.includes(lojaB) || lojaB.includes(lojaA)
-}
+async function carregarAlcance(cupons: Array<{ id: string; store_id: string | null; store_name: string; store_url?: string | null }>) {
+  if (cupons.length === 0) return { alcance: {}, exemplos: {} }
 
-async function carregarAlcance(cupons: Array<{ id: string; store_id: string | null; store_name: string }>) {
-  if (cupons.length === 0) return {}
+  const supabase = criarSupabaseAdmin()
 
-  const { data, error } = await criarSupabaseAdmin()
-    .from('produtos')
-    .select('id,fonte_id,fonte_nome')
-    .eq('ativo', true)
-    .limit(20000)
-    .returns<Array<{ id: string; fonte_id: string | null; fonte_nome: string | null }>>()
+  const inicial: {
+    alcance: Record<string, number>
+    exemplos: Record<string, Array<{ id: string; titulo: string | null; fonte_nome: string | null }>>
+  } = { alcance: {}, exemplos: {} }
 
-  if (error) throw error
+  const resultados = await Promise.all(cupons.map(async cupom => {
+    const host = hostUrl(cupom.store_url)
+    const filtros = [
+      cupom.store_id ? `fonte_id.eq.${cupom.store_id}` : '',
+      cupom.store_name ? `fonte_nome.ilike.%${cupom.store_name}%` : '',
+      host ? `fonte_url.ilike.%${host}%` : '',
+      host ? `link_original.ilike.%${host}%` : '',
+    ].filter(Boolean)
 
-  return cupons.reduce<Record<string, number>>((acc, cupom) => {
-    acc[cupom.id] = (data || []).filter(produto => {
-      const mesmoId = Boolean(cupom.store_id && produto.fonte_id === cupom.store_id)
-      const mesmoNome = lojasParecidas(cupom.store_name, produto.fonte_nome)
-      return mesmoId || mesmoNome
-    }).length
+    if (filtros.length === 0) return { id: cupom.id, total: 0, exemplos: [] }
+
+    const filtroLoja = filtros.join(',')
+
+    const [{ count, error: countError }, { data, error: exemplosError }] = await Promise.all([
+      supabase
+        .from('produtos')
+        .select('id', { count: 'exact', head: true })
+        .eq('ativo', true)
+        .or(filtroLoja),
+      supabase
+        .from('produtos')
+        .select('id,titulo,fonte_nome,link_original')
+        .eq('ativo', true)
+        .or(filtroLoja)
+        .order('updated_at', { ascending: false })
+        .limit(5)
+        .returns<Array<{ id: string; titulo: string | null; fonte_nome: string | null }>>(),
+    ])
+
+    if (countError) throw countError
+    if (exemplosError) throw exemplosError
+
+    return {
+      id: cupom.id,
+      total: count || 0,
+      exemplos: data || [],
+    }
+  }))
+
+  return resultados.reduce((acc, resultado) => {
+    acc.alcance[resultado.id] = resultado.total
+    acc.exemplos[resultado.id] = resultado.exemplos
     return acc
-  }, {})
+  }, inicial)
 }
 
 export async function GET() {
@@ -94,7 +121,7 @@ export async function GET() {
         .order('created_at', { ascending: false }),
       supabase
         .from('fontes')
-        .select('id,nome')
+        .select('id,nome,url')
         .order('nome', { ascending: true }),
     ])
 
@@ -102,16 +129,24 @@ export async function GET() {
     if (lojasError) throw lojasError
 
     const cuponsLista = cupons || []
-    const [metricas, alcance] = await Promise.all([
+    const lojasPorId = new Map((lojas || []).map(loja => [loja.id, loja]))
+    const [metricas, alcanceInfo] = await Promise.all([
       carregarMetricas(cuponsLista.map(cupom => cupom.id)),
       carregarAlcance(cuponsLista.map(cupom => ({
         id: cupom.id,
         store_id: cupom.store_id,
         store_name: cupom.store_name,
+        store_url: cupom.store_id ? lojasPorId.get(cupom.store_id)?.url : null,
       }))),
     ])
 
-    return Response.json({ cupons: cuponsLista, lojas: lojas || [], metricas, alcance })
+    return Response.json({
+      cupons: cuponsLista,
+      lojas: lojas || [],
+      metricas,
+      alcance: alcanceInfo.alcance,
+      exemplos: alcanceInfo.exemplos,
+    })
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'Erro ao carregar cupons.' }, { status: 500 })
   }
