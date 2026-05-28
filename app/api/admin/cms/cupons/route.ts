@@ -41,6 +41,45 @@ async function carregarMetricas(couponIds: string[]) {
   }, {})
 }
 
+function normalizarLoja(valor: string | null | undefined) {
+  return (valor || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function lojasParecidas(a: string | null | undefined, b: string | null | undefined) {
+  const lojaA = normalizarLoja(a)
+  const lojaB = normalizarLoja(b)
+  if (!lojaA || !lojaB) return false
+  return lojaA === lojaB || lojaA.includes(lojaB) || lojaB.includes(lojaA)
+}
+
+async function carregarAlcance(cupons: Array<{ id: string; store_id: string | null; store_name: string }>) {
+  if (cupons.length === 0) return {}
+
+  const { data, error } = await criarSupabaseAdmin()
+    .from('produtos')
+    .select('id,fonte_id,fonte_nome')
+    .eq('ativo', true)
+    .limit(20000)
+    .returns<Array<{ id: string; fonte_id: string | null; fonte_nome: string | null }>>()
+
+  if (error) throw error
+
+  return cupons.reduce<Record<string, number>>((acc, cupom) => {
+    acc[cupom.id] = (data || []).filter(produto => {
+      const mesmoId = Boolean(cupom.store_id && produto.fonte_id === cupom.store_id)
+      const mesmoNome = lojasParecidas(cupom.store_name, produto.fonte_nome)
+      return mesmoId || mesmoNome
+    }).length
+    return acc
+  }, {})
+}
+
 export async function GET() {
   if (!await sessaoAdminValida()) return Response.json({ error: 'Não autorizado' }, { status: 401 })
   if (!cuponsTesteAtivos()) return Response.json({ error: 'Cupons de teste desabilitados.' }, { status: 404 })
@@ -62,8 +101,17 @@ export async function GET() {
     if (error) throw error
     if (lojasError) throw lojasError
 
-    const metricas = await carregarMetricas((cupons || []).map(cupom => cupom.id))
-    return Response.json({ cupons: cupons || [], lojas: lojas || [], metricas })
+    const cuponsLista = cupons || []
+    const [metricas, alcance] = await Promise.all([
+      carregarMetricas(cuponsLista.map(cupom => cupom.id)),
+      carregarAlcance(cuponsLista.map(cupom => ({
+        id: cupom.id,
+        store_id: cupom.store_id,
+        store_name: cupom.store_name,
+      }))),
+    ])
+
+    return Response.json({ cupons: cuponsLista, lojas: lojas || [], metricas, alcance })
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'Erro ao carregar cupons.' }, { status: 500 })
   }
