@@ -3,6 +3,8 @@ import ProdutoClient from './ProdutoClient'
 import { carregarProdutoAtivo, carregarProdutosRelacionados } from '@/lib/produto-data'
 import { carregarCupomAtivoProduto } from '@/lib/coupon-data'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProdutoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const produto = await carregarProdutoAtivo(id)
