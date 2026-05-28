@@ -40,6 +40,15 @@ function meta(html: string, chave: string) {
   return html.match(padraoDireto)?.[1] || html.match(padraoInvertido)?.[1] || ''
 }
 
+function primeiroMatch(html: string, padroes: RegExp[]) {
+  for (const padrao of padroes) {
+    const match = html.match(padrao)
+    if (match?.[1]) return match[1]
+  }
+
+  return ''
+}
+
 function textoHtml(texto: string) {
   return texto
     .replace(/&amp;/g, '&')
@@ -53,12 +62,73 @@ function parsePreco(valor: unknown) {
   if (typeof valor === 'number') return Number.isFinite(valor) ? valor : null
   if (typeof valor !== 'string') return null
 
-  const limpo = valor
+  const normalizado = valor
+    .replace(/\\u002F/g, '/')
+    .replace(/\\u0026/g, '&')
+    .replace(/\\u003D/g, '=')
+    .replace(/\\u003C/g, '<')
+    .replace(/\\u003E/g, '>')
+
+  const limpo = normalizado
     .replace(/[^\d,.-]/g, '')
     .replace(/\.(?=\d{3}(?:\D|$))/g, '')
     .replace(',', '.')
   const preco = Number(limpo)
   return Number.isFinite(preco) ? preco : null
+}
+
+function precoDoJsonLd(produto: Record<string, unknown> | null) {
+  const offers = Array.isArray(produto?.offers) ? produto.offers[0] : produto?.offers
+  const ofertaJson = offers && typeof offers === 'object'
+    ? offers as Record<string, unknown>
+    : null
+  const especificacao = Array.isArray(ofertaJson?.priceSpecification)
+    ? ofertaJson.priceSpecification[0]
+    : ofertaJson?.priceSpecification
+  const priceSpecification = especificacao && typeof especificacao === 'object'
+    ? especificacao as Record<string, unknown>
+    : null
+
+  return parsePreco(
+    ofertaJson?.price
+    || ofertaJson?.lowPrice
+    || ofertaJson?.highPrice
+    || priceSpecification?.price
+    || priceSpecification?.minPrice
+    || priceSpecification?.maxPrice
+  )
+}
+
+function precoDeMetas(html: string) {
+  return parsePreco(
+    meta(html, 'product:price:amount')
+    || meta(html, 'product:price')
+    || meta(html, 'og:price:amount')
+    || meta(html, 'twitter:data1')
+    || meta(html, 'twitter:label1')
+  )
+}
+
+function precoDeScripts(html: string) {
+  const valor = primeiroMatch(html, [
+    /"price"\s*:\s*"?(\d+(?:[.,]\d+)?)"?/i,
+    /"salePrice"\s*:\s*"?(\d+(?:[.,]\d+)?)"?/i,
+    /"currentPrice"\s*:\s*"?(\d+(?:[.,]\d+)?)"?/i,
+    /"priceValue"\s*:\s*"?(\d+(?:[.,]\d+)?)"?/i,
+    /"sellingPrice"\s*:\s*"?(\d+(?:[.,]\d+)?)"?/i,
+    /"amount"\s*:\s*"?(\d+(?:[.,]\d+)?)"?/i,
+  ])
+
+  return parsePreco(valor)
+}
+
+function precoVisivel(html: string) {
+  const valor = primeiroMatch(html, [
+    /R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i,
+    /R\$\s*([0-9]+,[0-9]{2})/i,
+  ])
+
+  return parsePreco(valor)
 }
 
 function primeiroProdutoJsonLd(html: string): Record<string, unknown> | null {
@@ -147,15 +217,15 @@ async function importarItemMercadoLivre(url: string) {
 
 function importarMetas(html: string, linkProduto: string) {
   const produto = primeiroProdutoJsonLd(html)
-  const offers = Array.isArray(produto?.offers) ? produto.offers[0] : produto?.offers
-  const ofertaJson = offers && typeof offers === 'object'
-    ? offers as Record<string, unknown>
-    : null
   const imagemJson = Array.isArray(produto?.image) ? produto.image[0] : produto?.image
+  const preco = precoDoJsonLd(produto)
+    ?? precoDeMetas(html)
+    ?? precoDeScripts(html)
+    ?? precoVisivel(html)
 
   return {
     titulo: textoHtml(String(produto?.name || meta(html, 'og:title') || meta(html, 'twitter:title'))),
-    preco: parsePreco(ofertaJson?.price || meta(html, 'product:price:amount')),
+    preco,
     imagem_url: textoHtml(String(imagemJson || meta(html, 'og:image') || meta(html, 'twitter:image'))) || null,
     link_produto: meta(html, 'og:url') || linkProduto,
   }

@@ -31,6 +31,7 @@ export async function carregarHomeDataServidor() {
     emAlta,
     anos80,
     clubes,
+    ofertas,
   ] = await Promise.all([
     contar(produtosPublicos(supabase.from('produtos').select('id', { count: 'exact', head: true })).eq('ativo', true)),
     contar(produtosPublicos(supabase.from('produtos').select('id', { count: 'exact', head: true })).eq('ativo', true).gte('created_at', ontem)),
@@ -64,6 +65,13 @@ export async function carregarHomeDataServidor() {
       .eq('destaque', true)
       .eq('ativo', true)
       .order('ordem', { ascending: true }),
+    supabase
+      .from('ofertas_afiliadas')
+      .select('*')
+      .eq('ativo', true)
+      .order('ordem', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(8),
   ])
 
   const nomesSelecoes = (clubesSelecoes.data || []).map(clube => clube.nome).filter(Boolean)
@@ -87,5 +95,6 @@ export async function carregarHomeDataServidor() {
     emAlta: embaralhar(emAlta.data || []),
     anos80: anos80.data || [],
     clubes: clubes.data || [],
+    ofertas: ofertas.data || [],
   }
 }

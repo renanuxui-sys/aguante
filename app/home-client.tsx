@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
-import type { Produto } from '@/types'
+import CardOferta from '@/components/CardOferta'
+import type { OfertaAfiliada, Produto } from '@/types'
 
 const videoHero        = "/assets/0516b.mp4"
 const imgBgHero        = "/assets/bg-hero.png"
@@ -73,6 +74,7 @@ type HomeData = {
   emAlta: Produto[]
   anos80: Produto[]
   clubes: Clube[]
+  ofertas: OfertaAfiliada[]
 }
 
 function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos: Produto[]; linkTodas: string }) {
@@ -122,6 +124,26 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
         </div>
         <div className="ag-cards ag-copa-card-grid">
           {produtos.map(p => <CardProduto key={`copa-${p.id}`} produto={p} />)}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function SecaoOfertas({ ofertas }: { ofertas: OfertaAfiliada[] }) {
+  if (ofertas.length === 0) return null
+
+  return (
+    <section style={{ background: '#fff', paddingTop: 16, paddingBottom: 48 }}>
+      <div className="ag-container">
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ background: '#E8FFF4', borderRadius: 999, color: '#087443', fontSize: 12, fontWeight: 800, letterSpacing: '-0.01em', padding: '6px 10px' }}>novo</span>
+            <h2 style={{ color: '#282828', fontSize: 34, fontWeight: 700, letterSpacing: '-0.05em', lineHeight: 1, margin: 0 }}>Ofertas em lojas parceiras</h2>
+          </div>
+        </div>
+        <div className="ag-cards">
+          {ofertas.map(oferta => <CardOferta key={oferta.id} oferta={oferta} />)}
         </div>
       </div>
     </section>
@@ -180,6 +202,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const [clubePreferido, setClubePreferido] = useState('')
   const [emAlta]       = useState<Produto[]>(initialData.emAlta || [])
   const [anos80]       = useState<Produto[]>(() => (initialData.anos80 || []).slice(0, 6))
+  const [ofertas]      = useState<OfertaAfiliada[]>(() => (initialData.ofertas || []).slice(0, 6))
   const [totalProdutos] = useState<number | null>(initialData.metricas?.total_produtos ?? null)
   const [novosHoje] = useState<number | null>(initialData.metricas?.novos_24h ?? null)
   const [isMobile, setIsMobile]   = useState(false)
@@ -636,6 +659,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         )}
         <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
         <SecaoMercados />
+        <SecaoOfertas ofertas={ofertas} />
         <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 

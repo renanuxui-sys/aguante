@@ -70,6 +70,21 @@ export async function PATCH(request: Request) {
     const atualizacao: Record<string, unknown> = {}
     if (typeof body.ativo === 'boolean') atualizacao.ativo = body.ativo
     if (body.ordem !== undefined) atualizacao.ordem = Math.max(0, Number(body.ordem) || 0)
+
+    if (body.reimportar === true) {
+      const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
+        .from('ofertas_afiliadas')
+        .select('loja,link_afiliado')
+        .eq('id', id)
+        .single()
+
+      if (buscaError) return Response.json({ error: buscaError.message }, { status: 500 })
+      if (!lojaValida(ofertaAtual?.loja)) return Response.json({ error: 'Loja inválida.' }, { status: 400 })
+
+      const importada = await importarOferta(String(ofertaAtual.link_afiliado || ''), ofertaAtual.loja)
+      Object.assign(atualizacao, importada)
+    }
+
     if (Object.keys(atualizacao).length === 0) return Response.json({ error: 'Nada para atualizar.' }, { status: 400 })
     atualizacao.updated_at = new Date().toISOString()
 

@@ -79,6 +79,25 @@ export default function AdminOfertas() {
     setOfertas(atual => atual.map(item => item.id === oferta.id ? json.oferta : item))
   }
 
+  async function reimportar(oferta: OfertaAfiliada) {
+    setErro('')
+    setSalvando(true)
+    const res = await fetch('/api/admin/cms/ofertas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: oferta.id, reimportar: true }),
+    })
+    const json = await res.json()
+    setSalvando(false)
+
+    if (!res.ok) {
+      setErro(json.error || 'Erro ao atualizar dados da oferta.')
+      return
+    }
+
+    setOfertas(atual => atual.map(item => item.id === oferta.id ? json.oferta : item))
+  }
+
   async function remover(oferta: OfertaAfiliada) {
     if (!window.confirm(`Remover "${oferta.titulo}"?`)) return
     setErro('')
@@ -180,6 +199,9 @@ export default function AdminOfertas() {
                     </a>
                   </td>
                   <td style={{ ...celulaStyle, textAlign: 'right' }}>
+                    <button disabled={salvando} onClick={() => reimportar(oferta)} style={{ background: 'none', border: 'none', color: '#550fed', cursor: salvando ? 'wait' : 'pointer', font: '700 12px Onest, sans-serif', padding: 6, marginRight: 8 }}>
+                      atualizar dados
+                    </button>
                     <button onClick={() => remover(oferta)} style={{ background: 'none', border: 'none', color: '#A23B3B', cursor: 'pointer', font: '700 12px Onest, sans-serif', padding: 6 }}>
                       remover
                     </button>
