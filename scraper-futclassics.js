@@ -6,6 +6,7 @@
 import { chromium } from 'playwright'
 import * as cheerio from 'cheerio'
 import { criarSupabase, desativarProdutosDaFonte, salvarProdutos, relatorioFinal, extrairAno, identificarClube, carregarClubesMapPorCategoria, combinarClubesMap, sleep } from './scraper-utils.js'
+import { abrirChromium } from './scraper-playwright-utils.js'
 import 'dotenv/config'
 
 const FONTE_NOME      = 'Fut Classics'
@@ -97,7 +98,7 @@ async function main() {
   await desativarProdutosDaFonte(supabase, FONTE_NOME)
   const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
-  const browser = await chromium.launch({ headless: true })
+  const browser = await abrirChromium(chromium)
   const page = await browser.newPage()
   page.setDefaultTimeout(15000)
   page.setDefaultNavigationTimeout(45000)
