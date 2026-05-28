@@ -1,11 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type LojaMetrica = {
   fonte_nome: string
@@ -22,47 +16,10 @@ export default function AdminLojas() {
 
   useEffect(() => {
     async function carregar() {
-      // Busca agregado por fonte — pagina em blocos para pegar todos os produtos
-      const agregado: Record<string, { fonte_url: string | null; cliques: number; produtos: number; views: number }> = {}
-      let offset = 0
-      const PAGE = 1000
-
-      while (true) {
-        const { data: lote } = await supabase
-          .from('produtos')
-          .select('fonte_nome, fonte_url, cliques_anuncio, views')
-          .eq('ativo', true)
-          .not('fonte_nome', 'is', null)
-          .range(offset, offset + PAGE - 1)
-
-        if (!lote || lote.length === 0) break
-
-        lote.forEach(p => {
-          const nome = p.fonte_nome!
-          if (!agregado[nome]) {
-            agregado[nome] = { fonte_url: p.fonte_url, cliques: 0, produtos: 0, views: 0 }
-          }
-          agregado[nome].cliques  += p.cliques_anuncio || 0
-          agregado[nome].produtos += 1
-          agregado[nome].views    += p.views || 0
-        })
-
-        if (lote.length < PAGE) break
-        offset += PAGE
-      }
-
-      const lista: LojaMetrica[] = Object.entries(agregado)
-        .map(([fonte_nome, v]) => ({
-          fonte_nome,
-          fonte_url: v.fonte_url,
-          total_cliques: v.cliques,
-          total_produtos: v.produtos,
-          total_views: v.views,
-        }))
-        .sort((a, b) => b.total_cliques - a.total_cliques)
-
-      setLojas(lista)
-      setTotalCliques(lista.reduce((a, b) => a + b.total_cliques, 0))
+      const res = await fetch('/api/admin/cms/produtos?modo=lojas', { cache: 'no-store' })
+      const json = res.ok ? await res.json() : { lojas: [], totalCliques: 0 }
+      setLojas(json.lojas || [])
+      setTotalCliques(json.totalCliques || 0)
       setCarregando(false)
     }
 
@@ -80,7 +37,7 @@ export default function AdminLojas() {
           Lojas mais clicadas
         </h1>
         <p style={{ color: '#8A8880', fontSize: 14, marginTop: 4 }}>
-          {totalCliques.toLocaleString('pt-BR')} cliques totais em "ir para o anúncio" · {lojas.length} lojas
+          {totalCliques.toLocaleString('pt-BR')} cliques totais em &quot;ir para o anúncio&quot; · {lojas.length} lojas
         </p>
       </div>
 

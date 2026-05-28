@@ -27,6 +27,27 @@ type ProdutoClientProps = {
   relacionadosIniciais: Produto[]
 }
 
+type RastreamentoSaida = {
+  origem: string
+  pagina: string
+  campanha: string
+}
+
+function origemInicialDoUsuario() {
+  const params = new URLSearchParams(window.location.search)
+  const origemUtm = params.get('utm_source') || params.get('utm_medium')
+  if (origemUtm) return origemUtm
+
+  if (!document.referrer) return 'direto'
+
+  try {
+    const origem = new URL(document.referrer)
+    return origem.hostname === window.location.hostname ? 'aguante' : origem.hostname
+  } catch {
+    return document.referrer
+  }
+}
+
 export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: ProdutoClientProps) {
   const id = produtoInicial.id
   const router = useRouter()
@@ -42,6 +63,11 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
   const [statusAlerta, setStatusAlerta] = useState<StatusAlerta>('idle')
   const [imagemCarregadaUrl, setImagemCarregadaUrl] = useState<string | null>(null)
   const [mostrarBotaoFixo, setMostrarBotaoFixo] = useState(false)
+  const [rastreamentoSaida, setRastreamentoSaida] = useState<RastreamentoSaida>({
+    origem: '',
+    pagina: '',
+    campanha: '',
+  })
 
   const registrarMetrica = useCallback((tipo: 'views' | 'cliques' | 'likes', delta?: number) => {
     const request = fetch('/api/metricas', {
@@ -74,6 +100,27 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
     atualizarBotaoFixo()
     window.addEventListener('scroll', atualizarBotaoFixo, { passive: true })
     return () => window.removeEventListener('scroll', atualizarBotaoFixo)
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const origemSalva = sessionStorage.getItem('aguante_origem_usuario')
+    const campanhaSalva = sessionStorage.getItem('aguante_campanha')
+    const origem = origemSalva || origemInicialDoUsuario()
+    const campanha = params.get('utm_campaign') || campanhaSalva || ''
+
+    sessionStorage.setItem('aguante_origem_usuario', origem)
+    if (campanha) sessionStorage.setItem('aguante_campanha', campanha)
+
+    const atualizarRastreamento = window.setTimeout(() => {
+      setRastreamentoSaida({
+        origem,
+        campanha,
+        pagina: `${window.location.pathname}${window.location.search}`,
+      })
+    }, 0)
+
+    return () => window.clearTimeout(atualizarRastreamento)
   }, [])
 
   async function toggleCurtida() {
@@ -135,6 +182,11 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
   const imagemProdutoUrl = imagemComProxy(produto.imagem_url)
   const imgCarregada = imagemCarregadaUrl === imagemProdutoUrl
   const tagsVisiveis = (produto.tags || []).filter(tag => !TAGS_OCULTAS.has(tag.toLowerCase()))
+  const linkSaidaParams = new URLSearchParams()
+  if (rastreamentoSaida.origem) linkSaidaParams.set('origem', rastreamentoSaida.origem)
+  if (rastreamentoSaida.pagina) linkSaidaParams.set('pagina', rastreamentoSaida.pagina)
+  if (rastreamentoSaida.campanha) linkSaidaParams.set('campanha', rastreamentoSaida.campanha)
+  const linkSaida = `/out/produto-${encodeURIComponent(produto.id)}${linkSaidaParams.size ? `?${linkSaidaParams.toString()}` : ''}`
 
   const renderBlocoInfos = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
@@ -177,10 +229,9 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
 
   const renderBotaoAnuncio = (fullWidth = false) => (
     <a
-      href={produto.link_original}
+      href={linkSaida}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => registrarMetrica('cliques')}
       style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 48px', textDecoration: 'none', width: fullWidth ? '100%' : undefined }}
     >
       <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Ir para a loja</span>

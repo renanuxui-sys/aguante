@@ -30,6 +30,20 @@ create table if not exists produtos (
   updated_at timestamptz default now()
 );
 
+alter table produtos enable row level security;
+
+drop policy if exists "leitura publica de produtos" on produtos;
+drop policy if exists "produtos_select_publico_ativos" on produtos;
+
+create policy "produtos_select_publico_ativos"
+on produtos
+for select
+to anon, authenticated
+using (ativo = true);
+
+grant select on produtos to anon, authenticated;
+revoke insert, update, delete on produtos from anon, authenticated;
+
 -- Links afiliados de ofertas de camisas novas.
 create table if not exists ofertas_afiliadas (
   id uuid default gen_random_uuid() primary key,

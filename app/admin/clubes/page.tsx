@@ -1,12 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type ClubeContagem = { clube: string; total: number }
 
@@ -18,30 +12,10 @@ export default function AdminClubes() {
 
   useEffect(() => {
     async function carregar() {
-      const contagem: Record<string, number> = {}
-      let offset = 0
-      const PAGE = 1000
-
-      while (true) {
-        const { data: lote } = await supabase
-          .from('produtos')
-          .select('clube')
-          .eq('ativo', true)
-          .not('clube', 'is', null)
-          .range(offset, offset + PAGE - 1)
-
-        if (!lote || lote.length === 0) break
-        lote.forEach(p => { if (p.clube) contagem[p.clube] = (contagem[p.clube] || 0) + 1 })
-        if (lote.length < PAGE) break
-        offset += PAGE
-      }
-
-      const lista = Object.entries(contagem)
-        .map(([clube, total]) => ({ clube, total }))
-        .sort((a, b) => b.total - a.total)
-
-      setRanking(lista)
-      setTotalGeral(lista.reduce((a, b) => a + b.total, 0))
+      const res = await fetch('/api/admin/cms/produtos?modo=clubes', { cache: 'no-store' })
+      const json = res.ok ? await res.json() : { ranking: [], totalGeral: 0 }
+      setRanking(json.ranking || [])
+      setTotalGeral(json.totalGeral || 0)
       setCarregando(false)
     }
 

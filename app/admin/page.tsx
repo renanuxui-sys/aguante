@@ -41,50 +41,27 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function carregar() {
       const [
-        { count: totProd },
         { count: totFontes },
         metricasRes,
+        produtosRes,
       ] = await Promise.all([
-        supabase.from('produtos').select('id', { count: 'exact', head: true }).eq('ativo', true),
         supabase.from('fontes').select('id', { count: 'exact', head: true }).eq('ativa', true),
         fetch('/api/admin/cms/metricas', { cache: 'no-store' }),
+        fetch('/api/admin/cms/produtos?modo=resumo', { cache: 'no-store' }),
       ])
 
       const resumoRes = await fetch('/api/admin/cms/resumo', { cache: 'no-store' })
       const resumo = resumoRes.ok ? await resumoRes.json() : { cadastros: 0, alertas: 0, escolhas: 0 }
+      const produtosResumo = produtosRes.ok ? await produtosRes.json() : { totalProdutos: 0, clubesRanking: [] }
       const metricas = metricasRes.ok
         ? await metricasRes.json()
         : { views: { produtos: [] }, cliques: { produtos: [] }, likes: { produtos: [] } }
 
-      // Ranking de clubes com paginação — Supabase retorna max 1000 linhas por query
-      const contagem: Record<string, number> = {}
-      let offset = 0
-      const PAGE = 1000
-
-      while (true) {
-        const { data: lote } = await supabase
-          .from('produtos')
-          .select('clube')
-          .eq('ativo', true)
-          .not('clube', 'is', null)
-          .range(offset, offset + PAGE - 1)
-
-        if (!lote || lote.length === 0) break
-        lote.forEach(p => { if (p.clube) contagem[p.clube] = (contagem[p.clube] || 0) + 1 })
-        if (lote.length < PAGE) break
-        offset += PAGE
-      }
-
-      const ranking = Object.entries(contagem)
-        .map(([clube, total]) => ({ clube, total }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 8)
-
-      setClubesRanking(ranking)
+      setClubesRanking(produtosResumo.clubesRanking || [])
       setMaisVistos(metricas.views?.produtos || [])
       setMaisClicados(metricas.cliques?.produtos || [])
       setMaisCurtidos(metricas.likes?.produtos || [])
-      setTotalProdutos(totProd || 0)
+      setTotalProdutos(produtosResumo.totalProdutos || 0)
       setTotalFontes(totFontes || 0)
       setTotalCadastros(resumo.cadastros || 0)
       setTotalAlertas(resumo.alertas || 0)

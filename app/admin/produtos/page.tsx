@@ -1,13 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { imagemComProxy } from '@/lib/image-url'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Produto = {
   id: string
@@ -51,40 +45,34 @@ export default function AdminProdutos() {
 
   const carregar = useCallback(async () => {
     setCarregando(true)
+    setErro(null)
 
-    let query = supabase
-      .from('produtos')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA - 1)
+    const params = new URLSearchParams({
+      pagina: String(pagina),
+      ativo: filtroAtivo,
+    })
+    if (busca) params.set('busca', busca)
+    if (filtroClube) params.set('clube', filtroClube)
 
-    if (busca) query = query.ilike('titulo', `%${busca}%`)
-    if (filtroClube) query = query.eq('clube', filtroClube)
-    if (filtroAtivo === 'ativos') query = query.eq('ativo', true)
-    if (filtroAtivo === 'inativos') query = query.eq('ativo', false)
+    const res = await fetch(`/api/admin/cms/produtos?${params}`, { cache: 'no-store' })
+    const json = await res.json()
 
-    const { data, count } = await query
-    setProdutos(data || [])
-    setTotal(count || 0)
+    if (!res.ok) {
+      setErro(json.error || 'Não foi possível carregar os produtos.')
+      setProdutos([])
+      setTotal(0)
+      setCarregando(false)
+      return
+    }
+
+    setProdutos(json.produtos || [])
+    setTotal(json.total || 0)
+    setClubes(json.clubes || [])
     setCarregando(false)
   }, [pagina, busca, filtroClube, filtroAtivo])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { carregar() }, [carregar])
-
-  useEffect(() => {
-    supabase
-      .from('produtos')
-      .select('clube')
-      .not('clube', 'is', null)
-      .eq('ativo', true)
-      .then(({ data }) => {
-        if (data) {
-          const unicos = [...new Set(data.map(p => p.clube).filter(Boolean))] as string[]
-          setClubes(unicos.sort())
-        }
-      })
-  }, [])
 
   async function toggleAtivo(produto: Produto) {
     await atualizarProduto(produto.id, { ativo: !produto.ativo })
