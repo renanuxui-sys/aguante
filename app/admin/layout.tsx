@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/preferencias-clubes', label: 'Escolhas', icon: '▣' },
   { href: '/admin/ofertas', label: 'Ofertas', icon: '▥' },
   { href: '/admin/lojas', label: 'Lojas', icon: '🏪' },
+  { href: '/admin/cliques-saida', label: 'Cliques saída', icon: '↗' },
   { href: '/admin/mercado', label: 'Mercado', icon: '▤' },
 ]
 
