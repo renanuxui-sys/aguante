@@ -67,6 +67,12 @@ node scraper-maniadecamisa.js --dry-run
 node scraper-maniadecamisa.js
 ```
 
+Exemplo com Old Collection 10:
+```bash
+node scraper-oldcollection10.js --dry-run
+node scraper-oldcollection10.js
+```
+
 ---
 
 ## Ciclo de vida dos scrapers (padrão v2)
@@ -170,7 +176,7 @@ GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduzir o tempo total e evitar que uma loja trave as próximas:
 
 - **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
-- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut e Camisa Doze em matriz paralela.
+- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut, Camisa Doze e Old Collection 10 em matriz paralela.
 - **Lojas Playwright**: Atrox, Fut Classics e Mania de Camisa em matriz paralela.
 
 Para rodar localmente, a ordem abaixo continua válida:
@@ -193,6 +199,7 @@ node scraper-rillsports.js              # Rill Sports
 node scraper-araradejogo.js             # Arara de Jogo
 node scraper-originaisdofut.js          # Originais do Fut
 node scraper-camisadoze.js              # Camisa Doze
+node scraper-oldcollection10.js         # Old Collection 10
 node scraper-maniadecamisa.js           # Mania de Camisa
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
@@ -551,6 +558,28 @@ node scraper-maniadecamisa.js --sem-desativar  # salva sem desativar antigos
 **Seletores/dados:** o scraper lê produtos por JSON-LD quando disponível e, como fallback, varre links de produto com preço em reais, imagem do card e filtro de esgotado.
 
 **Filtro:** categorias de europeus e sul-americanos salvam apenas produtos com clube identificado no mapa compartilhado, para evitar realocação errada em coleções internacionais.
+
+---
+
+### 15. Old Collection 10 (Nuvemshop)
+**Site:** `oldcollection10.lojavirtualnuvem.com.br`
+**Arquivo:** `scraper-oldcollection10.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** a verificar
+**Paginação automática:** ✅ para após 2 páginas vazias
+
+**URLs rastreadas:** `/clubes-nacionais/`, `/clubes-europeus/`, `/clubes-sul-americanos/`, `/selecoes/`
+
+**Comandos:**
+```bash
+node scraper-oldcollection10.js --dry-run        # testa sem salvar no banco
+node scraper-oldcollection10.js                  # desativa antigos da fonte e salva ativos
+node scraper-oldcollection10.js --sem-desativar  # salva sem desativar antigos
+```
+
+**Seletores/dados:** padrão Nuvemshop, com leitura de `data-variants`, JSON-LD como fallback, preço do card e imagens lazy-load.
+
+**Filtro:** categorias de europeus e sul-americanos salvam apenas produtos com clube identificado no mapa compartilhado.
 
 ---
 
