@@ -23,6 +23,9 @@ create index if not exists store_coupons_active_store_idx
 create index if not exists store_coupons_store_id_idx
   on public.store_coupons (store_id);
 
+create index if not exists produtos_fonte_id_idx
+  on public.produtos (fonte_id);
+
 create table if not exists public.coupon_events (
   id uuid primary key default gen_random_uuid(),
   event_type text not null check (event_type in ('coupon_reveal', 'coupon_copy')),
@@ -63,6 +66,19 @@ where p.fonte_id is null
     p.fonte_url = f.url
     or lower(trim(p.fonte_nome)) = lower(trim(f.nome))
   );
+
+-- Garante o vínculo também quando nome/url já foram normalizados depois.
+update public.produtos p
+set
+  fonte_id = f.id,
+  fonte_nome = coalesce(nullif(p.fonte_nome, ''), f.nome),
+  fonte_url = coalesce(nullif(p.fonte_url, ''), f.url)
+from public.fontes f
+where (
+    p.fonte_url = f.url
+    or lower(trim(p.fonte_nome)) = lower(trim(f.nome))
+  )
+  and p.fonte_id is distinct from f.id;
 
 alter table public.store_coupons enable row level security;
 alter table public.coupon_events enable row level security;

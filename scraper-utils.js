@@ -75,6 +75,64 @@ async function fonteAtivaParaScraping(supabase, fonteNome) {
   return data?.ativa !== false
 }
 
+async function resolverFonteProduto(supabase, produto) {
+  const nome = produto.fonte_nome?.trim()
+  const url = produto.fonte_url?.trim()
+  if (!nome && !url) return null
+
+  const filtros = [
+    url ? `url.eq.${url}` : '',
+    nome ? `nome.eq.${nome}` : '',
+  ].filter(Boolean)
+
+  const { data: existente, error: buscaError } = await supabase
+    .from('fontes')
+    .select('id,nome,url')
+    .or(filtros.join(','))
+    .limit(1)
+    .maybeSingle()
+
+  if (buscaError) {
+    console.warn(`  ⚠️  Não foi possível resolver fonte "${nome || url}":`, buscaError.message)
+    return null
+  }
+
+  if (existente?.id) return existente
+
+  if (!nome || !url) return null
+
+  const { data: criada, error: criaError } = await supabase
+    .from('fontes')
+    .insert({
+      nome,
+      url,
+      ativa: true,
+      visivel_site: true,
+      total_produtos: 0,
+      updated_at: new Date().toISOString(),
+    })
+    .select('id,nome,url')
+    .single()
+
+  if (criaError) {
+    console.warn(`  ⚠️  Não foi possível criar fonte "${nome}":`, criaError.message)
+    return null
+  }
+
+  return criada
+}
+
+async function mapearFontesProdutos(supabase, produtos) {
+  const cache = new Map()
+
+  for (const produto of produtos) {
+    const chave = `${produto.fonte_nome || ''}::${produto.fonte_url || ''}`
+    if (!cache.has(chave)) cache.set(chave, await resolverFonteProduto(supabase, produto))
+  }
+
+  return cache
+}
+
 /**
  * Upsert com reativação automática.
  * Sempre inclui ativo: true para reativar produtos que voltaram a aparecer.
@@ -84,15 +142,22 @@ export async function salvarProdutos(supabase, produtos) {
 
   const agora = new Date().toISOString()
   const links = produtos.map(p => p.link_original).filter(Boolean)
-  const reativados = await buscarLinksInativos(supabase, links)
+  const [reativados, fontesPorProduto] = await Promise.all([
+    buscarLinksInativos(supabase, links),
+    mapearFontesProdutos(supabase, produtos),
+  ])
 
   // Garante que todos os produtos encontrados ficam ativos e com presença registrada.
   const produtosAtivos = produtos.map(p => {
     const { tipo_camisa, ...produto } = p
     void tipo_camisa
+    const fonte = fontesPorProduto.get(`${p.fonte_nome || ''}::${p.fonte_url || ''}`)
 
     return {
       ...produto,
+      fonte_id: fonte?.id || produto.fonte_id || null,
+      fonte_nome: fonte?.nome || produto.fonte_nome,
+      fonte_url: fonte?.url || produto.fonte_url,
       ativo: true,
       de_jogo: ehCamisaDeJogo(p.titulo),
       last_seen_at: agora,
@@ -105,7 +170,7 @@ export async function salvarProdutos(supabase, produtos) {
   const { data, error } = await supabase
     .from('produtos')
     .upsert(produtosAtivos, { onConflict: 'link_original', ignoreDuplicates: false })
-    .select('id,link_original,titulo,fonte_nome,clube,ano,preco')
+    .select('id,link_original,titulo,fonte_id,fonte_nome,clube,ano,preco')
 
   if (error) {
     console.error('  ❌ Erro ao salvar:', error.message)
