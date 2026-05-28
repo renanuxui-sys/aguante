@@ -52,8 +52,7 @@ export async function desativarProdutosDaFonte(supabase, fonteNome) {
     .select('id')
 
   if (error) {
-    console.error(`  ⚠️  Erro ao desativar produtos de "${fonteNome}":`, error.message)
-    return 0
+    throw new Error(`Erro ao desativar produtos de "${fonteNome}": ${error.message}`)
   }
 
   console.log(`  🔄 ${data?.length || 0} produtos de "${fonteNome}" marcados como inativos`)

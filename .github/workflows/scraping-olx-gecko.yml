@@ -31,6 +31,7 @@ jobs:
       GECKO_API_KEY: ${{ secrets.GECKO_API_KEY }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       CLUBES_OLX: flamengo,fluminense,vasco,botafogo,sao-paulo,palmeiras,santos,corinthians,cruzeiro,atletico-mg,gremio,internacional
 
     steps:
@@ -48,8 +49,8 @@ jobs:
 
       - name: Verificar secrets obrigatórios
         run: |
-          if [ -z "$GECKO_API_KEY" ] || [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-            echo "::error::Configure GECKO_API_KEY, NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY em Settings > Secrets and variables > Actions."
+          if [ -z "$GECKO_API_KEY" ] || [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Configure GECKO_API_KEY, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY em Settings > Secrets and variables > Actions."
             exit 1
           fi
 

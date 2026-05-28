@@ -612,6 +612,7 @@ npm run scraper:gecko:olx -- --clubes=flamengo --max-paginas=2 --salvar
 - `--max-paginas=` controla custo; o scraper limita no máximo a `3`
 - `--salvar` grava no Supabase; sem isso roda em modo teste
 - `--sem-desativar` salva sem marcar OLX antigos como inativos
+- Para limpar anúncios vendidos/indisponíveis, rode com `--salvar` sem `--sem-desativar`; a rotina precisa de `SUPABASE_SERVICE_ROLE_KEY` para marcar os antigos como inativos.
 - `--state=` define a UF da busca; a GeckoAPI exige uma UF para OLX
 - quando roda por `--clubes=`, o scraper usa o mapa de UFs por clube se `--state` não for informado
 - `--todos-estados` varre todas as UFs do Brasil, multiplicando o custo por 27
