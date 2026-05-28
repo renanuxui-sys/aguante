@@ -61,6 +61,12 @@ node scraper-camisadoze.js --dry-run
 node scraper-camisadoze.js
 ```
 
+Exemplo com Mania de Camisa:
+```bash
+node scraper-maniadecamisa.js --dry-run
+node scraper-maniadecamisa.js
+```
+
 ---
 
 ## Ciclo de vida dos scrapers (padrão v2)
@@ -165,7 +171,7 @@ No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduz
 
 - **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
 - **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut e Camisa Doze em matriz paralela.
-- **Lojas Playwright**: Atrox e Fut Classics em matriz paralela, com Chromium instalado apenas nesses jobs.
+- **Lojas Playwright**: Atrox, Fut Classics e Mania de Camisa em matriz paralela.
 
 Para rodar localmente, a ordem abaixo continua válida:
 
@@ -187,6 +193,7 @@ node scraper-rillsports.js              # Rill Sports
 node scraper-araradejogo.js             # Arara de Jogo
 node scraper-originaisdofut.js          # Originais do Fut
 node scraper-camisadoze.js              # Camisa Doze
+node scraper-maniadecamisa.js           # Mania de Camisa
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
 # node scraper-gecko-mercadolivre.js    # Mercado Livre via GeckoAPI (experimental; validar PLP)
@@ -522,6 +529,28 @@ $('div.product').each((_, el) => {
 **Filtro de seleções (categoria mista):** o scraper extrai o segmento da URL de cada produto e só salva os que batem com slugs de seleções conhecidas (`brasil`, `argentina`, `alemanha`, etc.), descartando automaticamente clubes estrangeiros (`barcelona`, `clubes-sul-americanos`, etc.). No log aparece `🚫 X estrangeiros descartados` por página.
 
 **Para adicionar nova seleção:** incluir o slug no `Set SELECOES_SLUGS` e o mapeamento em `SLUG_PARA_SELECAO` no arquivo do scraper.
+
+---
+
+### 14. Mania de Camisa (Bagy + Playwright)
+**Site:** `maniadecamisafut.com.br`
+**Arquivo:** `scraper-maniadecamisa.js`
+**Abordagem:** Playwright + cheerio, porque a loja retorna 403 em requisições HTTP diretas
+**Produtos:** a verificar
+**Paginação automática:** ✅ para após 2 páginas vazias
+
+**URLs rastreadas:** `/nacionais`, `/clubes-europeus`, `/sul-americanos`, `/selecoes`
+
+**Comandos:**
+```bash
+node scraper-maniadecamisa.js --dry-run        # testa sem salvar no banco
+node scraper-maniadecamisa.js                  # desativa antigos da fonte e salva ativos
+node scraper-maniadecamisa.js --sem-desativar  # salva sem desativar antigos
+```
+
+**Seletores/dados:** o scraper lê produtos por JSON-LD quando disponível e, como fallback, varre links de produto com preço em reais, imagem do card e filtro de esgotado.
+
+**Filtro:** categorias de europeus e sul-americanos salvam apenas produtos com clube identificado no mapa compartilhado, para evitar realocação errada em coleções internacionais.
 
 ---
 
