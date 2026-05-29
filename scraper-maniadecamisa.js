@@ -286,7 +286,7 @@ async function rasparColecao(page, { path, nome, categorias, somenteIdentificado
 async function main() {
   console.log(`🚀 Scraper — Mania de Camisa${dryRun ? ' (dry-run)' : ''}\n`)
 
-  if (!dryRun && !semDesativar) await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  if (!dryRun && !semDesativar) await desativarProdutosDaFonte(supabase, FONTE_NOME, FONTE_URL)
   const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0

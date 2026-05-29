@@ -253,7 +253,7 @@ async function rasparColecao({ path, nome, categorias, somenteIdentificados = fa
 async function main() {
   console.log(`🚀 Scraper — Old Collection 10${dryRun ? ' (dry-run)' : ''}\n`)
 
-  if (!dryRun && !semDesativar) await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  if (!dryRun && !semDesativar) await desativarProdutosDaFonte(supabase, FONTE_NOME, FONTE_URL)
   const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0

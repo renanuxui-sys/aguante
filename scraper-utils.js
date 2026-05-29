@@ -32,7 +32,48 @@ export function criarSupabase() {
  * Desativa todos os produtos de uma fonte antes do scraping.
  * Produtos encontrados durante o scraping serão reativados via upsert.
  */
-export async function desativarProdutosDaFonte(supabase, fonteNome) {
+export async function registrarFonte(supabase, fonteNome, fonteUrl) {
+  if (!fonteNome || !fonteUrl) return
+
+  const agora = new Date().toISOString()
+  const { data: existente, error: buscaError } = await supabase
+    .from('fontes')
+    .select('id')
+    .eq('nome', fonteNome)
+    .maybeSingle()
+
+  if (buscaError) {
+    console.warn(`  ⚠️  Não foi possível verificar fonte "${fonteNome}":`, buscaError.message)
+    return
+  }
+
+  if (existente?.id) {
+    const { error } = await supabase
+      .from('fontes')
+      .update({ url: fonteUrl, updated_at: agora })
+      .eq('id', existente.id)
+
+    if (error) console.warn(`  ⚠️  Não foi possível atualizar fonte "${fonteNome}":`, error.message)
+    return
+  }
+
+  const { error } = await supabase
+    .from('fontes')
+    .insert({
+      nome: fonteNome,
+      url: fonteUrl,
+      ativa: true,
+      visivel_site: true,
+      total_produtos: 0,
+      updated_at: agora,
+    })
+
+  if (error) console.warn(`  ⚠️  Não foi possível cadastrar fonte "${fonteNome}":`, error.message)
+}
+
+export async function desativarProdutosDaFonte(supabase, fonteNome, fonteUrl = null) {
+  await registrarFonte(supabase, fonteNome, fonteUrl)
+
   const deveContinuar = await fonteAtivaParaScraping(supabase, fonteNome)
   if (!deveContinuar) {
     console.log(`  ⏸️  Fonte "${fonteNome}" inativa no CMS. Scraping ignorado.`)
@@ -229,7 +270,21 @@ export async function relatorioFinal(supabase, fonteNome) {
   console.log(`   ✅ Ativos (encontrados): ${ativos || 0}`)
   console.log(`   ⏸️  Inativos (não encontrados/vendidos): ${inativos || 0}`)
 
+  await atualizarFonteMetricas(supabase, fonteNome, ativos || 0)
   await atualizarHomeMetricas(supabase)
+}
+
+async function atualizarFonteMetricas(supabase, fonteNome, totalProdutos) {
+  const { error } = await supabase
+    .from('fontes')
+    .update({
+      total_produtos: totalProdutos,
+      ultimo_scraping: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('nome', fonteNome)
+
+  if (error) console.warn(`  ⚠️  Não foi possível atualizar métricas da fonte "${fonteNome}":`, error.message)
 }
 
 async function contar(query) {
