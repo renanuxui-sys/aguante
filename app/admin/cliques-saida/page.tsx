@@ -13,6 +13,7 @@ type CliqueSaida = {
   clube: string | null
   categoria: string | null
   campanha: string | null
+  session_id: string | null
   usuario_status: string | null
   cupom_revelado: boolean | null
   destino_original: string
@@ -30,6 +31,8 @@ type ResumoCliques = {
   total: number
   totalCupom: number
   totalLogados: number
+  totalSessoes: number
+  totalSemSessao: number
   porLoja: RankingItem[]
   porCampanha: RankingItem[]
   porOrigem: RankingItem[]
@@ -148,10 +151,11 @@ export default function AdminCliquesSaida() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
         <ResumoCard label="Cliques filtrados" valor={(resumo?.total || 0).toLocaleString('pt-BR')} />
+        <ResumoCard label="Sessões únicas" valor={(resumo?.totalSessoes || 0).toLocaleString('pt-BR')} />
+        <ResumoCard label="Sem sessão" valor={(resumo?.totalSemSessao || 0).toLocaleString('pt-BR')} />
         <ResumoCard label="Com cupom revelado" valor={(resumo?.totalCupom || 0).toLocaleString('pt-BR')} />
-        <ResumoCard label="Usuários logados" valor={(resumo?.totalLogados || 0).toLocaleString('pt-BR')} />
         <ResumoCard label="Campanhas" valor={(resumo?.porCampanha.length || 0).toLocaleString('pt-BR')} />
       </div>
 
@@ -207,7 +211,9 @@ export default function AdminCliquesSaida() {
                   <td style={{ padding: '13px 14px', fontSize: 12, color: '#4A4845', whiteSpace: 'nowrap' }}>{formatarData(clique.clicked_at)}</td>
                   <td style={{ padding: '13px 14px', maxWidth: 240 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{textoCurto(clique.produto_titulo)}</div>
-                    <div style={{ fontSize: 11, color: '#8A8880', marginTop: 2 }}>{clique.usuario_status === 'logado' ? 'logado' : 'anônimo'} · cupom {clique.cupom_revelado ? 'sim' : 'não'}</div>
+                    <div style={{ fontSize: 11, color: '#8A8880', marginTop: 2 }}>
+                      {clique.usuario_status === 'logado' ? 'logado' : 'anônimo'} · cupom {clique.cupom_revelado ? 'sim' : 'não'} · {clique.session_id ? 'sessão ok' : 'sem sessão'}
+                    </div>
                   </td>
                   <td style={{ padding: '13px 14px', fontSize: 13, color: '#4A4845' }}>{textoCurto(clique.loja_nome)}</td>
                   <td style={{ padding: '13px 14px', fontSize: 12, color: '#4A4845', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{textoCurto(clique.origem_usuario)}</td>

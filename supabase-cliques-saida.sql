@@ -14,6 +14,7 @@ create table if not exists public.cliques_saida (
   clube text,
   categoria text,
   campanha text,
+  session_id text,
   usuario_status text not null default 'anonimo'
     check (usuario_status in ('anonimo', 'logado')),
   usuario_id uuid,
@@ -41,6 +42,15 @@ create index if not exists cliques_saida_loja_nome_idx
 
 create index if not exists cliques_saida_campanha_idx
   on public.cliques_saida (campanha);
+
+alter table public.cliques_saida
+  add column if not exists session_id text;
+
+create index if not exists cliques_saida_session_produto_clicked_idx
+  on public.cliques_saida (session_id, produto_id, clicked_at desc);
+
+create index if not exists cliques_saida_session_destino_clicked_idx
+  on public.cliques_saida (session_id, destino_original, clicked_at desc);
 
 alter table public.cliques_saida enable row level security;
 

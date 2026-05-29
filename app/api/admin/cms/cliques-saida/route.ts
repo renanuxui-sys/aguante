@@ -17,6 +17,7 @@ type CliqueSaida = {
   clube: string | null
   categoria: string | null
   campanha: string | null
+  session_id: string | null
   usuario_status: string | null
   cupom_revelado: boolean | null
   destino_original: string
@@ -92,19 +93,21 @@ async function carregarResumo(filtros: FiltrosCliques) {
   const porClube: Record<string, number> = {}
   let totalCupom = 0
   let totalLogados = 0
+  let totalSemSessao = 0
   let total = 0
   let offset = 0
+  const sessoes = new Set<string>()
 
   while (true) {
     const query = aplicarFiltros(
       supabase
         .from('cliques_saida')
-        .select('loja_nome,campanha,origem_usuario,clube,cupom_revelado,usuario_status'),
+        .select('loja_nome,campanha,origem_usuario,clube,cupom_revelado,usuario_status,session_id'),
       filtros,
     )
       .order('clicked_at', { ascending: false })
       .range(offset, offset + PAGE_AGREGACAO - 1)
-      .returns<Array<Pick<CliqueSaida, 'loja_nome' | 'campanha' | 'origem_usuario' | 'clube' | 'cupom_revelado' | 'usuario_status'>>>()
+      .returns<Array<Pick<CliqueSaida, 'loja_nome' | 'campanha' | 'origem_usuario' | 'clube' | 'cupom_revelado' | 'usuario_status' | 'session_id'>>>()
 
     const { data, error } = await query
     if (error) throw error
@@ -118,6 +121,8 @@ async function carregarResumo(filtros: FiltrosCliques) {
       somarRanking(porClube, clique.clube)
       if (clique.cupom_revelado) totalCupom += 1
       if (clique.usuario_status === 'logado') totalLogados += 1
+      if (clique.session_id) sessoes.add(clique.session_id)
+      else totalSemSessao += 1
     })
 
     if (data.length < PAGE_AGREGACAO) break
@@ -128,6 +133,8 @@ async function carregarResumo(filtros: FiltrosCliques) {
     total,
     totalCupom,
     totalLogados,
+    totalSessoes: sessoes.size,
+    totalSemSessao,
     porLoja: ordenarRanking(porLoja),
     porCampanha: ordenarRanking(porCampanha),
     porOrigem: ordenarRanking(porOrigem),
@@ -156,7 +163,7 @@ export async function GET(request: Request) {
     const query = aplicarFiltros(
       supabase
         .from('cliques_saida')
-        .select('id,produto_id,produto_titulo,loja_nome,clicked_at,origem_usuario,pagina_origem,clube,categoria,campanha,usuario_status,cupom_revelado,destino_original,destino_com_utm,utm_source,utm_medium,utm_campaign,utm_content,utm_term', { count: 'exact' }),
+        .select('id,produto_id,produto_titulo,loja_nome,clicked_at,origem_usuario,pagina_origem,clube,categoria,campanha,session_id,usuario_status,cupom_revelado,destino_original,destino_com_utm,utm_source,utm_medium,utm_campaign,utm_content,utm_term', { count: 'exact' }),
       filtros,
     )
       .order('clicked_at', { ascending: false })

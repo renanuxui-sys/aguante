@@ -63,6 +63,7 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
   const [statusAlerta, setStatusAlerta] = useState<StatusAlerta>('idle')
   const [imagemCarregadaUrl, setImagemCarregadaUrl] = useState<string | null>(null)
   const [mostrarBotaoFixo, setMostrarBotaoFixo] = useState(false)
+  const [sessionId, setSessionId] = useState('')
   const [rastreamentoSaida, setRastreamentoSaida] = useState<RastreamentoSaida>({
     origem: '',
     pagina: '',
@@ -100,6 +101,15 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
     atualizarBotaoFixo()
     window.addEventListener('scroll', atualizarBotaoFixo, { passive: true })
     return () => window.removeEventListener('scroll', atualizarBotaoFixo)
+  }, [])
+
+  useEffect(() => {
+    const chave = 'aguante_session_id'
+    const existente = sessionStorage.getItem(chave)
+    const proximo = existente || crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    sessionStorage.setItem(chave, proximo)
+    const atualizarSessao = window.setTimeout(() => setSessionId(proximo), 0)
+    return () => window.clearTimeout(atualizarSessao)
   }, [])
 
   useEffect(() => {
@@ -183,6 +193,7 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
   const imgCarregada = imagemCarregadaUrl === imagemProdutoUrl
   const tagsVisiveis = (produto.tags || []).filter(tag => !TAGS_OCULTAS.has(tag.toLowerCase()))
   const linkSaidaParams = new URLSearchParams()
+  if (sessionId) linkSaidaParams.set('sid', sessionId)
   if (rastreamentoSaida.origem) linkSaidaParams.set('origem', rastreamentoSaida.origem)
   if (rastreamentoSaida.pagina) linkSaidaParams.set('pagina', rastreamentoSaida.pagina)
   if (rastreamentoSaida.campanha) linkSaidaParams.set('campanha', rastreamentoSaida.campanha)
@@ -373,7 +384,7 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
 
         {/* Botão fixo mobile */}
         <div className={`ag-btn-fixo-mobile${mostrarBotaoFixo ? ' visivel' : ''}`} style={{ position: 'fixed', bottom: 8, left: 16, right: 16, zIndex: 50 }}>
-          <a href={produto.link_original} target="_blank" rel="noopener noreferrer" onClick={() => registrarMetrica('cliques')} style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
+          <a href={linkSaida} target="_blank" rel="noopener noreferrer" style={{ background: '#550fed', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 24px', textDecoration: 'none', width: '100%', boxShadow: '0 4px 24px rgba(85,15,237,0.35)' }}>
             <span style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: '-0.16px', whiteSpace: 'nowrap' }}>Ir para a loja</span>
             <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
           </a>

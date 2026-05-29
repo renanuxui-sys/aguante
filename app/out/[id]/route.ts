@@ -15,6 +15,24 @@ type ProdutoSaida = {
 
 const UTM_SOURCE = process.env.OUTBOUND_UTM_SOURCE || 'aguante'
 const UTM_MEDIUM = process.env.OUTBOUND_UTM_MEDIUM || 'referral'
+const CLICK_SESSION_PARAM = 'sid'
+const DUPLICATE_WINDOW_MINUTES = 30
+
+function acessoAutomatico(req: NextRequest) {
+  const purpose = [
+    req.headers.get('purpose'),
+    req.headers.get('sec-purpose'),
+    req.headers.get('x-purpose'),
+  ].filter(Boolean).join(' ').toLowerCase()
+
+  if (purpose.includes('prefetch') || purpose.includes('preview')) return true
+  if (req.headers.get('next-router-prefetch')) return true
+
+  const userAgent = req.headers.get('user-agent') || ''
+  if (!userAgent) return true
+
+  return /bot|crawler|spider|preview|facebookexternalhit|whatsapp|slackbot|twitterbot|discordbot|telegrambot|linkedinbot|google-inspectiontool|lighthouse|headlesschrome|curl|wget|python|node-fetch|axios|go-http-client|uptime|monitor|vercel|bytespider|ahrefs|semrush|petalbot|bingbot|googlebot/i.test(userAgent)
+}
 
 function limitarTexto(valor: string | null | undefined, limite = 500) {
   if (!valor) return null
@@ -57,6 +75,28 @@ function origemUsuario(req: NextRequest, params: URLSearchParams) {
   } catch {
     return limitarTexto(referer, 120) || 'desconhecida'
   }
+}
+
+function sessionIdClique(params: URLSearchParams) {
+  return limitarTexto(params.get(CLICK_SESSION_PARAM) || params.get('session_id'), 200)
+}
+
+async function cliqueProdutoRecenteExiste(supabase: ReturnType<typeof criarSupabaseAdmin>, produtoId: string, sessionId: string) {
+  const desde = new Date(Date.now() - DUPLICATE_WINDOW_MINUTES * 60 * 1000).toISOString()
+  const { data, error } = await supabase
+    .from('cliques_saida')
+    .select('id')
+    .eq('produto_id', produtoId)
+    .eq('session_id', sessionId)
+    .gte('clicked_at', desde)
+    .limit(1)
+
+  if (error) {
+    console.warn('Não foi possível verificar clique duplicado:', error.message)
+    return true
+  }
+
+  return Boolean(data?.length)
 }
 
 function destinoComUtms(linkOriginal: string, produto: ProdutoSaida, params: URLSearchParams) {
@@ -109,10 +149,17 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     return NextResponse.redirect(fallback)
   }
 
-  const proximoTotal = Number(produto.cliques_anuncio || 0) + 1
   const agora = new Date().toISOString()
   const cupomRevelado = ['1', 'true', 'sim'].includes((req.nextUrl.searchParams.get('cupom_revelado') || '').toLowerCase())
   const statusUsuario = 'anonimo'
+  const sessionId = sessionIdClique(req.nextUrl.searchParams)
+  const deveRegistrarClique = Boolean(sessionId) && !acessoAutomatico(req)
+
+  if (!deveRegistrarClique || await cliqueProdutoRecenteExiste(supabase, produto.id, sessionId as string)) {
+    return NextResponse.redirect(saida)
+  }
+
+  const proximoTotal = Number(produto.cliques_anuncio || 0) + 1
 
   const [{ error: updateError }, { error: eventoError }] = await Promise.all([
     supabase
@@ -132,6 +179,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
         clube: produto.clube,
         categoria: produto.tipo_camisa || produto.tags?.[0] || null,
         campanha,
+        session_id: sessionId,
         usuario_status: statusUsuario,
         usuario_id: null,
         cupom_revelado: cupomRevelado,
