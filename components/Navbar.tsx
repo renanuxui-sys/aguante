@@ -596,8 +596,8 @@ export default function Navbar() {
           }
         }
         @media (max-width: 390px) {
-          .ag-mobile-nav-item { font-size: 14px; }
-          .ag-mobile-nav-search { font-size: 14px; }
+          .ag-mobile-nav-item { font-size: 12px; }
+          .ag-mobile-nav-search { font-size: 12px; }
         }
       `}</style>
     </>

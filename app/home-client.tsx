@@ -330,6 +330,11 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-mercado-card:hover img { transform: scale(1.04); }
         .ag-ver-todas-txt { display: inline; }
         .ag-section-link { flex-shrink: 0; }
+        .ag-selecoes-title,
+        .ag-selecoes-title strong {
+          color: #282828 !important;
+          font-size: 20px !important;
+        }
         @keyframes ag-clubes-slide {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
@@ -588,7 +593,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
           <div className="ag-container">
             <p className="ag-selecoes-title" style={{ fontSize: 20, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
-              <strong>Copa do Mundo</strong> 2026
+              <strong style={{ color: '#282828', fontSize: 20 }}>Copa do Mundo</strong> 2026
             </p>
             <div
               className={`ag-selecoes-wrapper${selecoesManualScroll ? ' manual' : ''}`}
