@@ -338,11 +338,8 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           opacity: 1 !important;
         }
         .ag-selecoes-title {
-          font-weight: 300 !important;
-          margin: 0 0 28px !important;
-        }
-        .ag-selecoes-title strong {
           font-weight: 700 !important;
+          margin: 0 0 28px !important;
         }
         @keyframes ag-clubes-slide {
           from { transform: translateX(0); }
@@ -604,17 +601,19 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             <h2
               className="ag-selecoes-title"
               style={{
-                fontWeight: 300,
+                fontFamily: 'Onest, sans-serif',
+                fontWeight: 700,
                 fontSize: 20,
                 color: '#282828',
                 opacity: 1,
-                letterSpacing: '-0.05em',
+                letterSpacing: '-0.02em',
                 lineHeight: 1.2,
                 margin: '0 0 28px',
                 textAlign: 'center' as const,
+                textRendering: 'geometricPrecision',
               }}
             >
-              <strong style={{ color: '#282828', fontSize: 20, fontWeight: 700 }}>Copa do Mundo</strong> 2026
+              Copa do Mundo 2026
             </h2>
             <div
               className={`ag-selecoes-wrapper${selecoesManualScroll ? ' manual' : ''}`}
