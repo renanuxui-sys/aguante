@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { imagemComProxy } from '@/lib/image-url'
 import { gerarSlugLoja } from '@/lib/loja-utils'
 import { formatarResumoProduto } from '@/lib/product-description'
-import type { Produto } from '@/types'
+import type { Produto, StoreCoupon } from '@/types'
 
 const imgArrowLeft    = "/assets/arrow-left.svg"
 const imgLightning    = "https://www.figma.com/api/mcp/asset/7d7e1469-42a4-4078-be97-1e683db9145c"
@@ -25,6 +25,7 @@ type StatusAlerta = 'idle' | 'loading' | 'success' | 'error'
 type ProdutoClientProps = {
   produtoInicial: ProdutoComStats
   relacionadosIniciais: Produto[]
+  cupomInicial: StoreCoupon | null
 }
 
 type RastreamentoSaida = {
@@ -48,7 +49,7 @@ function origemInicialDoUsuario() {
   }
 }
 
-export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: ProdutoClientProps) {
+export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cupomInicial }: ProdutoClientProps) {
   const id = produtoInicial.id
   const router = useRouter()
   const produto = produtoInicial
@@ -63,6 +64,8 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
   const [statusAlerta, setStatusAlerta] = useState<StatusAlerta>('idle')
   const [imagemCarregadaUrl, setImagemCarregadaUrl] = useState<string | null>(null)
   const [mostrarBotaoFixo, setMostrarBotaoFixo] = useState(false)
+  const [cupomRevelado, setCupomRevelado] = useState(false)
+  const [cupomCopiado, setCupomCopiado] = useState(false)
   const [sessionId, setSessionId] = useState('')
   const [rastreamentoSaida, setRastreamentoSaida] = useState<RastreamentoSaida>({
     origem: '',
@@ -189,6 +192,44 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
     setEmailAlerta('')
   }
 
+  function registrarEventoCupom(eventType: 'coupon_reveal' | 'coupon_copy') {
+    if (!cupomInicial) return
+
+    fetch('/api/coupons/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_type: eventType,
+        coupon_id: cupomInicial.id,
+        coupon_code: cupomInicial.code,
+        product_id: produto.id,
+        store_id: cupomInicial.store_id,
+        store_name: produto.fonte_nome,
+        session_id: sessionId,
+        source: rastreamentoSaida.origem,
+        campaign: cupomInicial.campaign || rastreamentoSaida.campanha,
+        club: produto.clube,
+        page_path: rastreamentoSaida.pagina,
+      }),
+      keepalive: true,
+    }).catch(error => console.warn('Não foi possível registrar evento de cupom:', error))
+  }
+
+  function revelarCupom() {
+    if (cupomRevelado) return
+    setCupomRevelado(true)
+    registrarEventoCupom('coupon_reveal')
+  }
+
+  async function copiarCupom() {
+    if (!cupomInicial) return
+    setCupomRevelado(true)
+    await navigator.clipboard?.writeText(cupomInicial.code).catch(() => null)
+    setCupomCopiado(true)
+    registrarEventoCupom('coupon_copy')
+    window.setTimeout(() => setCupomCopiado(false), 2200)
+  }
+
   const imagemProdutoUrl = imagemComProxy(produto.imagem_url)
   const imgCarregada = imagemCarregadaUrl === imagemProdutoUrl
   const tagsVisiveis = (produto.tags || []).filter(tag => !TAGS_OCULTAS.has(tag.toLowerCase()))
@@ -196,7 +237,12 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
   if (sessionId) linkSaidaParams.set('sid', sessionId)
   if (rastreamentoSaida.origem) linkSaidaParams.set('origem', rastreamentoSaida.origem)
   if (rastreamentoSaida.pagina) linkSaidaParams.set('pagina', rastreamentoSaida.pagina)
-  if (rastreamentoSaida.campanha) linkSaidaParams.set('campanha', rastreamentoSaida.campanha)
+  if (cupomInicial?.campaign || rastreamentoSaida.campanha) linkSaidaParams.set('campanha', cupomInicial?.campaign || rastreamentoSaida.campanha)
+  if (cupomInicial && cupomRevelado) {
+    linkSaidaParams.set('cupom_revelado', 'true')
+    linkSaidaParams.set('coupon_id', cupomInicial.id)
+    linkSaidaParams.set('coupon_code', cupomInicial.code)
+  }
   const linkSaida = `/out/produto-${encodeURIComponent(produto.id)}${linkSaidaParams.size ? `?${linkSaidaParams.toString()}` : ''}`
 
   const renderBlocoInfos = () => (
@@ -249,6 +295,51 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
       <img src={imgExport} alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
     </a>
   )
+
+  const renderCupom = () => {
+    if (!cupomInicial) return null
+
+    const validade = cupomInicial.valid_until
+      ? new Date(cupomInicial.valid_until).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      : null
+
+    return (
+      <div style={{ background: '#fff', border: '1px solid #e0dee7', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
+          <div>
+            <p style={{ color: '#087443', fontSize: 12, fontWeight: 800, letterSpacing: '-0.01em', marginBottom: 6 }}>Cupom disponível</p>
+            <p style={{ color: '#000', fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              {cupomInicial.discount_label} na {produto.fonte_nome}
+            </p>
+            {cupomInicial.description && (
+              <p style={{ color: '#62748c', fontSize: 13, lineHeight: 1.35, marginTop: 6 }}>{cupomInicial.description}</p>
+            )}
+          </div>
+          {validade && <span style={{ color: '#62748c', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>até {validade}</span>}
+        </div>
+
+        {cupomInicial.rules && <p style={{ color: '#8A8880', fontSize: 12, lineHeight: 1.35 }}>{cupomInicial.rules}</p>}
+
+        {!cupomRevelado ? (
+          <button onClick={revelarCupom} style={{ height: 44, border: 'none', borderRadius: 12, background: '#1A1A1A', color: '#fff', cursor: 'pointer', font: '700 14px Onest, sans-serif' }}>
+            Revelar cupom
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ border: '1px dashed #550fed', borderRadius: 12, color: '#550fed', fontSize: 18, fontWeight: 800, letterSpacing: '0.04em', padding: '10px 14px', background: '#F6F2FF' }}>
+              {cupomInicial.code}
+            </div>
+            <button onClick={copiarCupom} style={{ height: 42, border: '1px solid #550fed', borderRadius: 12, background: '#fff', color: '#550fed', cursor: 'pointer', font: '700 13px Onest, sans-serif', padding: '0 14px' }}>
+              {cupomCopiado ? 'Copiado' : 'Copiar cupom'}
+            </button>
+            <a href={linkSaida} target="_blank" rel="noopener noreferrer" style={{ height: 42, borderRadius: 12, background: '#550fed', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', font: '700 13px Onest, sans-serif', padding: '0 16px' }}>
+              Ver na loja
+            </a>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const renderCardAlerta = () => (
     <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -340,6 +431,7 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 40 }}>
                   {renderBlocoInfos()}
+                  {renderCupom()}
                   {renderBotaoAnuncio()}
                   {renderCardAlerta()}
                   {renderAvisoTerceiros()}
@@ -375,6 +467,7 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais }: 
             </div>
             <div style={{ padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 32 }}>
               {renderBlocoInfos()}
+              {renderCupom()}
               {renderBotaoAnuncio(true)}
               {renderCardAlerta()}
               {renderAvisoTerceiros()}

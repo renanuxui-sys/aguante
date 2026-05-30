@@ -53,3 +53,19 @@ export type OfertaAfiliada = {
   created_at: string
   updated_at: string
 }
+
+export type StoreCoupon = {
+  id: string
+  store_id: string | null
+  store_name: string
+  code: string
+  discount_label: string
+  description: string | null
+  rules: string | null
+  valid_from: string | null
+  valid_until: string | null
+  is_active: boolean
+  campaign: string | null
+  created_at: string
+  updated_at: string
+}

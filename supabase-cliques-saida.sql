@@ -44,7 +44,9 @@ create index if not exists cliques_saida_campanha_idx
   on public.cliques_saida (campanha);
 
 alter table public.cliques_saida
-  add column if not exists session_id text;
+  add column if not exists session_id text,
+  add column if not exists coupon_id uuid references public.store_coupons(id) on delete set null,
+  add column if not exists coupon_code text;
 
 create index if not exists cliques_saida_session_produto_clicked_idx
   on public.cliques_saida (session_id, produto_id, clicked_at desc);
