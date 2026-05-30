@@ -28,24 +28,6 @@ const mercadosAtalhos = [
   { titulo: 'Seleções', imagem: 'selecoes.png', href: '/search?categoria=Seleções' },
 ]
 
-const selecoesCopa = [
-  { nome: 'Brasil', bandeira: 'brasil.png' },
-  { nome: 'Argentina', bandeira: 'argentina.png' },
-  { nome: 'Uruguai', bandeira: 'uruguai.png' },
-  { nome: 'Colômbia', bandeira: 'colombia.png' },
-  { nome: 'Equador', bandeira: 'equador.png' },
-  { nome: 'México', bandeira: 'mexico.png' },
-  { nome: 'Estados Unidos', bandeira: 'estados-unidos.png' },
-  { nome: 'Alemanha', bandeira: 'alemanha.png' },
-  { nome: 'Espanha', bandeira: 'espanha.png' },
-  { nome: 'França', bandeira: 'franca.png' },
-  { nome: 'Inglaterra', bandeira: 'inglaterra.png' },
-  { nome: 'Portugal', bandeira: 'portugal.png' },
-  { nome: 'Holanda', bandeira: 'holanda.png' },
-  { nome: 'Bélgica', bandeira: 'belgica.png' },
-  { nome: 'Japão', bandeira: 'japao.png' },
-]
-
 type Clube = {
   id: string
   nome: string
@@ -220,7 +202,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const [totalProdutos] = useState<number | null>(initialData.metricas?.total_produtos ?? null)
   const [novosHoje] = useState<number | null>(initialData.metricas?.novos_24h ?? null)
   const [isMobile, setIsMobile]   = useState(false)
-  const [selecoesManualScroll, setSelecoesManualScroll] = useState(false)
+  const [clubesManualScroll, setClubesManualScroll] = useState(false)
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 768px)')
@@ -275,6 +257,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const quantidadeDestaques = isMobile ? 6 : 5
   const produtosParaVoce = produtosParaVoceBase.slice(0, quantidadeDestaques)
   const emAltaVisiveis = emAlta.slice(0, isMobile ? 6 : 10)
+  const clubes = initialData.clubes || []
 
   const totalFmt = totalProdutos !== null ? totalProdutos.toLocaleString('pt-BR') : 'milhares de'
   const novosLabel = novosHoje !== null
@@ -324,14 +307,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-hero-blocos { display: flex; }
         .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
         .ag-clubes-mobile-track { display: none; }
-        .ag-selecoes-wrapper { width: 100%; }
-        .ag-selecoes-list { display: flex; align-items: center; justify-content: center; gap: 19px; flex-wrap: nowrap; }
-        .ag-selecoes-mobile-track { display: none; }
-        .ag-selecao-btn { width: 50px; height: 50px; padding: 0; border: none; background: transparent; border-radius: 999px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 180ms ease, opacity 180ms ease; flex-shrink: 0; }
-        .ag-selecao-btn:hover { transform: translateY(-2px) scale(1.04); opacity: 0.9; }
-        .ag-selecao-btn img { width: 50px; height: 50px; object-fit: contain; display: block; }
-        .ag-selecao-more { background: #fff; border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 8px 24px rgba(40,40,40,0.08); }
-        .ag-selecao-more img { width: 19px; height: 19px; }
+        .ag-clube-btn img { width: 50px; height: 50px; object-fit: contain; display: block; }
+        .ag-clube-more { background: #fff; border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 8px 24px rgba(40,40,40,0.08); }
+        .ag-clube-more img { width: 19px; height: 19px; }
         .ag-mercados-title { text-align: left; }
         .ag-mercados-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
         .ag-mercado-card { position: relative; display: block; height: 104px; border: none; border-radius: 8px; overflow: hidden; padding: 0; background: #282828; cursor: pointer; text-align: right; text-decoration: none; font-family: Onest, sans-serif; }
@@ -341,7 +319,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-mercado-card:hover img { transform: scale(1.04); }
         .ag-ver-todas-txt { display: inline; }
         .ag-section-link { flex-shrink: 0; }
-        .ag-selecoes-title,
+        .ag-clubes-title,
         .ag-copa-products-title {
           color: #282828 !important;
           -webkit-text-fill-color: #282828 !important;
@@ -351,7 +329,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           line-height: 1.2 !important;
           opacity: 1 !important;
         }
-        .ag-selecoes-title,
+        .ag-clubes-title,
         .ag-copa-products-title {
           margin: 0 0 28px !important;
         }
@@ -424,55 +402,12 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-clubes-wrapper.manual .ag-clubes-mobile-set[aria-hidden="true"] {
             display: none !important;
           }
-          .ag-selecoes-wrapper {
-            margin-left: calc(50% - 50vw) !important;
-            margin-right: calc(50% - 50vw) !important;
-            width: 100vw !important;
-            overflow: hidden !important;
-          }
-          .ag-selecoes-list {
-            display: none !important;
-          }
-          .ag-selecoes-mobile-track {
-            display: flex !important;
-            width: max-content !important;
-            animation: ag-clubes-slide 32s linear infinite !important;
-            will-change: transform;
-          }
-          .ag-selecoes-mobile-set {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 12px;
-            padding: 0 24px 8px;
-            flex-shrink: 0;
-          }
-          .ag-selecoes-mobile-set + .ag-selecoes-mobile-set {
-            padding-left: 0;
-          }
-          .ag-selecoes-wrapper.manual {
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            touch-action: pan-x;
-          }
-          .ag-selecoes-wrapper.manual::-webkit-scrollbar {
-            display: none;
-          }
-          .ag-selecoes-wrapper.manual .ag-selecoes-mobile-track {
-            animation: none !important;
-            transform: none !important;
-          }
-          .ag-selecoes-wrapper.manual .ag-selecoes-mobile-set[aria-hidden="true"] {
-            display: none !important;
-          }
-          .ag-selecao-btn,
-          .ag-selecao-btn img {
+          .ag-clube-btn,
+          .ag-clube-btn img {
             width: 54px;
             height: 54px;
           }
-          .ag-selecao-more img {
+          .ag-clube-more img {
             width: 19px;
             height: 19px;
           }
@@ -480,7 +415,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             font-size: 20px !important;
             margin-bottom: 20px !important;
           }
-          .ag-selecoes-title {
+          .ag-clubes-title {
             color: #282828 !important;
             -webkit-text-fill-color: #282828 !important;
             font-size: 20px !important;
@@ -623,84 +558,64 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           </div>
         </section>
 
-        {/* Temporário Copa do Mundo: seleções substituem os clubes. Depois da Copa, reativar a vitrine usando initialData.clubes. */}
-        <section className="ag-selecoes-strip" style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56, opacity: 1 }}>
+        <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
           <div className="ag-container">
+            <h2 className="ag-clubes-title" style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', textAlign: 'center' as const, margin: '0 0 28px' }}>
+              Explore por clube
+            </h2>
             <div
-              className="ag-selecoes-title ag-flags-slider-title"
-              data-aguante-flags-title="true"
-              role="heading"
-              aria-level={2}
-              style={{
-                all: 'unset',
-                display: 'block',
-                boxSizing: 'border-box',
-                font: '700 20px/1.2 Onest, sans-serif',
-                color: '#282828',
-                WebkitTextFillColor: '#282828',
-                filter: 'none',
-                opacity: 1,
-                letterSpacing: '-0.02em',
-                margin: '0 0 28px',
-                textAlign: 'center' as const,
-                textRendering: 'geometricPrecision',
-              }}
-            >
-              Copa do Mundo 2026
-            </div>
-            <div
-              className={`ag-selecoes-wrapper${selecoesManualScroll ? ' manual' : ''}`}
-              onPointerDown={() => setSelecoesManualScroll(true)}
-              onTouchStart={() => setSelecoesManualScroll(true)}
+              className={`ag-clubes-wrapper${clubesManualScroll ? ' manual' : ''}`}
+              onPointerDown={() => setClubesManualScroll(true)}
+              onTouchStart={() => setClubesManualScroll(true)}
               onWheel={event => {
-                if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) setSelecoesManualScroll(true)
+                if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) setClubesManualScroll(true)
               }}
             >
-              <div className="ag-selecoes-list" aria-label="Seleções">
-                {selecoesCopa.map(selecao => (
+              <div className="ag-clubes-grid" aria-label="Clubes">
+                {clubes.map(clube => (
                   <button
-                    key={selecao.nome}
+                    key={clube.id}
                     type="button"
-                    className="ag-selecao-btn"
-                    onClick={() => router.push(`/search?clube=${encodeURIComponent(selecao.nome)}`)}
-                    title={selecao.nome}
-                    aria-label={`Buscar camisas de ${selecao.nome}`}
+                    className="ag-clube-btn"
+                    onClick={() => router.push(`/clubes/${clube.slug}`)}
+                    title={clube.nome}
+                    aria-label={`Buscar camisas de ${clube.nome}`}
                   >
-                    <img src={`/assets/flags/${selecao.bandeira}`} alt="" />
+                    {clube.escudo_url && <img src={clube.escudo_url} alt="" />}
                   </button>
                 ))}
                 <button
                   type="button"
-                  className="ag-selecao-btn ag-selecao-more"
-                  onClick={() => router.push('/search?categoria=Seleções')}
-                  title="Ver todas as seleções"
-                  aria-label="Ver todas as seleções"
+                  className="ag-clube-btn ag-clube-more"
+                  onClick={() => router.push('/search')}
+                  title="Ver todos os clubes"
+                  aria-label="Ver todos os clubes"
                 >
                   <img src={imgIconMore} alt="" />
                 </button>
               </div>
-              <div className="ag-selecoes-mobile-track" aria-label="Seleções">
+              <div className="ag-clubes-mobile-track" aria-label="Clubes">
                 {[0, 1].map(copia => (
-                  <div key={copia} className="ag-selecoes-mobile-set" aria-hidden={copia === 1 ? true : undefined}>
-                    {selecoesCopa.map(selecao => (
+                  <div key={copia} className="ag-clubes-mobile-set" aria-hidden={copia === 1 ? true : undefined}>
+                    {clubes.map(clube => (
                       <button
-                        key={`${selecao.nome}-${copia}`}
+                        key={`${clube.id}-${copia}`}
                         type="button"
-                        className="ag-selecao-btn"
-                        onClick={() => router.push(`/search?clube=${encodeURIComponent(selecao.nome)}`)}
-                        title={selecao.nome}
-                        aria-label={`Buscar camisas de ${selecao.nome}`}
+                        className="ag-clube-btn"
+                        onClick={() => router.push(`/clubes/${clube.slug}`)}
+                        title={clube.nome}
+                        aria-label={`Buscar camisas de ${clube.nome}`}
                         tabIndex={copia === 1 ? -1 : undefined}
                       >
-                        <img src={`/assets/flags/${selecao.bandeira}`} alt="" />
+                        {clube.escudo_url && <img src={clube.escudo_url} alt="" />}
                       </button>
                     ))}
                     <button
                       type="button"
-                      className="ag-selecao-btn ag-selecao-more"
-                      onClick={() => router.push('/search?categoria=Seleções')}
-                      title="Ver todas as seleções"
-                      aria-label="Ver todas as seleções"
+                      className="ag-clube-btn ag-clube-more"
+                      onClick={() => router.push('/search')}
+                      title="Ver todos os clubes"
+                      aria-label="Ver todos os clubes"
                       tabIndex={copia === 1 ? -1 : undefined}
                     >
                       <img src={imgIconMore} alt="" />
