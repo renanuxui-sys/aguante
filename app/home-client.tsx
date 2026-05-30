@@ -455,6 +455,10 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             font-size: 20px !important;
             margin-bottom: 20px !important;
           }
+          .ag-selecoes-title {
+            color: #282828 !important;
+            font-size: 20px !important;
+          }
           .ag-mercados-grid {
             grid-template-columns: 1fr !important;
             gap: 12px !important;
@@ -583,7 +587,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         {/* Temporário Copa do Mundo: seleções substituem os clubes. Depois da Copa, reativar a vitrine usando initialData.clubes. */}
         <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
           <div className="ag-container">
-            <p style={{ fontSize: 18, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
+            <p className="ag-selecoes-title" style={{ fontSize: 20, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
               <strong>Copa do Mundo</strong> 2026
             </p>
             <div

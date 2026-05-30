@@ -50,6 +50,15 @@ export default function ClubePreferenceModal() {
   }, [pathname, registrarEscolha])
 
   useEffect(() => {
+    function abrirPerfil() {
+      setAberto(true)
+    }
+
+    window.addEventListener('aguante:abrir-perfil', abrirPerfil)
+    return () => window.removeEventListener('aguante:abrir-perfil', abrirPerfil)
+  }, [])
+
+  useEffect(() => {
     async function carregarClubes() {
       const { data } = await supabase
         .from('clubes')

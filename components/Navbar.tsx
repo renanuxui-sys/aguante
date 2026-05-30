@@ -1,14 +1,16 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { gerarSlugClube } from '@/lib/clube-utils'
 
 const imgLogo      = "/assets/logo.svg"
+const imgHome      = "/assets/home.svg"
 const imgChevron   = "/assets/chevron-down.svg"
 const imgNavSearch = "/assets/ico-search.svg"
-const imgCoupon    = "/assets/coupon.svg"
+const imgCoupon    = "/assets/coupons.svg"
+const imgFavorite  = "/assets/ico-favorite.svg"
 const imgMenu      = "/assets/menu.svg"
 const imgClose     = "/assets/close.svg"
 
@@ -71,6 +73,7 @@ async function carregarClubesMenu() {
 
 export default function Navbar() {
   const router = useRouter()
+  const pathname = usePathname()
   const [submenu, setSubmenu]         = useState(false)
   const [catAtiva, setCatAtiva]       = useState('Clubes Brasileiros')
   const [menuMobile, setMenuMobile]   = useState(false)
@@ -108,6 +111,17 @@ export default function Navbar() {
     if (q) { router.push(`/search?q=${encodeURIComponent(q)}`); setQuery(''); setMenuMobile(false); setBuscaMobile(false) }
   }
 
+  function abrirBuscaMobile() {
+    setBuscaMobile(true)
+    setMenuMobile(false)
+    setCatMobile('')
+  }
+
+  function fecharBuscaMobile() {
+    setBuscaMobile(false)
+    setCatMobile('')
+  }
+
   function onSubmenuEnter() {
     if (leaveTimer.current) clearTimeout(leaveTimer.current)
     setSubmenu(true)
@@ -117,13 +131,25 @@ export default function Navbar() {
   }
 
   useEffect(() => {
-    document.body.style.overflow = menuMobile ? 'hidden' : ''
+    document.body.style.overflow = menuMobile || buscaMobile ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [menuMobile])
+  }, [menuMobile, buscaMobile])
+
+  useEffect(() => {
+    document.body.classList.add('ag-has-mobile-bottom-nav')
+    return () => { document.body.classList.remove('ag-has-mobile-bottom-nav') }
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('aguante:abrir-busca-mobile', abrirBuscaMobile)
+    return () => window.removeEventListener('aguante:abrir-busca-mobile', abrirBuscaMobile)
+  }, [])
+
+  const inicioAtivo = pathname === '/'
 
   return (
     <>
-      <nav style={{
+      <nav className="ag-main-nav" style={{
         position: 'fixed', top: 0, left: 0, right: 0,
         height: 76,
         background: 'rgba(255,255,255,0.95)',
@@ -189,16 +215,53 @@ export default function Navbar() {
         </form>
 
         <div style={{ display: 'none', alignItems: 'center', gap: 8 }} className="ag-mobile-btns">
-          <button onClick={() => { setBuscaMobile(b => !b); setMenuMobile(false) }}
+          <button onClick={abrirBuscaMobile}
             style={{ width: 44, height: 44, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
             <img src={imgNavSearch} alt="Buscar" style={{ width: 24, height: 24, filter: 'brightness(0)' }} />
           </button>
-          <button onClick={() => { setMenuMobile(m => { const aberto = !m; if (aberto) setCatMobile(''); return aberto }); setBuscaMobile(false) }}
+          <button onClick={() => { setCatMobile(''); setMenuMobile(m => !m); setBuscaMobile(false) }}
             aria-label={menuMobile ? 'Fechar menu' : 'Abrir menu'}
             style={{ width: 52, height: 52, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
             <img src={menuMobile ? imgClose : imgMenu} alt="" style={{ width: 48, height: 48 }} />
           </button>
         </div>
+      </nav>
+
+      <nav className={`ag-mobile-bottom-nav${menuMobile ? ' ag-mobile-bottom-nav-hidden' : ''}`} aria-label="Navegação principal mobile">
+        <Link href="/" className={`ag-mobile-nav-item${inicioAtivo ? ' ag-mobile-nav-active' : ''}`} onClick={() => { setMenuMobile(false); setBuscaMobile(false) }}>
+          <span className="ag-mobile-nav-icon">
+            <img src={imgHome} alt="" />
+          </span>
+          <span>Início</span>
+        </Link>
+
+        <button type="button" className="ag-mobile-nav-item ag-mobile-nav-muted" aria-disabled="true">
+          <span className="ag-mobile-nav-icon">
+            <img src={imgCoupon} alt="" />
+          </span>
+          <span>Cupons</span>
+        </button>
+
+        <button type="button" className="ag-mobile-nav-item ag-mobile-nav-search" onClick={abrirBuscaMobile}>
+          <span className="ag-mobile-nav-search-icon">
+            <img src={imgNavSearch} alt="" />
+          </span>
+          <span>Procurar<br />camisas</span>
+        </button>
+
+        <button type="button" className="ag-mobile-nav-item" onClick={() => { setBuscaMobile(false); setMenuMobile(false); router.push('/favoritos') }}>
+          <span className="ag-mobile-nav-icon">
+            <img src={imgFavorite} alt="" />
+          </span>
+          <span>Favoritos</span>
+        </button>
+
+        <button type="button" className="ag-mobile-nav-item" onClick={() => { setCatMobile(''); setMenuMobile(m => !m); setBuscaMobile(false) }} aria-label={menuMobile ? 'Fechar menu' : 'Abrir menu'}>
+          <span className="ag-mobile-nav-icon">
+            <img src={imgMenu} alt="" />
+          </span>
+          <span>Menu</span>
+        </button>
       </nav>
 
       {/* SUBMENU DESKTOP */}
@@ -248,17 +311,54 @@ export default function Navbar() {
 
       {/* BUSCA MOBILE */}
       {buscaMobile && (
-        <div style={{ position: 'fixed', top: 64, left: 0, right: 0, background: '#fff', zIndex: 98, padding: '12px 16px', borderBottom: '1px solid #e0dee7', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
-          <form onSubmit={handleSearch}>
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f5f5f5', border: '1px solid #e0dee7', borderRadius: 12, padding: '10px 16px', gap: 8 }}>
-              <input ref={mobileInput} autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)}
-                placeholder="O que você procura?"
-                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#444', fontFamily: 'Onest, sans-serif' }} />
-              <button type="submit" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
-                <img src={imgNavSearch} alt="" style={{ width: 20, height: 20, filter: 'brightness(0)' }} />
-              </button>
-            </div>
+        <div className="ag-mobile-search-modal">
+          <div className="ag-mobile-modal-head">
+            <button onClick={fecharBuscaMobile} aria-label="Fechar busca" className="ag-mobile-modal-close">
+              <img src={imgClose} alt="" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSearch} className="ag-mobile-search-form">
+            <input
+              ref={mobileInput}
+              autoFocus
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="O que você procura?"
+            />
+            <button type="submit" aria-label="Buscar">
+              <img src={imgNavSearch} alt="" />
+            </button>
           </form>
+
+          <div className="ag-mobile-modal-list">
+            {cats.map(cat => {
+              const aberta = catMobile === cat.key
+              return (
+                <div key={cat.key}>
+                  <button onClick={() => setCatMobile(aberta ? '' : cat.key)} className="ag-mobile-accordion-trigger">
+                    <span>{cat.labelMobile}</span>
+                    <img src={imgChevron} alt="" style={{ transform: aberta ? 'rotate(180deg)' : 'rotate(0)' }} />
+                  </button>
+
+                  {aberta && cat.clubes.length > 0 && (
+                    <div className="ag-mobile-club-grid">
+                      {cat.clubes.map(clube => (
+                        <Link
+                          key={clube.id}
+                          href={`/clubes/${clube.slug || gerarSlugClube(clube.nome)}`}
+                          onClick={fecharBuscaMobile}
+                        >
+                          {clube.nome}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -272,48 +372,14 @@ export default function Navbar() {
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <div style={{ padding: '0 20px' }}>
-              {cats.map(cat => {
-                const aberta = catMobile === cat.key
-                return (
-                  <div key={cat.key}>
-                    <button onClick={() => setCatMobile(aberta ? '' : cat.key)}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Onest, sans-serif' }}>
-                      <span style={{ fontWeight: 700, fontSize: 18, color: '#000', letterSpacing: '-0.02em' }}>{cat.labelMobile}</span>
-                      <img src={imgChevron} alt="" style={{ width: 20, height: 20, transition: 'transform 200ms ease', transform: aberta ? 'rotate(180deg)' : 'rotate(0)' }} />
-                    </button>
-
-                    {aberta && cat.clubes.length > 0 && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px', paddingBottom: 16 }}>
-                        {cat.clubes.map(clube => (
-                          <Link key={clube.id} href={`/clubes/${clube.slug || gerarSlugClube(clube.nome)}`} onClick={() => setMenuMobile(false)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', background: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'Onest, sans-serif', width: '100%', textAlign: 'left', textDecoration: 'none' }}>
-                            <span style={{ fontSize: 14, color: '#000', letterSpacing: '-0.01em' }}>{clube.nome}</span>
-                            {clube.total_anuncios > 0 && (
-                              <span style={{ background: '#ebe8f2', borderRadius: 8, padding: '2px 8px', fontSize: 11, color: '#550fed', fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>
-                                {clube.total_anuncios.toLocaleString('pt-BR')}
-                              </span>
-                            )}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-
-                    {aberta && cat.clubes.length === 0 && (
-                      <p style={{ fontSize: 13, color: '#aaa', paddingBottom: 16 }}>Nenhum clube com anúncios.</p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            <div style={{ padding: '0 20px 40px' }}>
+            <div style={{ padding: '8px 20px 40px' }}>
               {[
+                { href: '/', label: 'Inicio' },
                 { href: '/sobre', label: 'Sobre Aguante' },
-                { href: '/contato', label: 'Fale conosco' },
+                { href: '/contato', label: 'Contato' },
               ].map(l => (
                 <Link key={l.href} href={l.href} onClick={() => setMenuMobile(false)}
-                  style={{ display: 'block', fontSize: 16, color: '#000', textDecoration: 'none', padding: '16px 0', letterSpacing: '-0.01em' }}>
+                  style={{ display: 'block', fontSize: 22, fontWeight: 700, color: '#000', textDecoration: 'none', padding: '18px 0', letterSpacing: '-0.02em' }}>
                   {l.label}
                 </Link>
               ))}
@@ -323,10 +389,231 @@ export default function Navbar() {
       )}
 
       <style>{`
+        .ag-mobile-bottom-nav { display: none; }
         @media (max-width: 768px) {
+          .ag-main-nav {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            right: auto !important;
+            justify-content: center !important;
+            padding: 0 20px !important;
+            background: #fff !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+          }
+          .ag-main-nav > a:first-child {
+            justify-content: center;
+          }
+          body.ag-has-mobile-bottom-nav main > section:first-of-type,
+          body.ag-has-mobile-bottom-nav main > div:first-of-type {
+            padding-top: 0 !important;
+          }
           .ag-nav-links     { display: none !important; }
           .ag-nav-pill-wrap { display: none !important; }
-          .ag-mobile-btns   { display: flex !important; }
+          .ag-mobile-btns   { display: none !important; }
+          body.ag-has-mobile-bottom-nav { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+          .ag-btn-fixo-mobile { bottom: calc(112px + env(safe-area-inset-bottom)) !important; }
+          .ag-mobile-bottom-nav {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 160;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            align-items: end;
+            min-height: calc(96px + env(safe-area-inset-bottom));
+            padding: 12px max(8px, env(safe-area-inset-left)) calc(14px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+            background: #ebe8f2;
+            box-shadow: 0 -14px 34px rgba(28, 20, 54, 0.08);
+          }
+          .ag-mobile-bottom-nav-hidden {
+            display: none;
+          }
+          .ag-mobile-nav-item {
+            position: relative;
+            min-width: 0;
+            min-height: 70px;
+            padding: 0 2px;
+            border: 0;
+            background: transparent;
+            color: #000;
+            cursor: pointer;
+            text-decoration: none;
+            font: 400 14px/1.05 Onest, sans-serif;
+            letter-spacing: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            -webkit-tap-highlight-color: transparent;
+          }
+          .ag-mobile-nav-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .ag-mobile-nav-icon img {
+            width: 24px;
+            height: 24px;
+            display: block;
+            object-fit: contain;
+          }
+          .ag-mobile-nav-muted {
+            opacity: 0.3;
+          }
+          .ag-mobile-nav-muted {
+            pointer-events: none;
+          }
+          .ag-mobile-nav-active {
+            color: #550fed;
+            font-weight: 700;
+          }
+          .ag-mobile-nav-item:not(.ag-mobile-nav-search) .ag-mobile-nav-icon img {
+            filter: none;
+          }
+          .ag-mobile-nav-search {
+            justify-content: flex-start;
+            gap: 6px;
+            margin-top: -64px;
+            font-size: 14px;
+            line-height: 0.98;
+            font-weight: 400;
+          }
+          .ag-mobile-nav-search-icon {
+            width: 48px;
+            height: 56px;
+            border-radius: 18px;
+            background: #550fed;
+            box-shadow: 0 10px 22px rgba(28, 20, 54, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .ag-mobile-nav-search-icon img {
+            width: 24px;
+            height: 24px;
+            display: block;
+            filter: brightness(0) saturate(100%) invert(82%) sepia(26%) saturate(1227%) hue-rotate(205deg) brightness(104%) contrast(102%);
+          }
+          .ag-mobile-search-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 220;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: #fff;
+            padding: 0 20px calc(120px + env(safe-area-inset-bottom));
+          }
+          .ag-mobile-modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            min-height: 76px;
+            flex-shrink: 0;
+          }
+          .ag-mobile-modal-close {
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .ag-mobile-modal-close img {
+            width: 48px;
+            height: 48px;
+          }
+          .ag-mobile-search-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 56px;
+            margin-bottom: 18px;
+            padding: 0 8px 0 18px;
+            border: 1px solid #e0dee7;
+            border-radius: 18px;
+            background: #f5f5f5;
+          }
+          .ag-mobile-search-form input {
+            flex: 1;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: #000;
+            font: 400 16px/1.2 Onest, sans-serif;
+          }
+          .ag-mobile-search-form button {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 0;
+            border-radius: 14px;
+            background: #550fed;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .ag-mobile-search-form button img {
+            width: 22px;
+            height: 22px;
+            filter: brightness(0) invert(1);
+          }
+          .ag-mobile-modal-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+          .ag-mobile-accordion-trigger {
+            width: 100%;
+            min-height: 58px;
+            padding: 0;
+            border: 0;
+            border-bottom: 1px solid #f0f0f0;
+            background: transparent;
+            color: #000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font: 700 18px/1.15 Onest, sans-serif;
+            letter-spacing: -0.02em;
+          }
+          .ag-mobile-accordion-trigger img {
+            width: 20px;
+            height: 20px;
+            transition: transform 180ms ease;
+          }
+          .ag-mobile-club-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 16px;
+            padding: 8px 0 18px;
+          }
+          .ag-mobile-club-grid a {
+            min-width: 0;
+            padding: 9px 0;
+            border-bottom: 1px solid #f0f0f0;
+            color: #000;
+            font: 400 14px/1.2 Onest, sans-serif;
+            letter-spacing: -0.01em;
+            text-decoration: none;
+          }
+        }
+        @media (max-width: 390px) {
+          .ag-mobile-nav-item { font-size: 14px; }
+          .ag-mobile-nav-search { font-size: 14px; }
         }
       `}</style>
     </>

@@ -1,3 +1,5 @@
+import { cuponsTesteAtivos } from '@/lib/coupon-config'
+
 type ProdutoComFonte = {
   fonte_id?: string | null
   fonte_nome?: string | null
@@ -44,6 +46,8 @@ function cupomVigente(cupom: CupomLojaAtivo, agora: Date) {
 export async function carregarLojasComCupomAtivo(
   buscarCupons: () => PromiseLike<{ data: CupomLojaAtivo[] | null; error: { message: string } | null }>
 ) {
+  if (!cuponsTesteAtivos()) return { storeIds: new Set<string>(), storeNames: [] }
+
   try {
     const { data, error } = await buscarCupons()
 

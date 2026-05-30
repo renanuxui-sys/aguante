@@ -10,6 +10,7 @@ const NAV = [
   { href: '/admin/cadastros', label: 'Cadastros CTA', icon: '✉' },
   { href: '/admin/alertas', label: 'Alertas', icon: '◌' },
   { href: '/admin/preferencias-clubes', label: 'Escolhas', icon: '▣' },
+  { href: '/admin/cupons', label: 'Cupons', icon: '%' },
   { href: '/admin/ofertas', label: 'Ofertas', icon: '▥' },
   { href: '/admin/lojas', label: 'Lojas', icon: '🏪' },
   { href: '/admin/cliques-saida', label: 'Cliques saída', icon: '↗' },
