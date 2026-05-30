@@ -334,6 +334,15 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-selecoes-title strong {
           color: #282828 !important;
           font-size: 20px !important;
+          line-height: 1.2 !important;
+          opacity: 1 !important;
+        }
+        .ag-selecoes-title {
+          font-weight: 300 !important;
+          margin: 0 0 28px !important;
+        }
+        .ag-selecoes-title strong {
+          font-weight: 700 !important;
         }
         @keyframes ag-clubes-slide {
           from { transform: translateX(0); }
@@ -592,9 +601,21 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         {/* Temporário Copa do Mundo: seleções substituem os clubes. Depois da Copa, reativar a vitrine usando initialData.clubes. */}
         <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
           <div className="ag-container">
-            <p className="ag-selecoes-title" style={{ fontSize: 20, color: '#282828', letterSpacing: '-0.05em', marginBottom: 28, textAlign: 'center' as const }}>
-              <strong style={{ color: '#282828', fontSize: 20 }}>Copa do Mundo</strong> 2026
-            </p>
+            <h2
+              className="ag-selecoes-title"
+              style={{
+                fontWeight: 300,
+                fontSize: 20,
+                color: '#282828',
+                opacity: 1,
+                letterSpacing: '-0.05em',
+                lineHeight: 1.2,
+                margin: '0 0 28px',
+                textAlign: 'center' as const,
+              }}
+            >
+              <strong style={{ color: '#282828', fontSize: 20, fontWeight: 700 }}>Copa do Mundo</strong> 2026
+            </h2>
             <div
               className={`ag-selecoes-wrapper${selecoesManualScroll ? ' manual' : ''}`}
               onPointerDown={() => setSelecoesManualScroll(true)}

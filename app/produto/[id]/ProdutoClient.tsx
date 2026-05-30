@@ -375,10 +375,12 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cu
         @keyframes spin { to { transform: rotate(360deg); } }
         .ag-produto-desktop { display: flex; }
         .ag-produto-mobile  { display: none; }
+        .ag-produto-mobile-content { padding-top: 76px; }
         .ag-btn-fixo-mobile { display: none; }
         @media (max-width: 768px) {
           .ag-produto-desktop { display: none !important; }
           .ag-produto-mobile  { display: flex !important; }
+          .ag-produto-mobile-content { padding-top: 0 !important; }
           .ag-btn-fixo-mobile.visivel { display: flex !important; }
           .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
@@ -444,12 +446,12 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cu
         {/* MOBILE */}
         <div className="ag-produto-mobile" style={{ flexDirection: 'column' }}>
           <Navbar />
-          <div style={{ paddingTop: 76 }}>
+          <div className="ag-produto-mobile-content">
             <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', background: '#ecebf0' }}>
               {imagemProdutoUrl && (
                 <img src={imagemProdutoUrl} alt={produto.titulo} onLoad={() => setImagemCarregadaUrl(imagemProdutoUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: imgCarregada ? 1 : 0, transition: 'opacity 0.3s ease' }} />
               )}
-              <button onClick={() => router.back()} style={{ position: 'absolute', top: 48, left: 16, background: '#FFF', backdropFilter: 'blur(8px)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
+              <button onClick={() => router.back()} style={{ position: 'absolute', top: 16, left: 16, background: '#FFF', backdropFilter: 'blur(8px)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
                 <img src={imgArrowLeft} alt="Voltar" style={{ width: 24, height: 24 }} />
               </button>
               <button onClick={toggleCurtida} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', border: favoritado ? '2px solid #550fed' : '2px solid transparent', borderRadius: 12, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
