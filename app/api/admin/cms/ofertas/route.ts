@@ -14,6 +14,41 @@ function lojaValida(valor: unknown): valor is LojaOferta {
   return typeof valor === 'string' && LOJAS.has(valor as LojaOferta)
 }
 
+function textoOpcional(valor: unknown, limite = 180) {
+  if (typeof valor !== 'string') return null
+  const limpo = valor.trim()
+  return limpo ? limpo.slice(0, limite) : null
+}
+
+function percentualOpcional(valor: unknown) {
+  if (valor === null || valor === undefined || valor === '') return null
+  const numero = Number(valor)
+  if (!Number.isFinite(numero) || numero <= 0) return null
+  return Math.min(numero, 100)
+}
+
+function precoComCupom(preco: number | null | undefined, percentual: number | null) {
+  if (typeof preco !== 'number' || !Number.isFinite(preco) || !percentual) return null
+  return Math.round(preco * (1 - percentual / 100) * 100) / 100
+}
+
+function cupomDaOferta(body: Record<string, unknown>, loja: LojaOferta, preco: number | null | undefined) {
+  const codigoPadrao = loja === 'Netshoes' ? 'AGUANTE' : null
+  const percentualPadrao = loja === 'Netshoes' ? 15 : null
+  const descricaoPadrao = loja === 'Netshoes' ? 'Cupom não válido para produtos com tag SELEÇÃO' : null
+
+  const cupomCodigo = textoOpcional(body.cupom_codigo, 40) ?? codigoPadrao
+  const cupomPercentual = percentualOpcional(body.cupom_percentual) ?? percentualPadrao
+  const cupomDescricao = textoOpcional(body.cupom_descricao) ?? descricaoPadrao
+
+  return {
+    cupom_codigo: cupomCodigo,
+    cupom_percentual: cupomPercentual,
+    cupom_descricao: cupomDescricao,
+    preco_com_cupom: precoComCupom(preco, cupomPercentual),
+  }
+}
+
 export async function GET() {
   if (!await sessaoAdminValida()) return Response.json({ error: 'Não autorizado' }, { status: 401 })
 
@@ -41,10 +76,12 @@ export async function POST(request: Request) {
 
     const linkAfiliado = String(body.link_afiliado || '').trim()
     const importada = await importarOferta(linkAfiliado, body.loja)
+    const cupom = cupomDaOferta(body, body.loja, importada.preco)
     const { data, error } = await criarSupabaseAdmin()
       .from('ofertas_afiliadas')
       .insert({
         ...importada,
+        ...cupom,
         link_afiliado: linkAfiliado,
         ordem: Math.max(0, Number(body.ordem || 0) || 0),
         ativo: true,
@@ -70,11 +107,14 @@ export async function PATCH(request: Request) {
     const atualizacao: Record<string, unknown> = {}
     if (typeof body.ativo === 'boolean') atualizacao.ativo = body.ativo
     if (body.ordem !== undefined) atualizacao.ordem = Math.max(0, Number(body.ordem) || 0)
+    if (body.cupom_codigo !== undefined) atualizacao.cupom_codigo = textoOpcional(body.cupom_codigo, 40)
+    if (body.cupom_percentual !== undefined) atualizacao.cupom_percentual = percentualOpcional(body.cupom_percentual)
+    if (body.cupom_descricao !== undefined) atualizacao.cupom_descricao = textoOpcional(body.cupom_descricao)
 
     if (body.reimportar === true) {
       const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
         .from('ofertas_afiliadas')
-        .select('loja,link_afiliado')
+        .select('loja,link_afiliado,cupom_percentual')
         .eq('id', id)
         .single()
 
@@ -83,6 +123,18 @@ export async function PATCH(request: Request) {
 
       const importada = await importarOferta(String(ofertaAtual.link_afiliado || ''), ofertaAtual.loja)
       Object.assign(atualizacao, importada)
+      atualizacao.preco_com_cupom = precoComCupom(importada.preco, percentualOpcional(atualizacao.cupom_percentual ?? ofertaAtual.cupom_percentual))
+    }
+
+    if (!body.reimportar && body.cupom_percentual !== undefined) {
+      const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
+        .from('ofertas_afiliadas')
+        .select('preco')
+        .eq('id', id)
+        .single()
+
+      if (buscaError) return Response.json({ error: buscaError.message }, { status: 500 })
+      atualizacao.preco_com_cupom = precoComCupom(ofertaAtual?.preco, atualizacao.cupom_percentual as number | null)
     }
 
     if (Object.keys(atualizacao).length === 0) return Response.json({ error: 'Nada para atualizar.' }, { status: 400 })

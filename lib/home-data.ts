@@ -29,6 +29,7 @@ export async function carregarHomeDataServidor() {
     novidades,
     clubesSelecoes,
     emAlta,
+    ofertas,
     anos80,
     clubes,
   ] = await Promise.all([
@@ -51,6 +52,13 @@ export async function carregarHomeDataServidor() {
       .order('views', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(50)),
+    supabase
+      .from('ofertas_afiliadas')
+      .select('*')
+      .eq('ativo', true)
+      .order('ordem', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(8),
     produtosPublicos(supabase.from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
@@ -85,6 +93,7 @@ export async function carregarHomeDataServidor() {
     novidades: embaralhar(novidades.data || []),
     selecoes: embaralhar(selecoes.data || []),
     emAlta: embaralhar(emAlta.data || []),
+    ofertas: ofertas.data || [],
     anos80: anos80.data || [],
     clubes: clubes.data || [],
   }

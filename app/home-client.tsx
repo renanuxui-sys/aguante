@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
-import type { Produto } from '@/types'
+import CardOferta from '@/components/CardOferta'
+import type { OfertaAfiliada, Produto } from '@/types'
 
 const videoHero        = "/assets/0516b.mp4"
 const imgBgHero        = "/assets/bg-hero.png"
@@ -71,6 +72,7 @@ type HomeData = {
   novidades: Produto[]
   selecoes: Produto[]
   emAlta: Produto[]
+  ofertas: OfertaAfiliada[]
   anos80: Produto[]
   clubes: Clube[]
 }
@@ -96,6 +98,29 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
         </div>
         <div className="ag-cards">
           {produtos.map(p => <CardProduto key={p.id} produto={p} />)}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function SecaoOfertas({ ofertas }: { ofertas: OfertaAfiliada[] }) {
+  if (ofertas.length === 0) return null
+  return (
+    <section style={{ background: '#f5f5f5', paddingTop: 16, paddingBottom: 48 }}>
+      <div className="ag-container">
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
+          <div>
+            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em' }}>
+              Ofertas Netshoes com cupom
+            </h2>
+            <p style={{ color: '#62748c', fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35, marginTop: 5 }}>
+              Use AGUANTE para 15% OFF, exceto produtos com tag Seleção.
+            </p>
+          </div>
+        </div>
+        <div className="ag-cards">
+          {ofertas.map(oferta => <CardOferta key={oferta.id} oferta={oferta} />)}
         </div>
       </div>
     </section>
@@ -177,6 +202,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const [produtosParaVoceBase, setProdutosParaVoceBase] = useState<Produto[]>([])
   const [produtosParaVoceLoading, setProdutosParaVoceLoading] = useState(false)
   const [selecoes] = useState<Produto[]>(initialData.selecoes || [])
+  const [ofertas] = useState<OfertaAfiliada[]>(() => (initialData.ofertas || []).slice(0, 6))
   const [clubePreferido, setClubePreferido] = useState('')
   const [emAlta]       = useState<Produto[]>(initialData.emAlta || [])
   const [anos80]       = useState<Produto[]>(() => (initialData.anos80 || []).slice(0, 6))
@@ -637,6 +663,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
         <SecaoMercados />
         <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
+        <SecaoOfertas ofertas={ofertas.slice(0, quantidadeDestaques)} />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 
         {/* Em alta */}

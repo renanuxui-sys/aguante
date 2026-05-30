@@ -8,6 +8,7 @@ import { gerarSlugClube } from '@/lib/clube-utils'
 const imgLogo      = "/assets/logo.svg"
 const imgChevron   = "/assets/chevron-down.svg"
 const imgNavSearch = "/assets/ico-search.svg"
+const imgCoupon    = "/assets/coupon.svg"
 const imgMenu      = "/assets/menu.svg"
 const imgClose     = "/assets/close.svg"
 
@@ -155,6 +156,15 @@ export default function Navbar() {
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
             Conheça Aguante
+          </Link>
+          <Link
+            href="/cupons"
+            style={{ alignItems: 'center', color: '#000', display: 'flex', fontSize: 13, fontWeight: 700, gap: 6, letterSpacing: '-0.01em', textDecoration: 'none', transition: 'color 150ms ease' }}
+            onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
+            onMouseLeave={e => (e.currentTarget.style.color='#000')}
+          >
+            <img src={imgCoupon} alt="" style={{ display: 'block', height: 18, width: 18 }} />
+            Cupons
           </Link>
           <Link href="/contato" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}

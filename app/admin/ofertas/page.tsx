@@ -12,6 +12,9 @@ export default function AdminOfertas() {
   const [loja, setLoja] = useState<Loja>('Mercado Livre')
   const [link, setLink] = useState('')
   const [ordem, setOrdem] = useState('0')
+  const [cupomCodigo, setCupomCodigo] = useState('')
+  const [cupomPercentual, setCupomPercentual] = useState('')
+  const [cupomDescricao, setCupomDescricao] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -40,6 +43,20 @@ export default function AdminOfertas() {
     return () => { ativo = false }
   }, [])
 
+  function selecionarLoja(proximaLoja: Loja) {
+    setLoja(proximaLoja)
+    if (proximaLoja === 'Netshoes') {
+      setCupomCodigo('AGUANTE')
+      setCupomPercentual('15')
+      setCupomDescricao('Cupom não válido para produtos com tag SELEÇÃO')
+      return
+    }
+
+    setCupomCodigo('')
+    setCupomPercentual('')
+    setCupomDescricao('')
+  }
+
   async function cadastrar(event: React.FormEvent) {
     event.preventDefault()
     setSalvando(true)
@@ -48,7 +65,14 @@ export default function AdminOfertas() {
     const res = await fetch('/api/admin/cms/ofertas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ loja, link_afiliado: link, ordem }),
+      body: JSON.stringify({
+        loja,
+        link_afiliado: link,
+        ordem,
+        cupom_codigo: cupomCodigo,
+        cupom_percentual: cupomPercentual,
+        cupom_descricao: cupomDescricao,
+      }),
     })
     const json = await res.json()
 
@@ -60,11 +84,12 @@ export default function AdminOfertas() {
 
     setLink('')
     setOrdem('0')
+    selecionarLoja(loja)
     setOfertas(atual => [json.oferta, ...atual])
     setSalvando(false)
   }
 
-  async function atualizar(oferta: OfertaAfiliada, dados: { ativo?: boolean; ordem?: number }) {
+  async function atualizar(oferta: OfertaAfiliada, dados: { ativo?: boolean; ordem?: number; cupom_codigo?: string; cupom_percentual?: number | null; cupom_descricao?: string }) {
     setErro('')
     const res = await fetch('/api/admin/cms/ofertas', {
       method: 'PATCH',
@@ -117,14 +142,14 @@ export default function AdminOfertas() {
           Ofertas
         </h1>
         <p style={{ color: '#8A8880', fontSize: 14, marginTop: 4 }}>
-          Cadastre links afiliados de camisas novas do Mercado Livre ou Netshoes para a vitrine da home.
+          Cadastre links afiliados de camisas novas. Netshoes usa curadoria manual com cupom AGUANTE.
         </p>
       </div>
 
       <form onSubmit={cadastrar} style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, padding: 20, marginBottom: 24 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '180px minmax(320px, 1fr) 110px auto', gap: 12, alignItems: 'end' }}>
           <Campo label="Loja">
-            <select value={loja} onChange={event => setLoja(event.target.value as Loja)} style={campoStyle}>
+            <select value={loja} onChange={event => selecionarLoja(event.target.value as Loja)} style={campoStyle}>
               {LOJAS.map(item => <option key={item}>{item}</option>)}
             </select>
           </Campo>
@@ -138,8 +163,21 @@ export default function AdminOfertas() {
             {salvando ? 'Buscando...' : 'Cadastrar'}
           </button>
         </div>
+        {loja === 'Netshoes' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 120px minmax(260px, 1fr)', gap: 12, marginTop: 14 }}>
+            <Campo label="Cupom">
+              <input value={cupomCodigo} onChange={event => setCupomCodigo(event.target.value.toUpperCase())} style={campoStyle} />
+            </Campo>
+            <Campo label="Desconto (%)">
+              <input value={cupomPercentual} onChange={event => setCupomPercentual(event.target.value)} min={0} type="number" style={campoStyle} />
+            </Campo>
+            <Campo label="Regra">
+              <input value={cupomDescricao} onChange={event => setCupomDescricao(event.target.value)} style={campoStyle} />
+            </Campo>
+          </div>
+        )}
         <p style={{ color: '#8A8880', fontSize: 12, lineHeight: 1.35, marginTop: 12 }}>
-          Ao cadastrar, o painel busca foto, título e preço do produto. Para links encurtados, prefira o link final do produto se a importação falhar.
+          Ao cadastrar, o painel busca foto, título e preço do produto. Cupom não válido para produtos com tag SELEÇÃO.
         </p>
       </form>
 
@@ -160,7 +198,7 @@ export default function AdminOfertas() {
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #E8E6DF' }}>
-                {['Oferta', 'Loja', 'Preço', 'Ordem', 'Status', 'Link', ''].map(coluna => (
+                {['Oferta', 'Loja', 'Preço', 'Cupom', 'Ordem', 'Status', 'Link', ''].map(coluna => (
                   <th key={coluna} style={{ color: '#8A8880', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', padding: '12px 16px', textAlign: 'left', textTransform: 'uppercase' }}>{coluna}</th>
                 ))}
               </tr>
@@ -175,7 +213,47 @@ export default function AdminOfertas() {
                     </div>
                   </td>
                   <td style={celulaStyle}>{oferta.loja}</td>
-                  <td style={celulaStyle}>{oferta.preco === null ? '-' : oferta.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  <td style={celulaStyle}>
+                    {oferta.preco === null ? '-' : oferta.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {oferta.preco_com_cupom !== null && (
+                      <div style={{ color: '#087443', fontSize: 11, fontWeight: 700, marginTop: 3 }}>
+                        com cupom {oferta.preco_com_cupom.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ ...celulaStyle, minWidth: 190 }}>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                      <input
+                        defaultValue={oferta.cupom_codigo || ''}
+                        placeholder="Cupom"
+                        onBlur={event => {
+                          const valor = event.currentTarget.value.trim().toUpperCase()
+                          if (valor !== (oferta.cupom_codigo || '')) atualizar(oferta, { cupom_codigo: valor })
+                        }}
+                        style={{ ...campoStyle, height: 34, width: 92 }}
+                      />
+                      <input
+                        defaultValue={oferta.cupom_percentual ?? ''}
+                        min={0}
+                        placeholder="%"
+                        type="number"
+                        onBlur={event => {
+                          const valor = event.currentTarget.value === '' ? null : Math.max(0, Number(event.currentTarget.value) || 0)
+                          if (valor !== oferta.cupom_percentual) atualizar(oferta, { cupom_percentual: valor })
+                        }}
+                        style={{ ...campoStyle, height: 34, width: 70 }}
+                      />
+                    </div>
+                    <input
+                      defaultValue={oferta.cupom_descricao || ''}
+                      placeholder="Regra do cupom"
+                      onBlur={event => {
+                        const valor = event.currentTarget.value.trim()
+                        if (valor !== (oferta.cupom_descricao || '')) atualizar(oferta, { cupom_descricao: valor })
+                      }}
+                      style={{ ...campoStyle, height: 34, width: '100%' }}
+                    />
+                  </td>
                   <td style={{ ...celulaStyle, width: 92 }}>
                     <input
                       defaultValue={oferta.ordem}
