@@ -13,6 +13,7 @@ export type Produto = {
   de_jogo: boolean
   novidade: boolean
   alta_procura: boolean
+  cupom_ativo?: boolean
   ativo?: boolean
   views?: number
   likes?: number

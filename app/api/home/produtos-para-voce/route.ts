@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
+import { aplicarCupomAtivo, carregarLojasComCupomAtivo } from '@/lib/cupom-data'
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +13,11 @@ export async function GET(req: NextRequest) {
 
     const supabase = criarSupabaseAdmin()
     const fontesOcultas = await carregarNomesFontesOcultas(supabase)
+    const lojasComCupom = await carregarLojasComCupomAtivo(() => supabase
+      .from('ofertas_afiliadas')
+      .select('loja')
+      .eq('ativo', true)
+      .not('cupom_codigo', 'is', null))
     const { data, error } = await aplicarFiltroFontesVisiveis(supabase
       .from('produtos')
       .select(PRODUCT_CARD_SELECT)
@@ -23,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ produtos: data || [] })
+    return NextResponse.json({ produtos: aplicarCupomAtivo(data || [], lojasComCupom) })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erro ao carregar produtos.' },

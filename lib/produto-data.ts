@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
+import { aplicarCupomAtivo, carregarLojasComCupomAtivo } from '@/lib/cupom-data'
 import type { Produto } from '@/types'
 
 export const carregarProdutoAtivo = cache(async (id: string) => {
@@ -21,6 +22,11 @@ export const carregarProdutoAtivo = cache(async (id: string) => {
 export async function carregarProdutosRelacionados(produto: Produto) {
   const supabase = criarSupabaseAdmin()
   const fontesOcultas = await carregarNomesFontesOcultas(supabase)
+  const lojasComCupom = await carregarLojasComCupomAtivo(() => supabase
+    .from('ofertas_afiliadas')
+    .select('loja')
+    .eq('ativo', true)
+    .not('cupom_codigo', 'is', null))
   let query = aplicarFiltroFontesVisiveis(supabase
     .from('produtos')
     .select(PRODUCT_CARD_SELECT)
@@ -32,5 +38,5 @@ export async function carregarProdutosRelacionados(produto: Produto) {
 
   const { data, error } = await query.returns<Produto[]>()
   if (error) throw error
-  return data || []
+  return aplicarCupomAtivo(data || [], lojasComCupom)
 }

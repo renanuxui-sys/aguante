@@ -7,16 +7,21 @@ import type { OfertaAfiliada } from '@/types'
 export const revalidate = 60
 
 async function carregarOfertas() {
-  const { data, error } = await criarSupabaseAdmin()
-    .from('ofertas_afiliadas')
-    .select('*')
-    .eq('ativo', true)
-    .order('ordem', { ascending: true })
-    .order('created_at', { ascending: false })
-    .returns<OfertaAfiliada[]>()
+  try {
+    const { data, error } = await criarSupabaseAdmin()
+      .from('ofertas_afiliadas')
+      .select('*')
+      .eq('ativo', true)
+      .order('ordem', { ascending: true })
+      .order('created_at', { ascending: false })
+      .returns<OfertaAfiliada[]>()
 
-  if (error) throw new Error(error.message)
-  return data || []
+    if (error) throw new Error(error.message)
+    return data || []
+  } catch (error) {
+    console.warn('Não foi possível carregar cupons:', error instanceof Error ? error.message : error)
+    return []
+  }
 }
 
 export default async function CuponsPage() {

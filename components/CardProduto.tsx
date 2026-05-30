@@ -3,6 +3,7 @@ import type { Produto } from '@/types'
 import { imagemComProxy } from '@/lib/image-url'
 
 const imgLightning = "/assets/Lightning.svg"
+const imgCoupon = "/assets/coupon.svg"
 
 type Props = {
   produto: Produto
@@ -43,6 +44,25 @@ export default function CardProduto({ produto }: Props) {
             <span style={{ background: '#000', color: '#fff', fontSize: 12, padding: '2px 4px', borderRadius: 4, width: 'fit-content', letterSpacing: '-0.12px', lineHeight: 1.2, fontWeight: 400 }}>
               novidade
             </span>
+          )}
+          {produto.cupom_ativo && (
+            <div style={{
+              alignItems: 'center',
+              background: '#efa0ff',
+              borderRadius: 8,
+              color: '#000',
+              display: 'inline-flex',
+              gap: 6,
+              height: 25,
+              paddingLeft: 10,
+              paddingRight: 12,
+              width: 'fit-content',
+            }}>
+              <img src={imgCoupon} alt="" style={{ filter: 'brightness(0)', height: 18, width: 18 }} />
+              <span style={{ color: '#000', fontSize: 12, fontWeight: 400, letterSpacing: '-0.12px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+                cupom
+              </span>
+            </div>
           )}
           {produto.alta_procura && (
             <div style={{

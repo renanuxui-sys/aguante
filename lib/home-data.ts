@@ -1,6 +1,7 @@
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
+import { aplicarCupomAtivo, carregarLojasComCupomAtivo } from '@/lib/cupom-data'
 
 function embaralhar<T>(itens: T[]) {
   const copia = [...itens]
@@ -21,6 +22,11 @@ export async function carregarHomeDataServidor() {
   const supabase = criarSupabaseAdmin()
   const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const fontesOcultas = await carregarNomesFontesOcultas(supabase)
+  const lojasComCupom = await carregarLojasComCupomAtivo(() => supabase
+    .from('ofertas_afiliadas')
+    .select('loja')
+    .eq('ativo', true)
+    .not('cupom_codigo', 'is', null))
   const produtosPublicos = <T,>(query: T) => aplicarFiltroFontesVisiveis(query, fontesOcultas)
 
   const [
@@ -90,11 +96,11 @@ export async function carregarHomeDataServidor() {
       total_produtos: totalProdutos,
       novos_24h: novos24h,
     },
-    novidades: embaralhar(novidades.data || []),
-    selecoes: embaralhar(selecoes.data || []),
-    emAlta: embaralhar(emAlta.data || []),
+    novidades: embaralhar(aplicarCupomAtivo(novidades.data || [], lojasComCupom)),
+    selecoes: embaralhar(aplicarCupomAtivo(selecoes.data || [], lojasComCupom)),
+    emAlta: embaralhar(aplicarCupomAtivo(emAlta.data || [], lojasComCupom)),
     ofertas: ofertas.data || [],
-    anos80: anos80.data || [],
+    anos80: aplicarCupomAtivo(anos80.data || [], lojasComCupom),
     clubes: clubes.data || [],
   }
 }

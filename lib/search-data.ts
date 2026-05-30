@@ -1,6 +1,7 @@
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
+import { aplicarCupomAtivo, carregarLojasComCupomAtivo } from '@/lib/cupom-data'
 
 const POR_PAGINA = 20
 
@@ -38,6 +39,11 @@ export type SearchDataParams = {
 export async function carregarSearchData(params: SearchDataParams) {
   const supabase = criarSupabaseAdmin()
   const fontesOcultas = await carregarNomesFontesOcultas(supabase)
+  const lojasComCupom = await carregarLojasComCupomAtivo(() => supabase
+    .from('ofertas_afiliadas')
+    .select('loja')
+    .eq('ativo', true)
+    .not('cupom_codigo', 'is', null))
   const q = params.q || ''
   const categoria = params.categoria || null
   const clubeExato = params.clube || ''
@@ -103,7 +109,7 @@ export async function carregarSearchData(params: SearchDataParams) {
     const inicio = (pagina - 1) * POR_PAGINA
 
     return {
-      produtos: produtos.slice(inicio, inicio + POR_PAGINA),
+      produtos: aplicarCupomAtivo(produtos.slice(inicio, inicio + POR_PAGINA), lojasComCupom),
       total: count ?? produtos.length,
       temProxima: (count ?? produtos.length) > pagina * POR_PAGINA,
     }
@@ -126,7 +132,7 @@ export async function carregarSearchData(params: SearchDataParams) {
   const produtos = data || []
 
   return {
-    produtos: produtos.slice(0, POR_PAGINA),
+    produtos: aplicarCupomAtivo(produtos.slice(0, POR_PAGINA), lojasComCupom),
     total: count ?? 0,
     temProxima: produtos.length > POR_PAGINA,
   }
