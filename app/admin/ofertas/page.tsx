@@ -7,6 +7,12 @@ type Loja = OfertaAfiliada['loja']
 
 const LOJAS: Loja[] = ['Mercado Livre', 'Netshoes']
 
+function moeda(valor: number | null | undefined) {
+  return typeof valor === 'number' && Number.isFinite(valor)
+    ? valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    : '-'
+}
+
 export default function AdminOfertas() {
   const [ofertas, setOfertas] = useState<OfertaAfiliada[]>([])
   const [loja, setLoja] = useState<Loja>('Mercado Livre')
@@ -214,10 +220,10 @@ export default function AdminOfertas() {
                   </td>
                   <td style={celulaStyle}>{oferta.loja}</td>
                   <td style={celulaStyle}>
-                    {oferta.preco === null ? '-' : oferta.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    {oferta.preco_com_cupom !== null && (
+                    {moeda(oferta.preco)}
+                    {typeof oferta.preco_com_cupom === 'number' && Number.isFinite(oferta.preco_com_cupom) && (
                       <div style={{ color: '#087443', fontSize: 11, fontWeight: 700, marginTop: 3 }}>
-                        com cupom {oferta.preco_com_cupom.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        com cupom {moeda(oferta.preco_com_cupom)}
                       </div>
                     )}
                   </td>
