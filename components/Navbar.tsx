@@ -9,7 +9,8 @@ const imgLogo      = "/assets/logo.svg"
 const imgHome      = "/assets/home.svg"
 const imgChevron   = "/assets/chevron-down.svg"
 const imgNavSearch = "/assets/ico-search.svg"
-const imgCoupon    = "/assets/coupons.svg"
+const imgCoupon    = "/assets/coupon.svg"
+const imgProfile   = "/assets/profile.svg"
 const imgFavorite  = "/assets/ico-favorite.svg"
 const imgMenu      = "/assets/menu.svg"
 const imgClose     = "/assets/close.svg"
@@ -215,14 +216,10 @@ export default function Navbar() {
         </form>
 
         <div style={{ display: 'none', alignItems: 'center', gap: 8 }} className="ag-mobile-btns">
-          <button onClick={abrirBuscaMobile}
-            style={{ width: 44, height: 44, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-            <img src={imgNavSearch} alt="Buscar" style={{ width: 24, height: 24, filter: 'brightness(0)' }} />
-          </button>
           <button onClick={() => { setCatMobile(''); setMenuMobile(m => !m); setBuscaMobile(false) }}
             aria-label={menuMobile ? 'Fechar menu' : 'Abrir menu'}
-            style={{ width: 52, height: 52, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-            <img src={menuMobile ? imgClose : imgMenu} alt="" style={{ width: 48, height: 48 }} />
+            style={{ width: 44, height: 44, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <img src={menuMobile ? imgClose : imgMenu} alt="" style={{ width: 24, height: 24 }} />
           </button>
         </div>
       </nav>
@@ -235,6 +232,13 @@ export default function Navbar() {
           <span>Início</span>
         </Link>
 
+        <button type="button" className="ag-mobile-nav-item" onClick={() => { setMenuMobile(false); setBuscaMobile(false); window.dispatchEvent(new CustomEvent('aguante:abrir-perfil')) }}>
+          <span className="ag-mobile-nav-icon">
+            <img src={imgProfile} alt="" />
+          </span>
+          <span>Perfil</span>
+        </button>
+
         <button type="button" className="ag-mobile-nav-item ag-mobile-nav-muted" aria-disabled="true">
           <span className="ag-mobile-nav-icon">
             <img src={imgCoupon} alt="" />
@@ -243,10 +247,10 @@ export default function Navbar() {
         </button>
 
         <button type="button" className="ag-mobile-nav-item ag-mobile-nav-search" onClick={abrirBuscaMobile}>
-          <span className="ag-mobile-nav-search-icon">
+          <span className="ag-mobile-nav-icon">
             <img src={imgNavSearch} alt="" />
           </span>
-          <span>Procurar<br />camisas</span>
+          <span>Procurar</span>
         </button>
 
         <button type="button" className="ag-mobile-nav-item" onClick={() => { setBuscaMobile(false); setMenuMobile(false); router.push('/favoritos') }}>
@@ -256,12 +260,6 @@ export default function Navbar() {
           <span>Favoritos</span>
         </button>
 
-        <button type="button" className="ag-mobile-nav-item" onClick={() => { setCatMobile(''); setMenuMobile(m => !m); setBuscaMobile(false) }} aria-label={menuMobile ? 'Fechar menu' : 'Abrir menu'}>
-          <span className="ag-mobile-nav-icon">
-            <img src={imgMenu} alt="" />
-          </span>
-          <span>Menu</span>
-        </button>
       </nav>
 
       {/* SUBMENU DESKTOP */}
@@ -396,14 +394,19 @@ export default function Navbar() {
             top: auto !important;
             left: auto !important;
             right: auto !important;
-            justify-content: center !important;
+            height: 62px !important;
+            justify-content: space-between !important;
             padding: 0 20px !important;
             background: #fff !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
           }
           .ag-main-nav > a:first-child {
-            justify-content: center;
+            justify-content: flex-start;
+          }
+          .ag-main-nav > a:first-child img {
+            width: 122px !important;
+            height: auto !important;
           }
           body.ag-has-mobile-bottom-nav main > section:first-of-type,
           body.ag-has-mobile-bottom-nav main > div:first-of-type {
@@ -411,9 +414,9 @@ export default function Navbar() {
           }
           .ag-nav-links     { display: none !important; }
           .ag-nav-pill-wrap { display: none !important; }
-          .ag-mobile-btns   { display: none !important; }
-          body.ag-has-mobile-bottom-nav { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
-          .ag-btn-fixo-mobile { bottom: calc(112px + env(safe-area-inset-bottom)) !important; }
+          .ag-mobile-btns   { display: flex !important; }
+          body.ag-has-mobile-bottom-nav { padding-bottom: calc(82px + env(safe-area-inset-bottom)); }
+          .ag-btn-fixo-mobile { bottom: calc(82px + env(safe-area-inset-bottom)) !important; }
           .ag-mobile-bottom-nav {
             position: fixed;
             left: 0;
@@ -423,10 +426,10 @@ export default function Navbar() {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
             align-items: end;
-            min-height: calc(96px + env(safe-area-inset-bottom));
-            padding: 12px max(8px, env(safe-area-inset-left)) calc(14px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+            min-height: calc(68px + env(safe-area-inset-bottom));
+            padding: 8px max(8px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
             background: #ebe8f2;
-            box-shadow: 0 -14px 34px rgba(28, 20, 54, 0.08);
+            box-shadow: 0 -8px 22px rgba(28, 20, 54, 0.08);
           }
           .ag-mobile-bottom-nav-hidden {
             display: none;
@@ -434,20 +437,20 @@ export default function Navbar() {
           .ag-mobile-nav-item {
             position: relative;
             min-width: 0;
-            min-height: 70px;
+            min-height: 52px;
             padding: 0 2px;
             border: 0;
             background: transparent;
             color: #000;
             cursor: pointer;
             text-decoration: none;
-            font: 400 14px/1.05 Onest, sans-serif;
+            font: 400 12px/1.05 Onest, sans-serif;
             letter-spacing: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 5px;
             -webkit-tap-highlight-color: transparent;
           }
           .ag-mobile-nav-icon {
@@ -477,28 +480,9 @@ export default function Navbar() {
             filter: none;
           }
           .ag-mobile-nav-search {
-            justify-content: flex-start;
-            gap: 6px;
-            margin-top: -64px;
-            font-size: 14px;
-            line-height: 0.98;
+            font-size: 12px;
+            line-height: 1.05;
             font-weight: 400;
-          }
-          .ag-mobile-nav-search-icon {
-            width: 48px;
-            height: 56px;
-            border-radius: 18px;
-            background: #550fed;
-            box-shadow: 0 10px 22px rgba(28, 20, 54, 0.22);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .ag-mobile-nav-search-icon img {
-            width: 24px;
-            height: 24px;
-            display: block;
-            filter: brightness(0) saturate(100%) invert(82%) sepia(26%) saturate(1227%) hue-rotate(205deg) brightness(104%) contrast(102%);
           }
           .ag-mobile-search-modal {
             position: fixed;
