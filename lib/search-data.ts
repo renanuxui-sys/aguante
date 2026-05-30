@@ -40,10 +40,9 @@ export async function carregarSearchData(params: SearchDataParams) {
   const supabase = criarSupabaseAdmin()
   const fontesOcultas = await carregarNomesFontesOcultas(supabase)
   const lojasComCupom = await carregarLojasComCupomAtivo(() => supabase
-    .from('ofertas_afiliadas')
-    .select('loja')
-    .eq('ativo', true)
-    .not('cupom_codigo', 'is', null))
+    .from('store_coupons')
+    .select('store_id,store_name,valid_from,valid_until')
+    .eq('is_active', true))
   const q = params.q || ''
   const categoria = params.categoria || null
   const clubeExato = params.clube || ''

@@ -5,6 +5,7 @@ export type Produto = {
   preco: number | null
   imagem_url: string | null
   link_original: string
+  fonte_id?: string | null
   fonte_nome: string
   fonte_url: string
   clube: string | null

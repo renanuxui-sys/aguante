@@ -14,10 +14,9 @@ export async function GET(req: NextRequest) {
     const supabase = criarSupabaseAdmin()
     const fontesOcultas = await carregarNomesFontesOcultas(supabase)
     const lojasComCupom = await carregarLojasComCupomAtivo(() => supabase
-      .from('ofertas_afiliadas')
-      .select('loja')
-      .eq('ativo', true)
-      .not('cupom_codigo', 'is', null))
+      .from('store_coupons')
+      .select('store_id,store_name,valid_from,valid_until')
+      .eq('is_active', true))
     const { data, error } = await aplicarFiltroFontesVisiveis(supabase
       .from('produtos')
       .select(PRODUCT_CARD_SELECT)

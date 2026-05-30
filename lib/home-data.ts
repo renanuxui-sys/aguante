@@ -23,10 +23,9 @@ export async function carregarHomeDataServidor() {
   const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const fontesOcultas = await carregarNomesFontesOcultas(supabase)
   const lojasComCupom = await carregarLojasComCupomAtivo(() => supabase
-    .from('ofertas_afiliadas')
-    .select('loja')
-    .eq('ativo', true)
-    .not('cupom_codigo', 'is', null))
+    .from('store_coupons')
+    .select('store_id,store_name,valid_from,valid_until')
+    .eq('is_active', true))
   const produtosPublicos = <T,>(query: T) => aplicarFiltroFontesVisiveis(query, fontesOcultas)
 
   const [
