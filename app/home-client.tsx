@@ -624,16 +624,21 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         </section>
 
         {/* Temporário Copa do Mundo: seleções substituem os clubes. Depois da Copa, reativar a vitrine usando initialData.clubes. */}
-        <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
+        <section className="ag-selecoes-strip" style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56, opacity: 1 }}>
           <div className="ag-container">
             <div
-              className="ag-selecoes-title"
+              className="ag-selecoes-title ag-flags-slider-title"
+              data-aguante-flags-title="true"
               role="heading"
               aria-level={2}
               style={{
+                all: 'unset',
+                display: 'block',
+                boxSizing: 'border-box',
                 font: '700 20px/1.2 Onest, sans-serif',
                 color: '#282828',
                 WebkitTextFillColor: '#282828',
+                filter: 'none',
                 opacity: 1,
                 letterSpacing: '-0.02em',
                 margin: '0 0 28px',
