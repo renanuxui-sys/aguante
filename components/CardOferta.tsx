@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import type { OfertaAfiliada } from '@/types'
 
-function formatarPreco(preco: number | null) {
-  if (preco === null) return null
+function formatarPreco(preco: number | null | undefined) {
+  if (typeof preco !== 'number' || !Number.isFinite(preco)) return null
   return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
