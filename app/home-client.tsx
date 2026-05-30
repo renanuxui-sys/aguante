@@ -134,7 +134,18 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
       <div className="ag-container">
         <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
           <div style={{ maxWidth: 620 }}>
-            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em'}}>Camisas das Seleções</h2>
+            <h2
+              className="ag-copa-products-title"
+              style={{
+                font: '700 20px/1.2 Onest, sans-serif',
+                color: '#282828',
+                WebkitTextFillColor: '#282828',
+                letterSpacing: '-0.02em',
+                margin: 0,
+              }}
+            >
+              Camisas das Seleções
+            </h2>
           </div>
           <Link
             className="ag-section-link"
@@ -331,14 +342,17 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-ver-todas-txt { display: inline; }
         .ag-section-link { flex-shrink: 0; }
         .ag-selecoes-title,
-        .ag-selecoes-title strong {
+        .ag-copa-products-title {
           color: #282828 !important;
+          -webkit-text-fill-color: #282828 !important;
           font-size: 20px !important;
+          font-family: Onest, sans-serif !important;
+          font-weight: 700 !important;
           line-height: 1.2 !important;
           opacity: 1 !important;
         }
-        .ag-selecoes-title {
-          font-weight: 700 !important;
+        .ag-selecoes-title,
+        .ag-copa-products-title {
           margin: 0 0 28px !important;
         }
         @keyframes ag-clubes-slide {
@@ -468,7 +482,21 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           }
           .ag-selecoes-title {
             color: #282828 !important;
+            -webkit-text-fill-color: #282828 !important;
             font-size: 20px !important;
+            font-family: Onest, sans-serif !important;
+            font-weight: 700 !important;
+            line-height: 1.2 !important;
+            opacity: 1 !important;
+          }
+          .ag-copa-products-title {
+            color: #282828 !important;
+            -webkit-text-fill-color: #282828 !important;
+            font-size: 20px !important;
+            font-family: Onest, sans-serif !important;
+            font-weight: 700 !important;
+            line-height: 1.2 !important;
+            opacity: 1 !important;
           }
           .ag-mercados-grid {
             grid-template-columns: 1fr !important;
@@ -598,23 +626,23 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         {/* Temporário Copa do Mundo: seleções substituem os clubes. Depois da Copa, reativar a vitrine usando initialData.clubes. */}
         <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
           <div className="ag-container">
-            <h2
+            <div
               className="ag-selecoes-title"
+              role="heading"
+              aria-level={2}
               style={{
-                fontFamily: 'Onest, sans-serif',
-                fontWeight: 700,
-                fontSize: 20,
+                font: '700 20px/1.2 Onest, sans-serif',
                 color: '#282828',
+                WebkitTextFillColor: '#282828',
                 opacity: 1,
                 letterSpacing: '-0.02em',
-                lineHeight: 1.2,
                 margin: '0 0 28px',
                 textAlign: 'center' as const,
                 textRendering: 'geometricPrecision',
               }}
             >
               Copa do Mundo 2026
-            </h2>
+            </div>
             <div
               className={`ag-selecoes-wrapper${selecoesManualScroll ? ' manual' : ''}`}
               onPointerDown={() => setSelecoesManualScroll(true)}
