@@ -42,11 +42,19 @@ function urlDaPagina(path, page) {
   return url.toString()
 }
 
+function melhorarResolucaoNuvemshop(url) {
+  return url.replace(/-(?:240|320|480|640)-0(\.(?:webp|jpe?g|png))$/i, '-1024-1024$1')
+}
+
 function normalizarImagem(url) {
   if (!url || url.startsWith('data:')) return null
-  if (url.startsWith('//')) return `https:${url}`
-  if (url.startsWith('/')) return new URL(url, BASE_URL).toString()
-  return url
+  const absoluta = url.startsWith('//')
+    ? `https:${url}`
+    : url.startsWith('/')
+      ? new URL(url, BASE_URL).toString()
+      : url
+
+  return melhorarResolucaoNuvemshop(absoluta)
 }
 
 function extrairPrecoTexto(texto) {
@@ -129,11 +137,20 @@ function extrairProdutoJsonLd(raw) {
 
 function primeiraImagem($el) {
   const img = $el.find('img').first()
+  const srcset = img.attr('data-srcset') || img.attr('srcset') || ''
+  const maiorSrcset = srcset
+    .split(',')
+    .map(item => {
+      const [url, largura] = item.trim().split(/\s+/)
+      return { url, largura: parseInt(largura, 10) || 0 }
+    })
+    .filter(item => item.url)
+    .sort((a, b) => b.largura - a.largura)[0]?.url
+
   return normalizarImagem(
+    maiorSrcset ||
     img.attr('data-src') ||
     img.attr('data-original') ||
-    img.attr('data-srcset')?.split(',')[0]?.trim().split(' ')[0] ||
-    img.attr('srcset')?.split(',')[0]?.trim().split(' ')[0] ||
     img.attr('src') ||
     null
   )
