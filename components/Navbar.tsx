@@ -183,15 +183,14 @@ export default function Navbar() {
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
             Conheça Aguante
           </Link>
-          <Link
-            href="/cupons"
-            style={{ alignItems: 'center', color: '#000', display: 'flex', fontSize: 13, fontWeight: 700, gap: 6, letterSpacing: '-0.01em', textDecoration: 'none', transition: 'color 150ms ease' }}
-            onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
-            onMouseLeave={e => (e.currentTarget.style.color='#000')}
+          <button
+            type="button"
+            aria-disabled="true"
+            style={{ alignItems: 'center', background: 'none', border: 'none', color: '#000', cursor: 'default', display: 'flex', fontFamily: 'Onest, sans-serif', fontSize: 13, fontWeight: 700, gap: 6, letterSpacing: '-0.01em', opacity: 0.3, padding: 0, pointerEvents: 'none' }}
           >
             <img src={imgCoupon} alt="" style={{ display: 'block', height: 18, width: 18 }} />
             Cupons
-          </Link>
+          </button>
           <Link href="/contato" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
