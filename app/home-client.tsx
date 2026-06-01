@@ -304,9 +304,29 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         }
         .ag-hero-stats-inline { display: none; }
         .ag-hero-blocos { display: flex; }
-        .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: clamp(4px, 0.8vw, 12px); width: 100%; overflow: hidden; }
         .ag-clubes-mobile-track { display: none; }
-        .ag-clube-btn img { width: 50px; height: 50px; object-fit: contain; display: block; }
+        .ag-clubes-heading {
+          display: block;
+          width: 100%;
+          margin: 0 0 28px;
+          padding: 0;
+          border: none;
+          background: transparent;
+          font-family: Onest, sans-serif;
+          font-size: 20px;
+          font-weight: 700;
+          line-height: 1.2;
+          color: #282828;
+          -webkit-text-fill-color: #282828;
+          opacity: 1;
+          filter: none;
+          letter-spacing: -0.02em;
+          text-align: center;
+          text-shadow: none;
+        }
+        .ag-clube-btn { flex: 0 1 54px; min-width: 0; }
+        .ag-clube-btn img { width: clamp(42px, 4.4vw, 50px); height: clamp(42px, 4.4vw, 50px); object-fit: contain; display: block; }
         .ag-mercados-title { text-align: left; }
         .ag-mercados-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
         .ag-mercado-card { position: relative; display: block; height: 104px; border: none; border-radius: 8px; overflow: hidden; padding: 0; background: #282828; cursor: pointer; text-align: right; text-decoration: none; font-family: Onest, sans-serif; }
@@ -375,6 +395,18 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-clubes-grid {
             display: none !important;
           }
+          .ag-clubes-heading {
+            font-family: Onest, sans-serif !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            line-height: 1.2 !important;
+            color: #282828 !important;
+            -webkit-text-fill-color: #282828 !important;
+            opacity: 1 !important;
+            filter: none !important;
+            letter-spacing: -0.02em !important;
+            text-shadow: none !important;
+          }
           .ag-clubes-mobile-track {
             display: flex !important;
             width: max-content !important;
@@ -401,6 +433,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-clube-btn img {
             width: 54px;
             height: 54px;
+          }
+          .ag-clube-btn {
+            flex: 0 0 54px;
           }
           .ag-mercados-title {
             font-size: 20px !important;
@@ -543,26 +578,13 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
           <div className="ag-container">
             <div
+              className="ag-clubes-heading"
               role="heading"
               aria-level={2}
               style={{
-                display: 'block',
-                width: '100%',
-                margin: '0 0 28px',
-                padding: 0,
-                border: 'none',
-                background: 'transparent',
-                fontFamily: 'Arial, Helvetica, sans-serif',
-                fontSize: 20,
-                fontWeight: 700,
-                lineHeight: 1.2,
-                color: 'rgb(40, 40, 40)',
-                WebkitTextFillColor: 'rgb(40, 40, 40)',
-                opacity: 1,
-                filter: 'none',
-                letterSpacing: 0,
-                textAlign: 'center' as const,
-                textShadow: 'none',
+                fontFamily: 'Onest, sans-serif',
+                color: '#282828',
+                WebkitTextFillColor: '#282828',
               }}
             >
               Explore por clube
