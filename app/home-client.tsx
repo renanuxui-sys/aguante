@@ -16,7 +16,6 @@ const imgIconMagic     = "/assets/magic-star.svg"
 const imgIconLightning = "/assets/Vector.svg"
 const imgIconGrid      = "/assets/element-plus.svg"
 const imgChevronRight  = "/assets/chevron-right.svg"
-const imgIconMore      = "/assets/ico-more.svg"
 const CLUBE_PREFERENCIA_STORAGE_KEY = 'aguante_clube_preferencia'
 const CLUBE_PREFERENCIA_EVENT = 'aguante:clube-preferencia'
 
@@ -308,8 +307,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-clubes-grid { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
         .ag-clubes-mobile-track { display: none; }
         .ag-clube-btn img { width: 50px; height: 50px; object-fit: contain; display: block; }
-        .ag-clube-more { background: #fff; border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 8px 24px rgba(40,40,40,0.08); }
-        .ag-clube-more img { width: 19px; height: 19px; }
         .ag-mercados-title { text-align: left; }
         .ag-mercados-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
         .ag-mercado-card { position: relative; display: block; height: 104px; border: none; border-radius: 8px; overflow: hidden; padding: 0; background: #282828; cursor: pointer; text-align: right; text-decoration: none; font-family: Onest, sans-serif; }
@@ -319,7 +316,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-mercado-card:hover img { transform: scale(1.04); }
         .ag-ver-todas-txt { display: inline; }
         .ag-section-link { flex-shrink: 0; }
-        .ag-clubes-title,
         .ag-copa-products-title {
           color: #282828 !important;
           -webkit-text-fill-color: #282828 !important;
@@ -329,7 +325,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           line-height: 1.2 !important;
           opacity: 1 !important;
         }
-        .ag-clubes-title,
         .ag-copa-products-title {
           margin: 0 0 28px !important;
         }
@@ -407,22 +402,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             width: 54px;
             height: 54px;
           }
-          .ag-clube-more img {
-            width: 19px;
-            height: 19px;
-          }
           .ag-mercados-title {
             font-size: 20px !important;
             margin-bottom: 20px !important;
-          }
-          .ag-clubes-title {
-            color: #282828 !important;
-            -webkit-text-fill-color: #282828 !important;
-            font-size: 20px !important;
-            font-family: Onest, sans-serif !important;
-            font-weight: 700 !important;
-            line-height: 1.2 !important;
-            opacity: 1 !important;
           }
           .ag-copa-products-title {
             color: #282828 !important;
@@ -560,9 +542,31 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
 
         <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
           <div className="ag-container">
-            <h2 className="ag-clubes-title" style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', textAlign: 'center' as const, margin: '0 0 28px' }}>
+            <div
+              role="heading"
+              aria-level={2}
+              style={{
+                display: 'block',
+                width: '100%',
+                margin: '0 0 28px',
+                padding: 0,
+                border: 'none',
+                background: 'transparent',
+                fontFamily: 'Arial, Helvetica, sans-serif',
+                fontSize: 20,
+                fontWeight: 700,
+                lineHeight: 1.2,
+                color: 'rgb(40, 40, 40)',
+                WebkitTextFillColor: 'rgb(40, 40, 40)',
+                opacity: 1,
+                filter: 'none',
+                letterSpacing: 0,
+                textAlign: 'center' as const,
+                textShadow: 'none',
+              }}
+            >
               Explore por clube
-            </h2>
+            </div>
             <div
               className={`ag-clubes-wrapper${clubesManualScroll ? ' manual' : ''}`}
               onPointerDown={() => setClubesManualScroll(true)}
@@ -584,15 +588,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
                     {clube.escudo_url && <img src={clube.escudo_url} alt="" />}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  className="ag-clube-btn ag-clube-more"
-                  onClick={() => router.push('/search')}
-                  title="Ver todos os clubes"
-                  aria-label="Ver todos os clubes"
-                >
-                  <img src={imgIconMore} alt="" />
-                </button>
               </div>
               <div className="ag-clubes-mobile-track" aria-label="Clubes">
                 {[0, 1].map(copia => (
@@ -610,16 +605,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
                         {clube.escudo_url && <img src={clube.escudo_url} alt="" />}
                       </button>
                     ))}
-                    <button
-                      type="button"
-                      className="ag-clube-btn ag-clube-more"
-                      onClick={() => router.push('/search')}
-                      title="Ver todos os clubes"
-                      aria-label="Ver todos os clubes"
-                      tabIndex={copia === 1 ? -1 : undefined}
-                    >
-                      <img src={imgIconMore} alt="" />
-                    </button>
                   </div>
                 ))}
               </div>
