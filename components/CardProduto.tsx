@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Produto } from '@/types'
 import { imagemComProxy } from '@/lib/image-url'
+import { formatarPrecoProduto } from '@/lib/price-format'
 
 const imgLightning = "/assets/Lightning.svg"
 const imgCoupon = "/assets/coupon.svg"
@@ -11,6 +12,7 @@ type Props = {
 
 export default function CardProduto({ produto }: Props) {
   const imagemUrl = imagemComProxy(produto.imagem_url)
+  const preco = formatarPrecoProduto(produto.preco)
 
   return (
     <Link
@@ -101,7 +103,7 @@ export default function CardProduto({ produto }: Props) {
               R$
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#62748C', letterSpacing: '-0.03em', lineHeight: 1 }}>
-              {produto.preco?.toLocaleString('pt-BR')}
+              {preco}
             </span>
           </div>
         </div>

@@ -8,6 +8,7 @@ import CardProduto from '@/components/CardProduto'
 import { supabase } from '@/lib/supabase'
 import { imagemComProxy } from '@/lib/image-url'
 import { gerarSlugLoja } from '@/lib/loja-utils'
+import { formatarPrecoProduto } from '@/lib/price-format'
 import { formatarResumoProduto } from '@/lib/product-description'
 import type { Produto, StoreCoupon } from '@/types'
 
@@ -53,6 +54,7 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cu
   const id = produtoInicial.id
   const router = useRouter()
   const produto = produtoInicial
+  const precoProduto = formatarPrecoProduto(produto.preco)
   const [relacionados] = useState<Produto[]>(relacionadosIniciais)
   const [alertaAberto, setAlertaAberto] = useState(false)
   const [favoritado, setFavoritado]     = useState(false)
@@ -260,7 +262,7 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cu
         <p style={{ fontWeight: 700, fontSize: 32, color: '#000', letterSpacing: '-0.64px', lineHeight: 1 }}>{produto.titulo}</p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {produto.ano && <p style={{ fontWeight: 300, fontSize: 18, color: '#000', letterSpacing: '-0.36px', lineHeight: 1.2 }}>Ano {produto.ano}</p>}
-          {produto.preco && <p style={{ fontWeight: 300, fontSize: 24, color: '#62748c', letterSpacing: '-0.48px', lineHeight: 1.2, textAlign: 'right', marginLeft: 'auto' }}>R$ {produto.preco.toLocaleString('pt-BR')}</p>}
+          {precoProduto && <p style={{ fontWeight: 300, fontSize: 24, color: '#62748c', letterSpacing: '-0.48px', lineHeight: 1.2, textAlign: 'right', marginLeft: 'auto' }}>R$ {precoProduto}</p>}
         </div>
         {produto.novidade && (
           <div style={{ background: '#000', borderRadius: 16, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
