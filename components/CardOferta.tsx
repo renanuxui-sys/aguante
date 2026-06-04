@@ -14,17 +14,13 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
   const cupomAplicavel = oferta.cupom_aplicavel !== false
   const precos = [oferta.preco_pix, oferta.preco].filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor))
   const precoPrincipal = precos.length ? Math.min(...precos) : null
-  const precoOriginalNumero = precos.length > 1 ? Math.max(...precos) : null
   const preco = formatarPreco(precoPrincipal)
-  const precoOriginal = precoOriginalNumero && precoOriginalNumero !== precoPrincipal ? formatarPreco(precoOriginalNumero) : null
   const descontoCalculado = cupomAplicavel && precoPrincipal && oferta.cupom_percentual
     ? Math.round(precoPrincipal * (1 - oferta.cupom_percentual / 100) * 100) / 100
     : null
   const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
-  const percentual = oferta.cupom_percentual ? Math.round(oferta.cupom_percentual) : null
-  const percentualLabel = percentual ? `${percentual}% OFF` : null
+  const percentualLabel = cupomAplicavel ? '15% OFF' : null
   const observacao = oferta.cupom_descricao?.toLowerCase().includes('seleção') ? 'exceto Seleção' : oferta.cupom_descricao
-  const precoEhPix = typeof oferta.preco_pix === 'number' && oferta.preco_pix === precoPrincipal
   const params = new URLSearchParams()
   if (sessionId) params.set('sid', sessionId)
   if (oferta.cupom_codigo && cupomAplicavel) params.set('cupom_revelado', 'true')
@@ -55,6 +51,7 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
         href={href}
         rel="sponsored noreferrer"
         style={{ color: 'inherit', display: 'block', textDecoration: 'none' }}
+        target="_blank"
       >
         <div
         style={{
@@ -85,19 +82,14 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
               </div>
             )}
             <div style={{ color: precoComCupom ? '#8A8880' : '#62748c', fontSize: precoComCupom ? 11 : 14, fontWeight: 700, letterSpacing: '-0.03em', textDecoration: precoComCupom ? 'line-through' : 'none' }}>
-              {preco}{precoEhPix ? ' no Pix' : ''}
+              {preco}
             </div>
-            {precoOriginal && (
-              <div style={{ color: '#8A8880', fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4, textDecoration: 'line-through' }}>
-                {precoOriginal}
-              </div>
-            )}
           </div>
         )}
         </div>
       </a>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 10 }}>
-        <a href={href} rel="sponsored noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+        <a href={href} rel="sponsored noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} target="_blank">
           <p style={{ color: '#282828', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
           {oferta.titulo}
           </p>
