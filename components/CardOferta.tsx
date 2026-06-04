@@ -20,7 +20,6 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
     : null
   const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
   const percentualLabel = cupomAplicavel ? '15% OFF' : null
-  const observacao = oferta.cupom_descricao?.toLowerCase().includes('seleção') ? 'exceto Seleção' : oferta.cupom_descricao
   const params = new URLSearchParams()
   if (sessionId) params.set('sid', sessionId)
   if (oferta.cupom_codigo && cupomAplicavel) params.set('cupom_revelado', 'true')
@@ -112,11 +111,6 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
             <span style={{ background: '#E8FFF4', borderRadius: 6, color: '#087443', fontSize: 11, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1, padding: '6px 8px' }}>
               15% OFF usando o cupom
             </span>
-            {observacao && (
-              <span style={{ color: '#8A8880', fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                {observacao}
-              </span>
-            )}
           </div>
         )}
       </div>
