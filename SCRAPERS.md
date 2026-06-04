@@ -36,7 +36,21 @@ Para integrações pagas/experimentais:
 ```
 APIFY_TOKEN=...
 GECKO_API_KEY=...
+RAKUTEN_ACCESS_TOKEN=...
+# ou, para gerar o access token automaticamente:
+RAKUTEN_TOKEN_KEY=...
+RAKUTEN_ACCOUNT_ID=4700910
+RAKUTEN_NETSHOES_MID=43984
+NETSHOES_MAX_OFFERS_PER_CLUB=10
 ```
+
+Não use o Web Services Token em `RAKUTEN_ACCESS_TOKEN`: as APIs de Product
+Search, Coupon e Deep Link esperam um OAuth access token ou um token-key para
+gerar esse access token.
+
+Para Netshoes/Rakuten, rode primeiro com as variáveis do Supabase de testes/preview.
+O script imprime o host do Supabase antes de gravar; confira esse destino antes de
+rodar sem `--dry-run`.
 
 Rodar qualquer scraper:
 ```bash
@@ -205,6 +219,8 @@ node scraper-maniadecamisa.js           # Mania de Camisa
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
 # node scraper-gecko-mercadolivre.js    # Mercado Livre via GeckoAPI (experimental; validar PLP)
 # node scraper-gecko-olx.js             # OLX via GeckoAPI (experimental; gera custo)
+node netshoes-rakuten.js --dry-run      # Netshoes via Rakuten (simula sem gravar)
+node netshoes-rakuten.js                # Netshoes via Rakuten (grava no Supabase configurado no .env)
 ```
 
 **Tempo estimado total:** ~60–90 minutos em execução local sequencial. No GitHub Actions, a matriz paralela tende a reduzir o tempo de parede para o maior job individual.

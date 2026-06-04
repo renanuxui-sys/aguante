@@ -123,3 +123,23 @@ export async function PATCH(request: Request) {
     return Response.json({ error: error instanceof Error ? error.message : 'Erro ao atualizar cupom.' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request) {
+  if (!await sessaoAdminValida()) return Response.json({ error: 'Não autorizado' }, { status: 401 })
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = texto(searchParams.get('id'))
+    if (!id) return Response.json({ error: 'Cupom não informado.' }, { status: 400 })
+
+    const { error } = await criarSupabaseAdmin()
+      .from('store_coupons')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+    return Response.json({ ok: true })
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao remover cupom.' }, { status: 500 })
+  }
+}

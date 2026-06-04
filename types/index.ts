@@ -41,13 +41,22 @@ export type OfertaAfiliada = {
   loja: 'Mercado Livre' | 'Netshoes'
   titulo: string
   preco: number | null
+  preco_pix?: number | null
   preco_com_cupom: number | null
   imagem_url: string | null
   link_afiliado: string
   link_produto: string | null
   cupom_codigo: string | null
   cupom_percentual: number | null
+  cupom_percentual_variavel?: boolean | null
   cupom_descricao: string | null
+  cupom_aplicavel?: boolean | null
+  netshoes_tag_selecao?: boolean | null
+  clube?: string | null
+  automacao_origem?: string | null
+  external_id?: string | null
+  last_seen_at?: string | null
+  inactivated_at?: string | null
   ativo: boolean
   ordem: number
   created_at: string

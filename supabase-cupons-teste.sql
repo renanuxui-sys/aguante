@@ -23,6 +23,9 @@ create index if not exists store_coupons_active_store_idx
 create index if not exists store_coupons_store_id_idx
   on public.store_coupons (store_id);
 
+create unique index if not exists store_coupons_store_name_code_unique_idx
+  on public.store_coupons (store_name, code);
+
 create index if not exists produtos_fonte_id_idx
   on public.produtos (fonte_id);
 
