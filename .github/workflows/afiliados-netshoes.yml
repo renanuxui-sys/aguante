@@ -10,7 +10,7 @@ on:
       max_por_clube:
         description: 'Máximo de ofertas por clube'
         required: false
-        default: '16'
+        default: '32'
       sem_desativar:
         description: 'Salvar sem ocultar ofertas antigas'
         required: false
@@ -78,7 +78,7 @@ jobs:
           DRY_RUN="${{ github.event.inputs.dry_run }}"
 
           if [ -z "$MAX_POR_CLUBE" ]; then
-            MAX_POR_CLUBE="16"
+            MAX_POR_CLUBE="32"
           fi
 
           export NETSHOES_MAX_OFFERS_PER_CLUB="$MAX_POR_CLUBE"
