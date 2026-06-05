@@ -21,9 +21,14 @@ export default function AdminOfertas() {
   const [cupomCodigo, setCupomCodigo] = useState('')
   const [cupomPercentual, setCupomPercentual] = useState('')
   const [cupomDescricao, setCupomDescricao] = useState('')
+  const [cupomNetshoesCodigo, setCupomNetshoesCodigo] = useState('AGUANTE')
+  const [cupomNetshoesPercentual, setCupomNetshoesPercentual] = useState('15')
+  const [cupomNetshoesDescricao, setCupomNetshoesDescricao] = useState('Cupom não válido para produtos com tag SELEÇÃO')
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
+  const [salvandoCupomNetshoes, setSalvandoCupomNetshoes] = useState(false)
   const [erro, setErro] = useState('')
+  const [mensagem, setMensagem] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -37,7 +42,15 @@ export default function AdminOfertas() {
           setCarregando(false)
           return
         }
-        setOfertas(json.ofertas || [])
+        const ofertasCarregadas = json.ofertas || []
+        const ofertaNetshoes = ofertasCarregadas.find((oferta: OfertaAfiliada) => oferta.loja === 'Netshoes' && oferta.cupom_codigo)
+          || ofertasCarregadas.find((oferta: OfertaAfiliada) => oferta.loja === 'Netshoes')
+        setOfertas(ofertasCarregadas)
+        if (ofertaNetshoes) {
+          setCupomNetshoesCodigo(ofertaNetshoes.cupom_codigo || 'AGUANTE')
+          setCupomNetshoesPercentual(String(ofertaNetshoes.cupom_percentual || 15))
+          setCupomNetshoesDescricao(ofertaNetshoes.cupom_descricao || 'Cupom não válido para produtos com tag SELEÇÃO')
+        }
         setCarregando(false)
       })
       .catch(() => {
@@ -52,9 +65,9 @@ export default function AdminOfertas() {
   function selecionarLoja(proximaLoja: Loja) {
     setLoja(proximaLoja)
     if (proximaLoja === 'Netshoes') {
-      setCupomCodigo('AGUANTE')
-      setCupomPercentual('15')
-      setCupomDescricao('Cupom não válido para produtos com tag SELEÇÃO')
+      setCupomCodigo(cupomNetshoesCodigo)
+      setCupomPercentual(cupomNetshoesPercentual)
+      setCupomDescricao(cupomNetshoesDescricao)
       return
     }
 
@@ -97,6 +110,7 @@ export default function AdminOfertas() {
 
   async function atualizar(oferta: OfertaAfiliada, dados: { ativo?: boolean; ordem?: number; cupom_codigo?: string; cupom_percentual?: number | null; cupom_descricao?: string }) {
     setErro('')
+    setMensagem('')
     const res = await fetch('/api/admin/cms/ofertas', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -108,6 +122,38 @@ export default function AdminOfertas() {
       return
     }
     setOfertas(atual => atual.map(item => item.id === oferta.id ? json.oferta : item))
+  }
+
+  async function atualizarCupomNetshoes(event: React.FormEvent) {
+    event.preventDefault()
+    setErro('')
+    setMensagem('')
+    setSalvandoCupomNetshoes(true)
+
+    const res = await fetch('/api/admin/cms/ofertas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        acao: 'atualizar_cupom_netshoes',
+        cupom_codigo: cupomNetshoesCodigo,
+        cupom_percentual: cupomNetshoesPercentual,
+        cupom_descricao: cupomNetshoesDescricao,
+      }),
+    })
+    const json = await res.json()
+    setSalvandoCupomNetshoes(false)
+
+    if (!res.ok) {
+      setErro(json.error || 'Erro ao atualizar cupom Netshoes.')
+      return
+    }
+
+    const atualizadas = new Map<string, OfertaAfiliada>((json.ofertas || []).map((oferta: OfertaAfiliada) => [oferta.id, oferta]))
+    setOfertas(atual => atual.map(oferta => atualizadas.get(oferta.id) || oferta))
+    setCupomCodigo(loja === 'Netshoes' ? cupomNetshoesCodigo : cupomCodigo)
+    setCupomPercentual(loja === 'Netshoes' ? cupomNetshoesPercentual : cupomPercentual)
+    setCupomDescricao(loja === 'Netshoes' ? cupomNetshoesDescricao : cupomDescricao)
+    setMensagem(`Cupom Netshoes atualizado em ${json.total || 0} ofertas.`)
   }
 
   async function reimportar(oferta: OfertaAfiliada) {
@@ -152,6 +198,33 @@ export default function AdminOfertas() {
         </p>
       </div>
 
+      <form onSubmit={atualizarCupomNetshoes} style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, padding: 20, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h2 style={{ color: '#1A1A1A', fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', margin: 0 }}>
+              Cupom Netshoes
+            </h2>
+            <p style={{ color: '#8A8880', fontSize: 13, margin: '4px 0 0' }}>
+              Atualiza o percentual e recalcula os preços com cupom nas ofertas elegíveis.
+            </p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '140px 120px minmax(260px, 1fr) auto', gap: 12, alignItems: 'end', flex: '1 1 640px' }}>
+            <Campo label="Cupom">
+              <input value={cupomNetshoesCodigo} onChange={event => setCupomNetshoesCodigo(event.target.value.toUpperCase())} style={campoStyle} />
+            </Campo>
+            <Campo label="Desconto (%)">
+              <input value={cupomNetshoesPercentual} onChange={event => setCupomNetshoesPercentual(event.target.value)} min={0} type="number" style={campoStyle} />
+            </Campo>
+            <Campo label="Regra">
+              <input value={cupomNetshoesDescricao} onChange={event => setCupomNetshoesDescricao(event.target.value)} style={campoStyle} />
+            </Campo>
+            <button disabled={salvandoCupomNetshoes} type="submit" style={{ height: 42, border: 'none', borderRadius: 8, background: '#282828', color: '#fff', cursor: salvandoCupomNetshoes ? 'wait' : 'pointer', font: '700 13px Onest, sans-serif', padding: '0 18px', opacity: salvandoCupomNetshoes ? 0.65 : 1, whiteSpace: 'nowrap' }}>
+              {salvandoCupomNetshoes ? 'Aplicando...' : 'Aplicar em todas'}
+            </button>
+          </div>
+        </div>
+      </form>
+
       <form onSubmit={cadastrar} style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 14, padding: 20, marginBottom: 24 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '180px minmax(320px, 1fr) 110px auto', gap: 12, alignItems: 'end' }}>
           <Campo label="Loja">
@@ -190,6 +263,11 @@ export default function AdminOfertas() {
       {erro && (
         <div style={{ background: '#FFF3E0', border: '1px solid #FFE0B2', borderRadius: 8, color: '#8A4B00', fontSize: 13, marginBottom: 20, padding: '12px 14px' }}>
           {erro}
+        </div>
+      )}
+      {mensagem && (
+        <div style={{ background: '#E8FFF4', border: '1px solid #BDEFD8', borderRadius: 8, color: '#087443', fontSize: 13, marginBottom: 20, padding: '12px 14px' }}>
+          {mensagem}
         </div>
       )}
 
