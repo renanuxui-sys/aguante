@@ -48,6 +48,7 @@ export type OfertaAfiliada = {
   link_produto: string | null
   cupom_codigo: string | null
   cupom_percentual: number | null
+  cupom_desconto_maximo?: number | null
   cupom_percentual_variavel?: boolean | null
   cupom_descricao: string | null
   cupom_aplicavel?: boolean | null

@@ -16,8 +16,11 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
   const precos = [oferta.preco_pix, oferta.preco].filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor) && valor > 0)
   const precoPrincipal = precos.length ? Math.min(...precos) : null
   const preco = formatarPreco(precoPrincipal)
+  const descontoMaximo = typeof oferta.cupom_desconto_maximo === 'number' && Number.isFinite(oferta.cupom_desconto_maximo) && oferta.cupom_desconto_maximo > 0
+    ? oferta.cupom_desconto_maximo
+    : null
   const descontoCalculado = cupomAplicavel && precoPrincipal && percentualCupom
-    ? Math.round(precoPrincipal * (1 - percentualCupom / 100) * 100) / 100
+    ? Math.max(0, Math.round((precoPrincipal - Math.min(precoPrincipal * (percentualCupom / 100), descontoMaximo || Infinity)) * 100) / 100)
     : null
   const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
   const percentualLabel = cupomAplicavel ? `${Math.round(percentualCupom)}% OFF` : null
