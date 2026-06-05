@@ -52,7 +52,13 @@ const CLUBES = [
   { nome: 'Palmeiras', buscas: ['palmeiras puma', 'palmeiras'], termos: ['palmeiras'], marcas: ['puma'] },
   { nome: 'São Paulo', buscas: ['sao paulo new balance', 'sao paulo'], termos: ['sao paulo', 'são paulo'], marcas: ['new balance'] },
   { nome: 'Grêmio', buscas: ['gremio umbro', 'gremio'], termos: ['gremio', 'grêmio'], marcas: ['umbro', 'new balance'] },
-  { nome: 'Internacional', buscas: ['internacional adidas', 'sc internacional adidas', 'sport club internacional'], termos: ['internacional', 'sc internacional', 'sport club internacional'], marcas: ['adidas'] },
+  {
+    nome: 'Internacional',
+    buscas: ['internacional adidas', 'sc internacional adidas', 'sport club internacional', 'inter adidas'],
+    termos: ['internacional', 'sc internacional', 'sport club internacional', 'inter'],
+    excluirTermos: ['inter miami', 'miami', 'inter milan', 'inter milao', 'inter milão'],
+    marcas: ['adidas'],
+  },
   { nome: 'Atlético Mineiro', buscas: ['atletico mineiro adidas', 'atletico mineiro'], termos: ['atletico mineiro', 'atlético mineiro', 'galo'], marcas: ['adidas'] },
   { nome: 'Fluminense', buscas: ['fluminense umbro', 'fluminense'], termos: ['fluminense'], marcas: ['umbro', 'puma'] },
   { nome: 'Vasco', buscas: ['vasco kappa', 'vasco'], termos: ['vasco'], marcas: ['kappa'] },
@@ -70,6 +76,20 @@ const somenteCupons = process.argv.includes('--somente-cupons')
 const semDesativar = process.argv.includes('--sem-desativar')
 const listarProdutos = process.argv.includes('--listar')
 const TAMANHO_LOTE_SUPABASE = 50
+const TIPOS_PRODUTOS_BUSCA = [
+  'camisa',
+  'camisa ii',
+  'camisa branca',
+  'camisa manga curta',
+  'camisa manga longa',
+  'camisa goleiro',
+  'camisa treino',
+  'jaqueta',
+  'moletom',
+  'parka',
+  'agasalho',
+  'corta vento',
+]
 
 function dividirEmLotes(lista, tamanho = TAMANHO_LOTE_SUPABASE) {
   const lotes = []
@@ -234,6 +254,7 @@ function parseProdutosXml(xml) {
 
 function contemClube(produto, clube) {
   const textoTitulo = normalizarTexto(produto.titulo || '')
+  if (clube.excluirTermos?.some(termo => textoTitulo.includes(normalizarTexto(termo)))) return false
   return clube.termos.some(termo => textoTitulo.includes(normalizarTexto(termo)))
 }
 
@@ -286,7 +307,9 @@ async function buscarProdutosPorTermo(clube, termoBusca) {
   if (!mid) throw new Error('Configure RAKUTEN_NETSHOES_MID no .env.')
 
   const url = new URL(PRODUCT_SEARCH_URL)
-  url.searchParams.set('keyword', `camisa ${termoBusca}`)
+  const termoNormalizado = normalizarTexto(termoBusca)
+  const termoTemTipoProduto = /\b(camisa|camiseta|manto|moletom|parka|jaqueta|agasalho|blusao|blusão|corta vento|corta-vento)\b/.test(termoNormalizado)
+  url.searchParams.set('keyword', termoTemTipoProduto ? termoBusca : `camisa ${termoBusca}`)
   url.searchParams.set('mid', mid)
   url.searchParams.set('max', String(RESULTADOS_POR_BUSCA))
   url.searchParams.set('sort', 'retailprice')
@@ -300,7 +323,7 @@ async function buscarProdutosPorTermo(clube, termoBusca) {
 
 async function buscarProdutosClube(clube) {
   const produtosPorChave = new Map()
-  const buscas = clube.buscas || [clube.busca || clube.nome]
+  const buscas = termosBuscaClube(clube)
 
   for (const termoBusca of buscas) {
     const produtos = await buscarProdutosPorTermo(clube, termoBusca)
@@ -322,6 +345,24 @@ async function buscarProdutosClube(clube) {
   return Array.from(produtosPorChave.values())
     .sort((a, b) => pontuar(b) - pontuar(a))
     .slice(0, MAX_POR_CLUBE)
+}
+
+function termosBuscaClube(clube) {
+  const termos = new Set(clube.buscas || [clube.busca || clube.nome])
+  const nomesClube = [clube.nome, ...(clube.termos || [])]
+    .map(termo => normalizarTexto(termo))
+    .filter(Boolean)
+  const marcas = clube.marcas?.length ? clube.marcas : ['']
+
+  for (const nomeClube of nomesClube) {
+    for (const marca of marcas) {
+      for (const tipo of TIPOS_PRODUTOS_BUSCA) {
+        termos.add([tipo, nomeClube, marca].filter(Boolean).join(' '))
+      }
+    }
+  }
+
+  return Array.from(termos)
 }
 
 function slugBuscaNetshoes(clube) {
