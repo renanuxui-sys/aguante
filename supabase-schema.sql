@@ -57,6 +57,7 @@ create table if not exists ofertas_afiliadas (
   link_produto text,
   cupom_codigo text,
   cupom_percentual numeric,
+  cupom_desconto_maximo numeric,
   cupom_percentual_variavel boolean not null default false,
   cupom_descricao text,
   cupom_aplicavel boolean not null default true,
@@ -76,6 +77,7 @@ alter table ofertas_afiliadas add column if not exists preco_com_cupom numeric;
 alter table ofertas_afiliadas add column if not exists preco_pix numeric;
 alter table ofertas_afiliadas add column if not exists cupom_codigo text;
 alter table ofertas_afiliadas add column if not exists cupom_percentual numeric;
+alter table ofertas_afiliadas add column if not exists cupom_desconto_maximo numeric;
 alter table ofertas_afiliadas add column if not exists cupom_percentual_variavel boolean not null default false;
 alter table ofertas_afiliadas add column if not exists cupom_descricao text;
 alter table ofertas_afiliadas add column if not exists cupom_aplicavel boolean not null default true;

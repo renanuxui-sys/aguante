@@ -81,10 +81,10 @@ export default async function OfertasNetshoesPage() {
               Ofertas Netshoes
             </span>
             <h1 style={{ color: '#282828', fontSize: 44, fontWeight: 300, letterSpacing: '-0.06em', lineHeight: 1.08, margin: 0 }}>
-              Camisas oficiais na etiqueta com desconto.
+              Camisas oficiais na etiqueta, com desconto.
             </h1>
             <p style={{ color: '#62748c', fontSize: 16, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.5, marginTop: 18 }}>
-              Use AGUANTE para 15% OFF nas ofertas elegíveis. O desconto não vale para produtos com tag Seleção.
+              Use cupom AGUANTE desconto especial nas ofertas elegíveis. O desconto não vale para produtos com tag Seleção.
             </p>
           </div>
         </div>

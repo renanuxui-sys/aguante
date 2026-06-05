@@ -4,6 +4,9 @@
  * Teste sem gravar:
  *   node netshoes-rakuten.js --dry-run
  *
+ * Diagnóstico de busca/filtros:
+ *   node netshoes-rakuten.js --diagnostico --diagnostico-clube=Internacional --diagnostico-busca="internacional ii 26 27 adidas"
+ *
  * Execução real:
  *   node netshoes-rakuten.js
  */
@@ -22,11 +25,15 @@ const ORIGEM = 'rakuten-netshoes'
 const DELAY_MS = 700
 const DEFAULT_CUPOM_CODIGO = process.env.NETSHOES_DEFAULT_COUPON_CODE || 'AGUANTE'
 const DEFAULT_CUPOM_PERCENTUAL = Number(process.env.NETSHOES_DEFAULT_COUPON_PERCENT || 15)
+const DEFAULT_CUPOM_DESCONTO_MAXIMO = valorDinheiro(process.env.NETSHOES_DEFAULT_COUPON_MAX_DISCOUNT)
 const DEFAULT_CUPOM_VARIAVEL = process.env.NETSHOES_DEFAULT_COUPON_VARIABLE === 'true'
 const DEFAULT_CUPOM_DESCRICAO = process.env.NETSHOES_DEFAULT_COUPON_DESCRIPTION || 'Cupom não válido para produtos com tag SELEÇÃO'
 const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 48))
 const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 100)))
 let accessTokenCache = null
+
+const LINHAS_OFICIAIS_BUSCA = ['i', 'ii', 'iii']
+const TEMPORADAS_PRIORITARIAS = temporadasPrioritarias()
 
 const MARCAS_OFICIAIS = [
   'adidas',
@@ -75,10 +82,17 @@ const dryRun = process.argv.includes('--dry-run')
 const somenteCupons = process.argv.includes('--somente-cupons')
 const semDesativar = process.argv.includes('--sem-desativar')
 const listarProdutos = process.argv.includes('--listar')
+const diagnostico = process.argv.includes('--diagnostico')
+const diagnosticoClube = normalizarTexto(argumentoValor('--diagnostico-clube') || argumentoValor('--clube') || '')
+const diagnosticoBusca = normalizarTexto(argumentoValor('--diagnostico-busca') || argumentoValor('--buscar') || '')
+const diagnosticoAmostras = Math.max(1, Number(argumentoValor('--diagnostico-amostras') || 8) || 8)
+const diagnosticoUrl = argumentoValor('--diagnostico-url') || argumentoValor('--url') || ''
 const TAMANHO_LOTE_SUPABASE = 50
 const TIPOS_PRODUTOS_BUSCA = [
   'camisa',
+  'camisa i',
   'camisa ii',
+  'camisa iii',
   'camisa branca',
   'camisa manga curta',
   'camisa manga longa',
@@ -90,6 +104,38 @@ const TIPOS_PRODUTOS_BUSCA = [
   'agasalho',
   'corta vento',
 ]
+
+function temporadasPrioritarias() {
+  const anoAtual = new Date().getFullYear()
+  const inicios = [anoAtual, anoAtual - 1]
+  const temporadas = new Set()
+
+  for (const inicio of inicios) {
+    const fim = inicio + 1
+    const inicioCurto = String(inicio).slice(-2)
+    const fimCurto = String(fim).slice(-2)
+    temporadas.add(`${inicioCurto}/${fimCurto}`)
+    temporadas.add(`${inicioCurto}${fimCurto}`)
+    temporadas.add(`${inicio}/${fim}`)
+    temporadas.add(String(inicio))
+    temporadas.add(String(fim))
+  }
+
+  return Array.from(temporadas)
+}
+
+function argumentoValor(nome) {
+  const prefixo = `${nome}=`
+  const inline = process.argv.find(arg => arg.startsWith(prefixo))
+  if (inline) return inline.slice(prefixo.length)
+
+  const indice = process.argv.indexOf(nome)
+  if (indice !== -1 && process.argv[indice + 1] && !process.argv[indice + 1].startsWith('--')) {
+    return process.argv[indice + 1]
+  }
+
+  return ''
+}
 
 function dividirEmLotes(lista, tamanho = TAMANHO_LOTE_SUPABASE) {
   const lotes = []
@@ -184,6 +230,12 @@ function preco(valor) {
   return Number.isFinite(numero) && numero > 0 ? numero : null
 }
 
+function valorDinheiro(valor) {
+  if (valor === null || valor === undefined || valor === '') return null
+  const numero = Number(String(valor).replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'))
+  return Number.isFinite(numero) && numero > 0 ? Math.round(numero * 100) / 100 : null
+}
+
 function urlAbsoluta(valor) {
   const url = String(valor || '').trim()
   if (!url) return null
@@ -275,19 +327,90 @@ function contemLinhaOficial(textoProduto) {
   return /\bcamisa\s+[a-z0-9 ]*\b(i|ii|iii|1|2|3)\b/.test(textoProduto)
 }
 
-function pareceCamisaOficial(produto, clube) {
+function avaliarProduto(produto, clube) {
   const textoTitulo = normalizarTexto(produto.titulo || '')
   const textoProduto = normalizarTexto(`${produto.titulo} ${produto.descricao}`)
-  if (!/\b(camisa|camiseta|manto|moletom|parka|jaqueta|agasalho|blusao|blusão|corta vento|corta-vento)\b/.test(textoTitulo)) return false
-  if (!contemClube(produto, clube)) return false
-  if (/\s\+\s|combo|conjunto/.test(textoTitulo)) return false
-  if (/\b(kit|selecao|selecoes|infantil|juvenil|kids|bebe|bebe|regata|polo|short|bone|bone|chuteira|calca|meiao|top|cropped)\b/.test(textoTitulo)) return false
-  if (/\b(retr[oô]|vintage|personalizada|customizada|historica|hist[oó]rica|legado|epic|replica)\b/.test(textoTitulo)) return false
-
+  const motivos = []
+  if (!/\b(camisa|camiseta|manto|moletom|parka|jaqueta|agasalho|blusao|blusão|corta vento|corta-vento)\b/.test(textoTitulo)) motivos.push('sem tipo permitido')
+  if (!contemClube(produto, clube)) motivos.push('sem termo do clube ou termo excluído')
+  if (/\s\+\s|combo|conjunto/.test(textoTitulo)) motivos.push('combo/conjunto')
+  if (/\b(kit|selecao|selecoes|infantil|juvenil|kids|bebe|bebe|regata|polo|short|bone|bone|chuteira|calca|meiao|top|cropped)\b/.test(textoTitulo)) motivos.push('categoria bloqueada')
+  if (/\b(retr[oô]|vintage|personalizada|customizada|historica|hist[oó]rica|legado|epic|replica)\b/.test(textoTitulo)) motivos.push('linha bloqueada')
   const marca = contemMarcaOficial(textoProduto)
   const marcaEsperada = contemMarcaEsperada(textoProduto, clube)
+  if (!marca) motivos.push('sem marca oficial')
+  if (!marcaEsperada) motivos.push('sem marca esperada do clube')
 
-  return marca && marcaEsperada
+  return {
+    aprovado: motivos.length === 0,
+    motivos,
+  }
+}
+
+function pareceCamisaOficial(produto, clube) {
+  return avaliarProduto(produto, clube).aprovado
+}
+
+function diagnosticoAtivoParaClube(clube) {
+  if (!diagnostico) return false
+  if (!diagnosticoClube) return true
+  const termos = [clube.nome, ...(clube.termos || [])].map(termo => normalizarTexto(termo))
+  return termos.some(termo => termo.includes(diagnosticoClube) || diagnosticoClube.includes(termo))
+}
+
+function produtoBateDiagnostico(produto) {
+  if (!diagnosticoBusca) return true
+  const tokens = diagnosticoBusca.match(/[a-z0-9]+/g) || []
+  if (tokens.length === 0) return true
+  const textoProduto = normalizarTexto(`${produto.titulo} ${produto.descricao} ${produto.link_produto}`).replace(/[^a-z0-9]+/g, ' ')
+  return tokens.every(token => {
+    const alternativas = [token]
+    if (token === 'branca') alternativas.push('branco')
+    if (token === 'branco') alternativas.push('branca')
+    if (/^\d{2}$/.test(token)) alternativas.push(`20${token}`)
+    return alternativas.some(alternativa => textoProduto.includes(alternativa))
+  })
+}
+
+function logDiagnosticoProdutos(clube, termoBusca, produtos) {
+  if (!diagnosticoAtivoParaClube(clube)) return
+
+  const contagemMotivos = new Map()
+  const aprovados = produtos.filter(produto => {
+    if (!produto.link_produto || !produto.titulo) {
+      contagemMotivos.set('sem link ou título', (contagemMotivos.get('sem link ou título') || 0) + 1)
+      return false
+    }
+
+    const avaliacao = avaliarProduto(produto, clube)
+    if (!avaliacao.aprovado) {
+      avaliacao.motivos.forEach(motivo => contagemMotivos.set(motivo, (contagemMotivos.get(motivo) || 0) + 1))
+    }
+    return avaliacao.aprovado
+  })
+  const matches = produtos.filter(produtoBateDiagnostico)
+  console.log(`  Diagnóstico "${termoBusca}": ${produtos.length} brutos, ${aprovados.length} aprovados, ${matches.length} matches da busca`)
+  if (contagemMotivos.size > 0) {
+    const resumoMotivos = Array.from(contagemMotivos.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([motivo, total]) => `${motivo}: ${total}`)
+      .join('; ')
+    console.log(`    Cortes: ${resumoMotivos}`)
+  }
+
+  const deveMostrarAmostra = matches.length > 0
+    || /branca|manga|ii|inter|internacional|adidas/i.test(termoBusca)
+  if (!deveMostrarAmostra) return
+
+  const amostra = (matches.length > 0 ? matches : produtos).slice(0, diagnosticoAmostras)
+  amostra.forEach(produto => {
+    const avaliacao = avaliarProduto(produto, clube)
+    const status = avaliacao.aprovado ? 'OK' : `CORTADO: ${avaliacao.motivos.join(', ')}`
+    const descricao = normalizarTexto(produto.descricao || '').slice(0, 120)
+    console.log(`    [${status}] ${produto.titulo || '(sem título)'} | ${produto.link_produto || '(sem link)'}`)
+    if (descricao) console.log(`      desc: ${descricao}`)
+  })
 }
 
 function pontuar(produto) {
@@ -325,6 +448,7 @@ async function buscarProdutosClube(clube) {
 
   for (const termoBusca of buscas) {
     const produtos = await buscarProdutosPorTermo(clube, termoBusca)
+    logDiagnosticoProdutos(clube, termoBusca, produtos)
     produtos
       .filter(produto => produto.link_produto && produto.titulo && pareceCamisaOficial(produto, clube))
       .forEach(produto => produtosPorChave.set(chaveProduto(produto), produto))
@@ -340,9 +464,23 @@ async function buscarProdutosClube(clube) {
     .filter(produto => produto.link_produto && produto.titulo && pareceCamisaOficial(produto, clube))
     .forEach(produto => produtosPorChave.set(chaveProduto(produto), produto))
 
-  return Array.from(produtosPorChave.values())
+  const ordenados = Array.from(produtosPorChave.values())
     .sort((a, b) => pontuar(b) - pontuar(a))
-    .slice(0, MAX_POR_CLUBE)
+
+  if (diagnosticoAtivoParaClube(clube)) {
+    console.log(`  Diagnóstico final: ${ordenados.length} únicos aprovados antes do corte; limite ${MAX_POR_CLUBE}`)
+    const matchesFinais = ordenados
+      .map((produto, indice) => ({ produto, indice }))
+      .filter(({ produto }) => produtoBateDiagnostico(produto))
+    matchesFinais.slice(0, diagnosticoAmostras).forEach(({ produto, indice }) => {
+      console.log(`    [FINAL #${indice + 1}${indice >= MAX_POR_CLUBE ? ' FORA DO CORTE' : ''}] ${produto.titulo} | ${produto.link_produto}`)
+    })
+    if (diagnosticoBusca && matchesFinais.length === 0) {
+      console.log(`    Nenhum aprovado final bateu a busca "${diagnosticoBusca}".`)
+    }
+  }
+
+  return ordenados.slice(0, MAX_POR_CLUBE)
 }
 
 function termosBuscaClube(clube) {
@@ -420,8 +558,61 @@ function precoProdutoJsonLd(produto) {
   return preco(offers?.price)
 }
 
-async function buscarProdutosNetshoes(clube) {
-  const url = `${NETSHOES_URL}/busca/camisa-${slugBuscaNetshoes(clube)}`
+function slugTermoNetshoes(termo) {
+  return normalizarTexto(termo)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function termosBuscaNetshoes(clube) {
+  const termos = new Set()
+  const adicionar = termo => {
+    const termoNormalizado = normalizarTexto(termo)
+    if (termoNormalizado) termos.add(termoNormalizado)
+  }
+  const nomesClube = [clube.nome, ...(clube.termos || [])]
+    .map(termo => normalizarTexto(termo))
+    .filter(Boolean)
+  const marcas = clube.marcas?.length ? clube.marcas : ['']
+  const nomePrincipal = nomesClube[0] || normalizarTexto(clube.nome)
+
+  adicionar(`camisa ${slugBuscaNetshoes(clube).replace(/-/g, ' ')}`)
+
+  for (const marca of marcas) {
+    adicionar(['camisa', nomePrincipal, marca].filter(Boolean).join(' '))
+
+    for (const temporada of TEMPORADAS_PRIORITARIAS) {
+      adicionar(['camisa', nomePrincipal, marca, temporada].filter(Boolean).join(' '))
+    }
+
+    for (const temporada of TEMPORADAS_PRIORITARIAS) {
+      for (const linha of LINHAS_OFICIAIS_BUSCA) {
+        adicionar(['camisa', nomePrincipal, linha, temporada, marca].filter(Boolean).join(' '))
+      }
+
+      if (temporada.includes('/')) {
+        adicionar(['camisa', nomePrincipal, temporada, 'treino', marca].filter(Boolean).join(' '))
+        adicionar(['camisa', nomePrincipal, temporada, 'goleiro', marca].filter(Boolean).join(' '))
+
+        for (const linha of LINHAS_OFICIAIS_BUSCA) {
+          adicionar(['camisa', nomePrincipal, linha, temporada, 'manga longa', marca].filter(Boolean).join(' '))
+        }
+      }
+    }
+  }
+
+  for (const nomeClube of nomesClube.slice(1)) {
+    for (const marca of marcas) {
+      adicionar(['camisa', nomeClube, marca].filter(Boolean).join(' '))
+    }
+  }
+
+  // Mantém o fallback controlado para não transformar a rotina diária em um crawler amplo.
+  return Array.from(termos).slice(0, 24)
+}
+
+async function buscarProdutosNetshoesPorTermo(clube, termoBusca) {
+  const url = `${NETSHOES_URL}/busca/${slugTermoNetshoes(termoBusca)}`
   const res = await fetch(url, {
     headers: {
       Accept: 'text/html,application/xhtml+xml',
@@ -432,7 +623,7 @@ async function buscarProdutosNetshoes(clube) {
 
   if (!res.ok) throw new Error(`Netshoes respondeu ${res.status}`)
 
-  return produtosJsonLd(await res.text()).map(produto => {
+  const produtos = produtosJsonLd(await res.text()).map(produto => {
     const linkProduto = produto.url ? new URL(produto.url, NETSHOES_URL).toString() : null
     const marca = typeof produto.brand === 'object' ? produto.brand?.name : produto.brand
 
@@ -445,6 +636,25 @@ async function buscarProdutosNetshoes(clube) {
       external_id: `rakuten-netshoes:${canonicalizarUrlProduto(linkProduto) || produto.sku || produto.name}`,
     }
   })
+
+  logDiagnosticoProdutos(clube, `Netshoes fallback ${termoBusca}`, produtos)
+  return produtos
+}
+
+async function buscarProdutosNetshoes(clube) {
+  const produtosPorChave = new Map()
+
+  for (const termoBusca of termosBuscaNetshoes(clube)) {
+    try {
+      const produtos = await buscarProdutosNetshoesPorTermo(clube, termoBusca)
+      produtos.forEach(produto => produtosPorChave.set(chaveProduto(produto), produto))
+      await sleep(250)
+    } catch (error) {
+      console.warn(`  Aviso: fallback Netshoes falhou para "${termoBusca}": ${error.message}`)
+    }
+  }
+
+  return Array.from(produtosPorChave.values())
 }
 
 function extrairCodigoCupom(textoCupom) {
@@ -517,6 +727,7 @@ function cupomPrincipal(cupons) {
     return {
       cupom_codigo: DEFAULT_CUPOM_CODIGO,
       cupom_percentual: cupomApi.percentual,
+      cupom_desconto_maximo: DEFAULT_CUPOM_DESCONTO_MAXIMO,
       cupom_percentual_variavel: cupomApi.percentual_variavel,
       cupom_descricao: cupomApi.description || DEFAULT_CUPOM_DESCRICAO,
       cupom_origem: 'coupon-api',
@@ -526,15 +737,53 @@ function cupomPrincipal(cupons) {
   return {
     cupom_codigo: DEFAULT_CUPOM_CODIGO,
     cupom_percentual: DEFAULT_CUPOM_PERCENTUAL,
+    cupom_desconto_maximo: DEFAULT_CUPOM_DESCONTO_MAXIMO,
     cupom_percentual_variavel: DEFAULT_CUPOM_VARIAVEL,
     cupom_descricao: DEFAULT_CUPOM_DESCRICAO,
     cupom_origem: 'config',
   }
 }
 
-function precoComCupom(valor, percentual, percentualVariavel, cupomAplicavel) {
+function combinarCupomComBanco(cupom, cupomBanco) {
+  if (!cupomBanco) return cupom
+
+  const usarPercentualBanco = cupom.cupom_origem !== 'coupon-api' && cupomBanco.cupom_percentual
+  return {
+    ...cupom,
+    cupom_codigo: cupomBanco.cupom_codigo || cupom.cupom_codigo,
+    cupom_percentual: usarPercentualBanco ? Number(cupomBanco.cupom_percentual) : cupom.cupom_percentual,
+    cupom_desconto_maximo: valorDinheiro(cupomBanco.cupom_desconto_maximo) ?? cupom.cupom_desconto_maximo,
+    cupom_percentual_variavel: cupom.cupom_origem === 'coupon-api'
+      ? cupom.cupom_percentual_variavel
+      : Boolean(cupomBanco.cupom_percentual_variavel ?? cupom.cupom_percentual_variavel),
+    cupom_descricao: cupomBanco.cupom_descricao || cupom.cupom_descricao,
+    cupom_origem: `${cupom.cupom_origem}+painel`,
+  }
+}
+
+async function cupomSalvoNetshoes(supabase) {
+  const { data, error } = await supabase
+    .from('ofertas_afiliadas')
+    .select('cupom_codigo,cupom_percentual,cupom_desconto_maximo,cupom_percentual_variavel,cupom_descricao')
+    .eq('loja', LOJA)
+    .not('cupom_codigo', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.warn(`  Aviso: não foi possível consultar cupom salvo da Netshoes: ${mensagemErroSupabase(error)}`)
+    return null
+  }
+
+  return data || null
+}
+
+function precoComCupom(valor, percentual, percentualVariavel, cupomAplicavel, descontoMaximo = null) {
   if (!valor || !percentual || percentualVariavel || !cupomAplicavel) return null
-  return Math.round(valor * (1 - percentual / 100) * 100) / 100
+  const descontoPercentual = valor * (percentual / 100)
+  const desconto = descontoMaximo ? Math.min(descontoPercentual, descontoMaximo) : descontoPercentual
+  return Math.max(0, Math.round((valor - desconto) * 100) / 100)
 }
 
 function produtoTemTagSelecaoHtml(html) {
@@ -542,6 +791,13 @@ function produtoTemTagSelecaoHtml(html) {
   return /promotionflags["']?\s*:\s*["'][^"']*selecao/.test(textoNormalizado)
     || /"stamps"\s*:\s*\[[^\]]*"name"\s*:\s*"selecao"/.test(textoNormalizado)
     || /"name"\s*:\s*"selecao"[^}]*"style"\s*:\s*\{/.test(textoNormalizado)
+}
+
+function produtoTemTagLancamentoHtml(html) {
+  const textoNormalizado = normalizarTexto(html || '')
+  return /promotionflags["']?\s*:\s*["'][^"']*lancamento/.test(textoNormalizado)
+    || /"stamps"\s*:\s*\[[^\]]*"name"\s*:\s*"lancamento"/.test(textoNormalizado)
+    || /"name"\s*:\s*"lancamento"[^}]*"style"\s*:\s*\{/.test(textoNormalizado)
 }
 
 function extrairPrimeiroCentavos(html, padroes) {
@@ -684,6 +940,61 @@ async function metadadosProdutoNetshoes(linkProduto) {
   }
 }
 
+async function produtoNetshoesPorUrl(linkProduto) {
+  const res = await fetch(linkProduto, {
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'User-Agent': 'Mozilla/5.0 (compatible; AguanteAfiliados/1.0)',
+    },
+    timeout: 30000,
+  })
+
+  if (!res.ok) throw new Error(`Netshoes respondeu ${res.status} para a URL informada.`)
+
+  const html = await res.text()
+  const produto = produtosJsonLd(html)[0] || {}
+  const marca = typeof produto.brand === 'object' ? produto.brand?.name : produto.brand
+  const precoAtual = precoAtualProdutoHtml(html)
+  const precoCheio = precoAtual?.preco || precoCheioProdutoHtml(html) || precoProdutoJsonLd(produto)
+  const precoPix = precoAtual?.precoPix || precoPixProdutoHtml(html)
+  const $ = cheerio.load(html)
+  const tituloFallback = $('h1').first().text().trim() || $('title').first().text().trim()
+  const linkProdutoFinal = produto.url ? new URL(produto.url, NETSHOES_URL).toString() : linkProduto
+
+  return {
+    titulo: produto.name || tituloFallback || '',
+    preco: precoCheio,
+    preco_pix: precoCheio && precoPix && precoPix > precoCheio ? precoCheio : precoPix,
+    imagem_url: urlAbsoluta(imagemProdutoJsonLd(produto)),
+    link_produto: linkProdutoFinal,
+    descricao: [produto.description, marca].filter(Boolean).join(' '),
+    external_id: `rakuten-netshoes:${canonicalizarUrlProduto(linkProdutoFinal) || produto.sku || produto.name || linkProduto}`,
+    tag_selecao: produtoTemTagSelecaoHtml(html),
+    tag_lancamento: produtoTemTagLancamentoHtml(html),
+  }
+}
+
+async function diagnosticarUrlProduto() {
+  if (!diagnosticoUrl) return
+
+  console.log(`\nDiagnóstico por URL: ${diagnosticoUrl}`)
+  const produto = await produtoNetshoesPorUrl(diagnosticoUrl).catch(error => {
+    console.warn(`  Aviso: não foi possível ler a URL informada: ${error.message}`)
+    return null
+  })
+  if (!produto) return
+
+  console.log(`  Produto: ${produto.titulo || '(sem título)'}`)
+  console.log(`  Preço: ${produto.preco || '(não encontrado)'} | Pix: ${produto.preco_pix || '(não encontrado)'}`)
+  console.log(`  Tags detectadas: seleção=${produto.tag_selecao ? 'sim' : 'não'}; lançamento=${produto.tag_lancamento ? 'sim' : 'não'}`)
+
+  const clubes = CLUBES.filter(diagnosticoAtivoParaClube)
+  for (const clube of clubes) {
+    const avaliacao = avaliarProduto(produto, clube)
+    console.log(`  ${clube.nome}: ${avaliacao.aprovado ? 'passaria no filtro' : `cortado por ${avaliacao.motivos.join(', ')}`}`)
+  }
+}
+
 async function gerarDeepLink(linkProduto, u1) {
   const res = await fetch(DEEP_LINK_URL, {
     method: 'POST',
@@ -783,7 +1094,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
   for (const loteExternalIds of dividirEmLotes(externalIds)) {
     const { data, error: buscaError } = await supabase
       .from('ofertas_afiliadas')
-      .select('external_id,cupom_codigo,cupom_percentual,cupom_percentual_variavel,cupom_descricao')
+      .select('external_id,cupom_codigo,cupom_percentual,cupom_desconto_maximo,cupom_percentual_variavel,cupom_descricao')
       .eq('loja', LOJA)
       .eq('automacao_origem', ORIGEM)
       .in('external_id', loteExternalIds)
@@ -798,6 +1109,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
     if (!atual) return oferta
 
     const cupomPercentual = opcoes.atualizarCupomExistente ? oferta.cupom_percentual : (atual.cupom_percentual ?? oferta.cupom_percentual)
+    const cupomDescontoMaximo = opcoes.atualizarCupomExistente ? oferta.cupom_desconto_maximo : (atual.cupom_desconto_maximo ?? oferta.cupom_desconto_maximo)
     const cupomPercentualVariavel = opcoes.atualizarCupomExistente ? oferta.cupom_percentual_variavel : (atual.cupom_percentual_variavel ?? oferta.cupom_percentual_variavel)
     const precoBase = oferta.preco_pix || oferta.preco
 
@@ -805,9 +1117,10 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
       ...oferta,
       cupom_codigo: opcoes.atualizarCupomExistente ? oferta.cupom_codigo : (atual.cupom_codigo ?? oferta.cupom_codigo),
       cupom_percentual: cupomPercentual,
+      cupom_desconto_maximo: cupomDescontoMaximo,
       cupom_percentual_variavel: cupomPercentualVariavel,
       cupom_descricao: opcoes.atualizarCupomExistente ? oferta.cupom_descricao : (atual.cupom_descricao ?? oferta.cupom_descricao),
-      preco_com_cupom: precoComCupom(precoBase, Number(cupomPercentual), cupomPercentualVariavel, oferta.cupom_aplicavel),
+      preco_com_cupom: precoComCupom(precoBase, Number(cupomPercentual), cupomPercentualVariavel, oferta.cupom_aplicavel, valorDinheiro(cupomDescontoMaximo)),
     }
   })
 
@@ -821,7 +1134,6 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
 }
 
 async function main() {
-  const supabase = criarSupabase()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const destinoBanco = supabaseUrl ? new URL(supabaseUrl).hostname : 'Supabase não identificado'
   const modoAuth = tokenRakutenInformado()
@@ -833,10 +1145,37 @@ async function main() {
   console.log(`Destino Supabase: ${destinoBanco}`)
   console.log(`Autenticação Rakuten: ${modoAuth}`)
   if (dryRun) console.log('Modo dry-run ativo: nada será gravado.')
+  if (diagnostico) {
+    console.log('Modo diagnóstico ativo: nada será gravado.')
+    if (diagnosticoClube) console.log(`Filtro de clube: ${diagnosticoClube}`)
+    if (diagnosticoBusca) console.log(`Busca destacada: ${diagnosticoBusca}`)
+    if (diagnosticoUrl) await diagnosticarUrlProduto()
 
+    const clubesDiagnostico = CLUBES.filter(diagnosticoAtivoParaClube)
+    if (clubesDiagnostico.length === 0) {
+      console.warn('Nenhum clube bateu o filtro de diagnóstico.')
+      return
+    }
+
+    for (const clube of clubesDiagnostico) {
+      console.log(`\n${clube.nome}`)
+      const produtos = await buscarProdutosClube(clube).catch(error => {
+        console.warn(`  Aviso: ${error.message}`)
+        return []
+      })
+      console.log(`  ${produtos.length} ofertas candidatas após corte`)
+      if (listarProdutos) {
+        produtos.forEach(produto => console.log(`    - ${produto.titulo}`))
+      }
+    }
+    return
+  }
+
+  const supabase = criarSupabase()
   const cupons = await buscarCuponsRakuten()
-  const cupom = cupomPrincipal(cupons)
-  console.log(`Cupom principal: ${cupom.cupom_codigo} ${cupom.cupom_percentual}% (${cupom.cupom_origem})`)
+  const cupom = combinarCupomComBanco(cupomPrincipal(cupons), await cupomSalvoNetshoes(supabase))
+  const tetoCupom = cupom.cupom_desconto_maximo ? `, teto R$ ${cupom.cupom_desconto_maximo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''
+  console.log(`Cupom principal: ${cupom.cupom_codigo} ${cupom.cupom_percentual}%${tetoCupom} (${cupom.cupom_origem})`)
   const cuponsSalvos = await sincronizarCupons(supabase, cupons)
 
   if (somenteCupons) {
@@ -877,12 +1216,13 @@ async function main() {
         titulo: produto.titulo,
         preco: precoCheio,
         preco_pix: metadadosProduto.precoPix,
-        preco_com_cupom: precoComCupom(precoBase, cupom.cupom_percentual, cupom.cupom_percentual_variavel, cupomAplicavel),
+        preco_com_cupom: precoComCupom(precoBase, cupom.cupom_percentual, cupom.cupom_percentual_variavel, cupomAplicavel, cupom.cupom_desconto_maximo),
         imagem_url: produto.imagem_url,
         link_afiliado: linkAfiliado,
         link_produto: produto.link_produto,
         cupom_codigo: cupom.cupom_codigo,
         cupom_percentual: cupom.cupom_percentual,
+        cupom_desconto_maximo: cupom.cupom_desconto_maximo,
         cupom_percentual_variavel: cupom.cupom_percentual_variavel,
         cupom_descricao: cupom.cupom_descricao,
         cupom_aplicavel: cupomAplicavel,

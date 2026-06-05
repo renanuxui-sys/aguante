@@ -20,9 +20,11 @@ export default function AdminOfertas() {
   const [ordem, setOrdem] = useState('0')
   const [cupomCodigo, setCupomCodigo] = useState('')
   const [cupomPercentual, setCupomPercentual] = useState('')
+  const [cupomDescontoMaximo, setCupomDescontoMaximo] = useState('')
   const [cupomDescricao, setCupomDescricao] = useState('')
   const [cupomNetshoesCodigo, setCupomNetshoesCodigo] = useState('AGUANTE')
   const [cupomNetshoesPercentual, setCupomNetshoesPercentual] = useState('15')
+  const [cupomNetshoesDescontoMaximo, setCupomNetshoesDescontoMaximo] = useState('')
   const [cupomNetshoesDescricao, setCupomNetshoesDescricao] = useState('Cupom não válido para produtos com tag SELEÇÃO')
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -49,6 +51,7 @@ export default function AdminOfertas() {
         if (ofertaNetshoes) {
           setCupomNetshoesCodigo(ofertaNetshoes.cupom_codigo || 'AGUANTE')
           setCupomNetshoesPercentual(String(ofertaNetshoes.cupom_percentual || 15))
+          setCupomNetshoesDescontoMaximo(ofertaNetshoes.cupom_desconto_maximo ? String(ofertaNetshoes.cupom_desconto_maximo) : '')
           setCupomNetshoesDescricao(ofertaNetshoes.cupom_descricao || 'Cupom não válido para produtos com tag SELEÇÃO')
         }
         setCarregando(false)
@@ -67,12 +70,14 @@ export default function AdminOfertas() {
     if (proximaLoja === 'Netshoes') {
       setCupomCodigo(cupomNetshoesCodigo)
       setCupomPercentual(cupomNetshoesPercentual)
+      setCupomDescontoMaximo(cupomNetshoesDescontoMaximo)
       setCupomDescricao(cupomNetshoesDescricao)
       return
     }
 
     setCupomCodigo('')
     setCupomPercentual('')
+    setCupomDescontoMaximo('')
     setCupomDescricao('')
   }
 
@@ -90,6 +95,7 @@ export default function AdminOfertas() {
         ordem,
         cupom_codigo: cupomCodigo,
         cupom_percentual: cupomPercentual,
+        cupom_desconto_maximo: cupomDescontoMaximo,
         cupom_descricao: cupomDescricao,
       }),
     })
@@ -108,7 +114,7 @@ export default function AdminOfertas() {
     setSalvando(false)
   }
 
-  async function atualizar(oferta: OfertaAfiliada, dados: { ativo?: boolean; ordem?: number; cupom_codigo?: string; cupom_percentual?: number | null; cupom_descricao?: string }) {
+  async function atualizar(oferta: OfertaAfiliada, dados: { ativo?: boolean; ordem?: number; cupom_codigo?: string; cupom_percentual?: number | null; cupom_desconto_maximo?: number | null; cupom_descricao?: string }) {
     setErro('')
     setMensagem('')
     const res = await fetch('/api/admin/cms/ofertas', {
@@ -137,6 +143,7 @@ export default function AdminOfertas() {
         acao: 'atualizar_cupom_netshoes',
         cupom_codigo: cupomNetshoesCodigo,
         cupom_percentual: cupomNetshoesPercentual,
+        cupom_desconto_maximo: cupomNetshoesDescontoMaximo,
         cupom_descricao: cupomNetshoesDescricao,
       }),
     })
@@ -152,6 +159,7 @@ export default function AdminOfertas() {
     setOfertas(atual => atual.map(oferta => atualizadas.get(oferta.id) || oferta))
     setCupomCodigo(loja === 'Netshoes' ? cupomNetshoesCodigo : cupomCodigo)
     setCupomPercentual(loja === 'Netshoes' ? cupomNetshoesPercentual : cupomPercentual)
+    setCupomDescontoMaximo(loja === 'Netshoes' ? cupomNetshoesDescontoMaximo : cupomDescontoMaximo)
     setCupomDescricao(loja === 'Netshoes' ? cupomNetshoesDescricao : cupomDescricao)
     setMensagem(`Cupom Netshoes atualizado em ${json.total || 0} ofertas.`)
   }
@@ -208,12 +216,15 @@ export default function AdminOfertas() {
               Atualiza o percentual e recalcula os preços com cupom nas ofertas elegíveis.
             </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '140px 120px minmax(260px, 1fr) auto', gap: 12, alignItems: 'end', flex: '1 1 640px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '140px 120px 140px minmax(260px, 1fr) auto', gap: 12, alignItems: 'end', flex: '1 1 780px' }}>
             <Campo label="Cupom">
               <input value={cupomNetshoesCodigo} onChange={event => setCupomNetshoesCodigo(event.target.value.toUpperCase())} style={campoStyle} />
             </Campo>
             <Campo label="Desconto (%)">
               <input value={cupomNetshoesPercentual} onChange={event => setCupomNetshoesPercentual(event.target.value)} min={0} type="number" style={campoStyle} />
+            </Campo>
+            <Campo label="Desconto máx. (R$)">
+              <input value={cupomNetshoesDescontoMaximo} onChange={event => setCupomNetshoesDescontoMaximo(event.target.value)} min={0} placeholder="70" step="0.01" type="number" style={campoStyle} />
             </Campo>
             <Campo label="Regra">
               <input value={cupomNetshoesDescricao} onChange={event => setCupomNetshoesDescricao(event.target.value)} style={campoStyle} />
@@ -243,12 +254,15 @@ export default function AdminOfertas() {
           </button>
         </div>
         {loja === 'Netshoes' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '160px 120px minmax(260px, 1fr)', gap: 12, marginTop: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 120px 140px minmax(260px, 1fr)', gap: 12, marginTop: 14 }}>
             <Campo label="Cupom">
               <input value={cupomCodigo} onChange={event => setCupomCodigo(event.target.value.toUpperCase())} style={campoStyle} />
             </Campo>
             <Campo label="Desconto (%)">
               <input value={cupomPercentual} onChange={event => setCupomPercentual(event.target.value)} min={0} type="number" style={campoStyle} />
+            </Campo>
+            <Campo label="Desconto máx. (R$)">
+              <input value={cupomDescontoMaximo} onChange={event => setCupomDescontoMaximo(event.target.value)} min={0} step="0.01" type="number" style={campoStyle} />
             </Campo>
             <Campo label="Regra">
               <input value={cupomDescricao} onChange={event => setCupomDescricao(event.target.value)} style={campoStyle} />
@@ -306,7 +320,7 @@ export default function AdminOfertas() {
                     )}
                   </td>
                   <td style={{ ...celulaStyle, minWidth: 190 }}>
-                    <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <div style={{ display: 'grid', gap: 6, gridTemplateColumns: '92px 70px 82px', marginBottom: 6 }}>
                       <input
                         defaultValue={oferta.cupom_codigo || ''}
                         placeholder="Cupom"
@@ -314,7 +328,7 @@ export default function AdminOfertas() {
                           const valor = event.currentTarget.value.trim().toUpperCase()
                           if (valor !== (oferta.cupom_codigo || '')) atualizar(oferta, { cupom_codigo: valor })
                         }}
-                        style={{ ...campoStyle, height: 34, width: 92 }}
+                        style={{ ...campoStyle, height: 34 }}
                       />
                       <input
                         defaultValue={oferta.cupom_percentual ?? ''}
@@ -325,7 +339,19 @@ export default function AdminOfertas() {
                           const valor = event.currentTarget.value === '' ? null : Math.max(0, Number(event.currentTarget.value) || 0)
                           if (valor !== oferta.cupom_percentual) atualizar(oferta, { cupom_percentual: valor })
                         }}
-                        style={{ ...campoStyle, height: 34, width: 70 }}
+                        style={{ ...campoStyle, height: 34 }}
+                      />
+                      <input
+                        defaultValue={oferta.cupom_desconto_maximo ?? ''}
+                        min={0}
+                        placeholder="máx."
+                        step="0.01"
+                        type="number"
+                        onBlur={event => {
+                          const valor = event.currentTarget.value === '' ? null : Math.max(0, Number(event.currentTarget.value) || 0)
+                          if (valor !== (oferta.cupom_desconto_maximo ?? null)) atualizar(oferta, { cupom_desconto_maximo: valor })
+                        }}
+                        style={{ ...campoStyle, height: 34 }}
                       />
                     </div>
                     <input

@@ -28,9 +28,18 @@ function percentualOpcional(valor: unknown) {
   return Math.min(numero, 100)
 }
 
-function precoComCupom(preco: number | null | undefined, percentual: number | null) {
+function dinheiroOpcional(valor: unknown) {
+  if (valor === null || valor === undefined || valor === '') return null
+  const numero = Number(String(valor).replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'))
+  if (!Number.isFinite(numero) || numero <= 0) return null
+  return Math.round(numero * 100) / 100
+}
+
+function precoComCupom(preco: number | null | undefined, percentual: number | null, descontoMaximo: number | null = null) {
   if (typeof preco !== 'number' || !Number.isFinite(preco) || !percentual) return null
-  return Math.round(preco * (1 - percentual / 100) * 100) / 100
+  const descontoPercentual = preco * (percentual / 100)
+  const desconto = descontoMaximo ? Math.min(descontoPercentual, descontoMaximo) : descontoPercentual
+  return Math.max(0, Math.round((preco - desconto) * 100) / 100)
 }
 
 function dividirEmLotes<T>(lista: T[], tamanho = TAMANHO_LOTE_ATUALIZACAO) {
@@ -56,13 +65,15 @@ function cupomDaOferta(body: Record<string, unknown>, loja: LojaOferta, preco: n
 
   const cupomCodigo = textoOpcional(body.cupom_codigo, 40) ?? codigoPadrao
   const cupomPercentual = percentualOpcional(body.cupom_percentual) ?? percentualPadrao
+  const cupomDescontoMaximo = dinheiroOpcional(body.cupom_desconto_maximo)
   const cupomDescricao = textoOpcional(body.cupom_descricao) ?? descricaoPadrao
 
   return {
     cupom_codigo: cupomCodigo,
     cupom_percentual: cupomPercentual,
+    cupom_desconto_maximo: cupomDescontoMaximo,
     cupom_descricao: cupomDescricao,
-    preco_com_cupom: precoComCupom(menorPreco(preco, null), cupomPercentual),
+    preco_com_cupom: precoComCupom(menorPreco(preco, null), cupomPercentual, cupomDescontoMaximo),
   }
 }
 
@@ -123,6 +134,7 @@ export async function PATCH(request: Request) {
       if (!cupomPercentual) return Response.json({ error: 'Informe um percentual válido.' }, { status: 400 })
 
       const cupomCodigo = textoOpcional(body.cupom_codigo, 40) ?? 'AGUANTE'
+      const cupomDescontoMaximo = dinheiroOpcional(body.cupom_desconto_maximo)
       const cupomDescricao = textoOpcional(body.cupom_descricao) ?? 'Cupom não válido para produtos com tag SELEÇÃO'
       const agora = new Date().toISOString()
       const supabase = criarSupabaseAdmin()
@@ -138,11 +150,12 @@ export async function PATCH(request: Request) {
         id: oferta.id,
         cupom_codigo: cupomCodigo,
         cupom_percentual: cupomPercentual,
+        cupom_desconto_maximo: cupomDescontoMaximo,
         cupom_percentual_variavel: false,
         cupom_descricao: cupomDescricao,
         preco_com_cupom: oferta.cupom_aplicavel === false
           ? null
-          : precoComCupom(menorPreco(oferta.preco, oferta.preco_pix), cupomPercentual),
+          : precoComCupom(menorPreco(oferta.preco, oferta.preco_pix), cupomPercentual, cupomDescontoMaximo),
         updated_at: agora,
       }))
 
@@ -168,12 +181,13 @@ export async function PATCH(request: Request) {
     if (body.ordem !== undefined) atualizacao.ordem = Math.max(0, Number(body.ordem) || 0)
     if (body.cupom_codigo !== undefined) atualizacao.cupom_codigo = textoOpcional(body.cupom_codigo, 40)
     if (body.cupom_percentual !== undefined) atualizacao.cupom_percentual = percentualOpcional(body.cupom_percentual)
+    if (body.cupom_desconto_maximo !== undefined) atualizacao.cupom_desconto_maximo = dinheiroOpcional(body.cupom_desconto_maximo)
     if (body.cupom_descricao !== undefined) atualizacao.cupom_descricao = textoOpcional(body.cupom_descricao)
 
     if (body.reimportar === true) {
       const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
         .from('ofertas_afiliadas')
-        .select('loja,link_afiliado,cupom_percentual,preco_pix,cupom_aplicavel')
+        .select('loja,link_afiliado,cupom_percentual,cupom_desconto_maximo,preco_pix,cupom_aplicavel')
         .eq('id', id)
         .single()
 
@@ -187,20 +201,25 @@ export async function PATCH(request: Request) {
         : precoComCupom(
           menorPreco(importada.preco, ofertaAtual?.preco_pix),
           percentualOpcional(atualizacao.cupom_percentual ?? ofertaAtual.cupom_percentual),
+          dinheiroOpcional(atualizacao.cupom_desconto_maximo ?? ofertaAtual.cupom_desconto_maximo),
         )
     }
 
-    if (!body.reimportar && body.cupom_percentual !== undefined) {
+    if (!body.reimportar && (body.cupom_percentual !== undefined || body.cupom_desconto_maximo !== undefined)) {
       const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
         .from('ofertas_afiliadas')
-        .select('preco,preco_pix,cupom_aplicavel')
+        .select('preco,preco_pix,cupom_aplicavel,cupom_percentual,cupom_desconto_maximo')
         .eq('id', id)
         .single()
 
       if (buscaError) return Response.json({ error: buscaError.message }, { status: 500 })
       atualizacao.preco_com_cupom = ofertaAtual?.cupom_aplicavel === false
         ? null
-        : precoComCupom(menorPreco(ofertaAtual?.preco, ofertaAtual?.preco_pix), atualizacao.cupom_percentual as number | null)
+        : precoComCupom(
+          menorPreco(ofertaAtual?.preco, ofertaAtual?.preco_pix),
+          percentualOpcional(atualizacao.cupom_percentual ?? ofertaAtual?.cupom_percentual),
+          dinheiroOpcional(atualizacao.cupom_desconto_maximo ?? ofertaAtual?.cupom_desconto_maximo),
+        )
     }
 
     if (Object.keys(atualizacao).length === 0) return Response.json({ error: 'Nada para atualizar.' }, { status: 400 })

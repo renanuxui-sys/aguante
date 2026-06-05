@@ -45,6 +45,7 @@ RAKUTEN_CLIENT_SECRET=...
 RAKUTEN_ACCOUNT_ID=4700910
 RAKUTEN_NETSHOES_MID=43984
 NETSHOES_MAX_OFFERS_PER_CLUB=48
+NETSHOES_DEFAULT_COUPON_MAX_DISCOUNT=70
 ```
 
 Não use o Web Services Token em `RAKUTEN_ACCESS_TOKEN`: as APIs de Product
@@ -54,6 +55,19 @@ gerar esse access token.
 Para Netshoes/Rakuten, rode primeiro com as variáveis do Supabase de testes/preview.
 O script imprime o host do Supabase antes de gravar; confira esse destino antes de
 rodar sem `--dry-run`.
+
+Diagnóstico de uma busca da Netshoes/Rakuten sem gravar nada no banco:
+```bash
+npm run afiliados:netshoes -- --diagnostico --diagnostico-clube=Internacional --diagnostico-busca="internacional ii 26 27 adidas"
+```
+
+Se você já tiver a URL oficial da Netshoes de um produto que não apareceu:
+```bash
+npm run afiliados:netshoes -- --diagnostico --diagnostico-clube=Internacional --diagnostico-url="https://www.netshoes.com.br/..."
+```
+
+O diagnóstico mostra quantos produtos vieram da API, quantos passaram no filtro,
+os principais motivos de corte e se o produto destacado ficou fora do limite por clube.
 
 Rodar qualquer scraper:
 ```bash

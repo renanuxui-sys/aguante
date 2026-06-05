@@ -21,6 +21,23 @@ on:
         required: false
         type: boolean
         default: false
+      diagnostico:
+        description: 'Diagnosticar busca/filtros sem gravar no Supabase'
+        required: false
+        type: boolean
+        default: false
+      diagnostico_clube:
+        description: 'Clube para diagnosticar'
+        required: false
+        default: 'Internacional'
+      diagnostico_busca:
+        description: 'Texto para destacar no diagnóstico'
+        required: false
+        default: 'internacional ii 26 27 adidas'
+      diagnostico_url:
+        description: 'URL da Netshoes para testar manualmente'
+        required: false
+        default: ''
 
 concurrency:
   group: afiliados-netshoes-rakuten
@@ -76,6 +93,10 @@ jobs:
           MAX_POR_CLUBE="${{ github.event.inputs.max_por_clube }}"
           SEM_DESATIVAR="${{ github.event.inputs.sem_desativar }}"
           DRY_RUN="${{ github.event.inputs.dry_run }}"
+          DIAGNOSTICO="${{ github.event.inputs.diagnostico }}"
+          DIAGNOSTICO_CLUBE="${{ github.event.inputs.diagnostico_clube }}"
+          DIAGNOSTICO_BUSCA="${{ github.event.inputs.diagnostico_busca }}"
+          DIAGNOSTICO_URL="${{ github.event.inputs.diagnostico_url }}"
 
           if [ -z "$MAX_POR_CLUBE" ]; then
             MAX_POR_CLUBE="48"
@@ -83,16 +104,28 @@ jobs:
 
           export NETSHOES_MAX_OFFERS_PER_CLUB="$MAX_POR_CLUBE"
 
-          ARGS=""
+          ARGS=()
           if [ "$SEM_DESATIVAR" = "true" ]; then
-            ARGS="$ARGS --sem-desativar"
+            ARGS+=(--sem-desativar)
           fi
           if [ "$DRY_RUN" = "true" ]; then
-            ARGS="$ARGS --dry-run"
+            ARGS+=(--dry-run)
+          fi
+          if [ "$DIAGNOSTICO" = "true" ]; then
+            ARGS+=(--diagnostico)
+            if [ -n "$DIAGNOSTICO_CLUBE" ]; then
+              ARGS+=(--diagnostico-clube "$DIAGNOSTICO_CLUBE")
+            fi
+            if [ -n "$DIAGNOSTICO_BUSCA" ]; then
+              ARGS+=(--diagnostico-busca "$DIAGNOSTICO_BUSCA")
+            fi
+            if [ -n "$DIAGNOSTICO_URL" ]; then
+              ARGS+=(--diagnostico-url "$DIAGNOSTICO_URL")
+            fi
           fi
 
           echo "Rodando Netshoes com limite de $NETSHOES_MAX_OFFERS_PER_CLUB ofertas por clube."
-          npm run afiliados:netshoes -- $ARGS
+          npm run afiliados:netshoes -- "${ARGS[@]}"
 
       - name: Relatório final
         if: always()
