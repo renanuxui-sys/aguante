@@ -24,8 +24,8 @@ const DEFAULT_CUPOM_CODIGO = process.env.NETSHOES_DEFAULT_COUPON_CODE || 'AGUANT
 const DEFAULT_CUPOM_PERCENTUAL = Number(process.env.NETSHOES_DEFAULT_COUPON_PERCENT || 15)
 const DEFAULT_CUPOM_VARIAVEL = process.env.NETSHOES_DEFAULT_COUPON_VARIABLE === 'true'
 const DEFAULT_CUPOM_DESCRICAO = process.env.NETSHOES_DEFAULT_COUPON_DESCRIPTION || 'Cupom não válido para produtos com tag SELEÇÃO'
-const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 16))
-const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 25)))
+const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 32))
+const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 50)))
 let accessTokenCache = null
 
 const MARCAS_OFICIAIS = [
@@ -257,20 +257,16 @@ function contemLinhaOficial(textoProduto) {
 function pareceCamisaOficial(produto, clube) {
   const textoTitulo = normalizarTexto(produto.titulo || '')
   const textoProduto = normalizarTexto(`${produto.titulo} ${produto.descricao}`)
-  if (!/\bcamisa|camiseta|manto\b/.test(textoTitulo)) return false
+  if (!/\b(camisa|camiseta|manto|moletom|parka|jaqueta|agasalho|blusao|blusão|corta vento|corta-vento)\b/.test(textoTitulo)) return false
   if (!contemClube(produto, clube)) return false
   if (/\s\+\s|combo|conjunto/.test(textoTitulo)) return false
-  if (/\b(kit|selecao|selecoes|infantil|juvenil|kids|bebe|bebe|regata|casual|polo|jaqueta|short|bone|bone|moletom|chuteira|calca|meiao|top|cropped)\b/.test(textoTitulo)) return false
-  if (/\b(retr[oô]|vintage|personalizada|customizada|treino|training|pre jogo|pre-jogo|pre match|pre-match|concentracao|viagem|goleiro|goalkeeper|historica|hist[oó]rica|legado|epic|replica)\b/.test(textoTitulo)) return false
+  if (/\b(kit|selecao|selecoes|infantil|juvenil|kids|bebe|bebe|regata|polo|short|bone|bone|chuteira|calca|meiao|top|cropped)\b/.test(textoTitulo)) return false
+  if (/\b(retr[oô]|vintage|personalizada|customizada|historica|hist[oó]rica|legado|epic|replica)\b/.test(textoTitulo)) return false
 
   const marca = contemMarcaOficial(textoProduto)
   const marcaEsperada = contemMarcaEsperada(textoProduto, clube)
-  const temporada = contemTemporada(textoTitulo)
-  const linha = contemLinhaOficial(textoTitulo)
-  const publicoOficial = /\b(torcedor|jogador|player|authentic|fa|fã)\b/.test(textoTitulo)
-  const licenca = /\b(oficial|licenciado|licenciada)\b/.test(textoTitulo)
 
-  return (licenca && marcaEsperada) || (marca && marcaEsperada && temporada && (linha || publicoOficial))
+  return marca && marcaEsperada
 }
 
 function pontuar(produto) {
