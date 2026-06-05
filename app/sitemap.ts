@@ -37,6 +37,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily',
       priority: 0.8,
     },
+    {
+      url: `${siteUrl}/ofertas-netshoes`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
     ...clubes.map(clube => ({
       url: `${siteUrl}/clubes/${clube.slug}`,
       lastModified: now,

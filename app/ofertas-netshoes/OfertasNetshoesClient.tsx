@@ -26,7 +26,7 @@ function ordenarPorClubesEmbaralhados(ofertas: OfertaAfiliada[]) {
   return embaralhar(Array.from(grupos.keys())).flatMap(clube => grupos.get(clube) || [])
 }
 
-export default function CuponsClient({ ofertas }: { ofertas: OfertaAfiliada[] }) {
+export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfiliada[] }) {
   const [clubeSelecionado, setClubeSelecionado] = useState(TODOS)
   const [ofertasOrdenadas] = useState(() => ordenarPorClubesEmbaralhados(ofertas))
 
@@ -41,7 +41,7 @@ export default function CuponsClient({ ofertas }: { ofertas: OfertaAfiliada[] })
   if (ofertas.length === 0) {
     return (
       <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 8, color: '#62748c', fontSize: 15, fontWeight: 600, padding: 28 }}>
-        Nenhum cupom ativo no momento.
+        Nenhuma oferta Netshoes ativa no momento.
       </div>
     )
   }

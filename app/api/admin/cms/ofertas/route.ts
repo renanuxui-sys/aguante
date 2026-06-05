@@ -32,6 +32,14 @@ function precoComCupom(preco: number | null | undefined, percentual: number | nu
   return Math.round(preco * (1 - percentual / 100) * 100) / 100
 }
 
+function menorPreco(preco: unknown, precoPix: unknown) {
+  const precos = [preco, precoPix]
+    .map(valor => Number(valor))
+    .filter(valor => Number.isFinite(valor) && valor > 0)
+
+  return precos.length ? Math.min(...precos) : null
+}
+
 function cupomDaOferta(body: Record<string, unknown>, loja: LojaOferta, preco: number | null | undefined) {
   const codigoPadrao = loja === 'Netshoes' ? 'AGUANTE' : null
   const percentualPadrao = loja === 'Netshoes' ? 15 : null
@@ -45,7 +53,7 @@ function cupomDaOferta(body: Record<string, unknown>, loja: LojaOferta, preco: n
     cupom_codigo: cupomCodigo,
     cupom_percentual: cupomPercentual,
     cupom_descricao: cupomDescricao,
-    preco_com_cupom: precoComCupom(preco, cupomPercentual),
+    preco_com_cupom: precoComCupom(menorPreco(preco, null), cupomPercentual),
   }
 }
 
@@ -114,7 +122,7 @@ export async function PATCH(request: Request) {
     if (body.reimportar === true) {
       const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
         .from('ofertas_afiliadas')
-        .select('loja,link_afiliado,cupom_percentual')
+        .select('loja,link_afiliado,cupom_percentual,preco_pix,cupom_aplicavel')
         .eq('id', id)
         .single()
 
@@ -123,18 +131,25 @@ export async function PATCH(request: Request) {
 
       const importada = await importarOferta(String(ofertaAtual.link_afiliado || ''), ofertaAtual.loja)
       Object.assign(atualizacao, importada)
-      atualizacao.preco_com_cupom = precoComCupom(importada.preco, percentualOpcional(atualizacao.cupom_percentual ?? ofertaAtual.cupom_percentual))
+      atualizacao.preco_com_cupom = ofertaAtual?.cupom_aplicavel === false
+        ? null
+        : precoComCupom(
+          menorPreco(importada.preco, ofertaAtual?.preco_pix),
+          percentualOpcional(atualizacao.cupom_percentual ?? ofertaAtual.cupom_percentual),
+        )
     }
 
     if (!body.reimportar && body.cupom_percentual !== undefined) {
       const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
         .from('ofertas_afiliadas')
-        .select('preco')
+        .select('preco,preco_pix,cupom_aplicavel')
         .eq('id', id)
         .single()
 
       if (buscaError) return Response.json({ error: buscaError.message }, { status: 500 })
-      atualizacao.preco_com_cupom = precoComCupom(ofertaAtual?.preco, atualizacao.cupom_percentual as number | null)
+      atualizacao.preco_com_cupom = ofertaAtual?.cupom_aplicavel === false
+        ? null
+        : precoComCupom(menorPreco(ofertaAtual?.preco, ofertaAtual?.preco_pix), atualizacao.cupom_percentual as number | null)
     }
 
     if (Object.keys(atualizacao).length === 0) return Response.json({ error: 'Nada para atualizar.' }, { status: 400 })

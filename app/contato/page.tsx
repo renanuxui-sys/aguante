@@ -51,8 +51,10 @@ export default function ContatoPage() {
         }
 
         .contato-container {
-          width: min(100% - 48px, 1140px);
+          max-width: 1140px;
           margin: 0 auto;
+          padding: 0 24px;
+          width: 100%;
         }
 
         .contato-kicker {
@@ -79,9 +81,9 @@ export default function ContatoPage() {
         .contato-title {
           margin: 23px 0 60px;
           color: #050505;
-          font-size: 64px;
+          font-size: 44px;
           font-weight: 300;
-          line-height: 1;
+          line-height: 1.08;
           letter-spacing: -0.065em;
         }
 
@@ -193,13 +195,14 @@ export default function ContatoPage() {
           }
 
           .contato-container {
-            width: min(100% - 40px, 640px);
+            max-width: 640px;
+            padding: 0 20px;
           }
 
           .contato-title {
             margin-bottom: 42px;
-            font-size: clamp(48px, 12vw, 72px);
-            line-height: 0.96;
+            font-size: clamp(40px, 10vw, 48px);
+            line-height: 1.04;
           }
 
           .contato-columns {
@@ -219,7 +222,8 @@ export default function ContatoPage() {
           }
 
           .contato-container {
-            width: min(100% - 32px, 420px);
+            max-width: 420px;
+            padding: 0 16px;
           }
 
           .contato-kicker {
@@ -228,7 +232,7 @@ export default function ContatoPage() {
 
           .contato-title {
             margin-top: 18px;
-            font-size: 48px;
+            font-size: 40px;
             letter-spacing: -0.06em;
           }
 
