@@ -92,6 +92,19 @@ export default function AdminCupons() {
     setCupons(atual => atual.map(item => item.id === cupom.id ? json.cupom : item))
   }
 
+  async function remover(cupom: StoreCoupon) {
+    if (!window.confirm(`Excluir o cupom "${cupom.code}" da loja ${cupom.store_name}?`)) return
+
+    setErro('')
+    const res = await fetch(`/api/admin/cms/cupons?id=${encodeURIComponent(cupom.id)}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => null)
+    if (!res.ok) {
+      setErro(json?.error || 'Erro ao remover cupom.')
+      return
+    }
+    setCupons(atual => atual.filter(item => item.id !== cupom.id))
+  }
+
   function selecionarLoja(id: string) {
     const loja = lojas.find(item => item.id === id)
     setForm(f => ({ ...f, store_id: id, store_name: loja?.nome || '' }))
@@ -148,7 +161,7 @@ export default function AdminCupons() {
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #E8E6DF' }}>
-                {['Loja', 'Cupom', 'Benefício', 'Campanha', 'Revelados', 'Copiados', 'Status'].map(coluna => (
+                {['Loja', 'Cupom', 'Benefício', 'Campanha', 'Revelados', 'Copiados', 'Status', ''].map(coluna => (
                   <th key={coluna} style={{ color: '#8A8880', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', padding: '12px 16px', textAlign: 'left', textTransform: 'uppercase' }}>{coluna}</th>
                 ))}
               </tr>
@@ -167,11 +180,16 @@ export default function AdminCupons() {
                       {cupom.is_active ? 'Ativo' : 'Oculto'}
                     </button>
                   </td>
+                  <td style={{ ...celulaStyle, textAlign: 'right' }}>
+                    <button onClick={() => remover(cupom)} style={{ background: 'none', border: 'none', color: '#A23B3B', cursor: 'pointer', font: '700 12px Onest, sans-serif', padding: 6 }}>
+                      Excluir
+                    </button>
+                  </td>
                 </tr>
               ))}
               {cupons.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ color: '#8A8880', fontSize: 14, padding: 28 }}>Nenhum cupom cadastrado.</td>
+                  <td colSpan={8} style={{ color: '#8A8880', fontSize: 14, padding: 28 }}>Nenhum cupom cadastrado.</td>
                 </tr>
               )}
             </tbody>

@@ -36,7 +36,24 @@ Para integrações pagas/experimentais:
 ```
 APIFY_TOKEN=...
 GECKO_API_KEY=...
+RAKUTEN_ACCESS_TOKEN=...
+# ou, para gerar o access token automaticamente:
+RAKUTEN_TOKEN_KEY=...
+# ou:
+RAKUTEN_CLIENT_ID=...
+RAKUTEN_CLIENT_SECRET=...
+RAKUTEN_ACCOUNT_ID=4700910
+RAKUTEN_NETSHOES_MID=43984
+NETSHOES_MAX_OFFERS_PER_CLUB=16
 ```
+
+Não use o Web Services Token em `RAKUTEN_ACCESS_TOKEN`: as APIs de Product
+Search, Coupon e Deep Link esperam um OAuth access token ou um token-key para
+gerar esse access token.
+
+Para Netshoes/Rakuten, rode primeiro com as variáveis do Supabase de testes/preview.
+O script imprime o host do Supabase antes de gravar; confira esse destino antes de
+rodar sem `--dry-run`.
 
 Rodar qualquer scraper:
 ```bash
@@ -178,6 +195,18 @@ No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduz
 - **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
 - **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut, Camisa Doze e Old Collection 10 em matriz paralela.
 - **Lojas Playwright**: Atrox, Fut Classics e Mania de Camisa em matriz paralela.
+- **Netshoes/Rakuten**: workflow separado em `.github/workflows/afiliados-netshoes.yml`, diário às 05:30 de São Paulo/Brasília. O escopo atual é apenas clubes brasileiros configurados em `netshoes-rakuten.js`; clubes europeus e seleções entram depois ampliando essa lista.
+
+Para a rotina automática da Netshoes, configure em **Settings > Secrets and variables > Actions**:
+
+```
+NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+RAKUTEN_CLIENT_ID
+RAKUTEN_CLIENT_SECRET
+```
+
+Também pode usar `RAKUTEN_TOKEN_KEY` no lugar de `RAKUTEN_CLIENT_ID` + `RAKUTEN_CLIENT_SECRET`.
 
 Para rodar localmente, a ordem abaixo continua válida:
 
@@ -205,6 +234,8 @@ node scraper-maniadecamisa.js           # Mania de Camisa
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
 # node scraper-gecko-mercadolivre.js    # Mercado Livre via GeckoAPI (experimental; validar PLP)
 # node scraper-gecko-olx.js             # OLX via GeckoAPI (experimental; gera custo)
+node netshoes-rakuten.js --dry-run      # Netshoes via Rakuten (simula sem gravar)
+node netshoes-rakuten.js                # Netshoes via Rakuten (grava no Supabase configurado no .env)
 ```
 
 **Tempo estimado total:** ~60–90 minutos em execução local sequencial. No GitHub Actions, a matriz paralela tende a reduzir o tempo de parede para o maior job individual.

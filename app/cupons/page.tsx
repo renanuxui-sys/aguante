@@ -1,6 +1,6 @@
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import CardOferta from '@/components/CardOferta'
+import CuponsClient from '@/app/cupons/CuponsClient'
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import type { OfertaAfiliada } from '@/types'
 
@@ -62,15 +62,7 @@ export default async function CuponsPage() {
 
       <section style={{ padding: '0 0 72px' }}>
         <div className="ag-container">
-          {ofertas.length > 0 ? (
-            <div className="ag-cards">
-              {ofertas.map(oferta => <CardOferta key={oferta.id} oferta={oferta} />)}
-            </div>
-          ) : (
-            <div style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 8, color: '#62748c', fontSize: 15, fontWeight: 600, padding: 28 }}>
-              Nenhum cupom ativo no momento.
-            </div>
-          )}
+          <CuponsClient ofertas={ofertas} />
         </div>
       </section>
 

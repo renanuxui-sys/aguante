@@ -10,13 +10,19 @@ function formatarPreco(preco: number | null | undefined) {
 
 export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
   const [sessionId, setSessionId] = useState('')
-  const preco = formatarPreco(oferta.preco)
-  const precoComCupom = formatarPreco(oferta.preco_com_cupom)
-  const percentual = oferta.cupom_percentual ? Math.round(oferta.cupom_percentual) : null
-  const observacao = oferta.cupom_descricao?.toLowerCase().includes('seleção') ? 'exceto Seleção' : oferta.cupom_descricao
+  const [cupomCopiado, setCupomCopiado] = useState(false)
+  const cupomAplicavel = oferta.cupom_aplicavel !== false
+  const precos = [oferta.preco_pix, oferta.preco].filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor))
+  const precoPrincipal = precos.length ? Math.min(...precos) : null
+  const preco = formatarPreco(precoPrincipal)
+  const descontoCalculado = cupomAplicavel && precoPrincipal && oferta.cupom_percentual
+    ? Math.round(precoPrincipal * (1 - oferta.cupom_percentual / 100) * 100) / 100
+    : null
+  const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
+  const percentualLabel = cupomAplicavel ? '15% OFF' : null
   const params = new URLSearchParams()
   if (sessionId) params.set('sid', sessionId)
-  if (oferta.cupom_codigo) params.set('cupom_revelado', 'true')
+  if (oferta.cupom_codigo && cupomAplicavel) params.set('cupom_revelado', 'true')
   const href = `/out/oferta/${oferta.id}${params.size ? `?${params.toString()}` : ''}`
 
   useEffect(() => {
@@ -28,14 +34,25 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
     return () => window.clearTimeout(atualizarSessao)
   }, [])
 
+  async function copiarCupom() {
+    if (!oferta.cupom_codigo) return
+    await navigator.clipboard?.writeText(oferta.cupom_codigo).catch(() => null)
+    setCupomCopiado(true)
+    window.setTimeout(() => setCupomCopiado(false), 1800)
+  }
+
   return (
-    <a
-      href={href}
-      rel="sponsored noreferrer"
+    <article
       className="ag-oferta-card"
       style={{ color: 'inherit', textDecoration: 'none' }}
     >
-      <div
+      <a
+        href={href}
+        rel="sponsored noreferrer"
+        style={{ color: 'inherit', display: 'block', textDecoration: 'none' }}
+        target="_blank"
+      >
+        <div
         style={{
           aspectRatio: '1 / 1',
           borderRadius: 16,
@@ -49,11 +66,11 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
         }}
       >
         <span style={{ position: 'absolute', left: 12, top: 12, background: 'rgba(255,255,255,0.92)', borderRadius: 6, color: '#282828', fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1, padding: '6px 8px' }}>
-          camisa nova
+          na etiqueta
         </span>
-        {percentual && (
+        {percentualLabel && cupomAplicavel && (
           <span style={{ position: 'absolute', right: 12, top: 12, background: '#550fed', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1, padding: '6px 8px' }}>
-            {percentual}% OFF
+            {percentualLabel}
           </span>
         )}
         {preco && (
@@ -68,27 +85,35 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </a>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 10 }}>
-        <p style={{ color: '#282828', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+        <a href={href} rel="sponsored noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} target="_blank">
+          <p style={{ color: '#282828', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
           {oferta.titulo}
-        </p>
+          </p>
+        </a>
         <p style={{ color: '#62748c', fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
           Oferta via {oferta.loja}
         </p>
-        {oferta.cupom_codigo && (
+        {oferta.cupom_codigo && cupomAplicavel && (
           <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 3 }}>
             <span style={{ border: '1px dashed #550fed', borderRadius: 6, color: '#550fed', fontSize: 12, fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1, padding: '6px 8px' }}>
               {oferta.cupom_codigo}
             </span>
-            {observacao && (
-              <span style={{ color: '#8A8880', fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                {observacao}
-              </span>
-            )}
+            <button
+              onClick={copiarCupom}
+              type="button"
+              style={{ background: '#550fed', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', font: '800 11px Onest, sans-serif', letterSpacing: '-0.01em', lineHeight: 1, padding: '6px 8px' }}
+            >
+              {cupomCopiado ? 'copiado' : 'copiar'}
+            </button>
+            <span style={{ background: '#E8FFF4', borderRadius: 6, color: '#087443', fontSize: 11, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1, padding: '6px 8px' }}>
+              15% OFF usando o cupom
+            </span>
           </div>
         )}
       </div>
-    </a>
+    </article>
   )
 }

@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "scraper:gecko:olx": "node scraper-gecko-olx.js"
+    "scraper:gecko:olx": "node scraper-gecko-olx.js",
+    "afiliados:netshoes": "node netshoes-rakuten.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.0",

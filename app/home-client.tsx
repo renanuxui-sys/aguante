@@ -61,9 +61,9 @@ type HomeData = {
 function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos: Produto[]; linkTodas: string }) {
   if (produtos.length === 0) return null
   return (
-    <section style={{ background: '#f5f5f5', paddingTop: 16, paddingBottom: 48 }}>
+    <section style={{ background: '#f5f5f5', paddingTop: 32, paddingBottom: 32 }}>
       <div className="ag-container">
-        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 24 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
             {titulo}
           </h2>
@@ -88,17 +88,28 @@ function SecaoCards({ titulo, produtos, linkTodas }: { titulo: string; produtos:
 function SecaoOfertas({ ofertas }: { ofertas: OfertaAfiliada[] }) {
   if (ofertas.length === 0) return null
   return (
-    <section style={{ background: '#f5f5f5', paddingTop: 16, paddingBottom: 48 }}>
+    <section className="ag-home-ofertas" style={{ background: '#ebe8f2', borderBottom: '1px solid #ddd8eb', borderTop: '1px solid #ddd8eb', paddingTop: 64, paddingBottom: 64 }}>
       <div className="ag-container">
-        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
-          <div>
-            <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em' }}>
-              Ofertas Netshoes com cupom
+        <div className="ag-section-head ag-home-ofertas-head" style={{ alignItems: 'center', display: 'flex', gap: 24, justifyContent: 'space-between', marginBottom: 34 }}>
+          <div style={{ maxWidth: 620 }}>
+            <span style={{ alignItems: 'center', background: '#fff', border: '1px solid #d9d2ec', borderRadius: 999, color: '#550fed', display: 'inline-flex', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1, marginBottom: 12, padding: '8px 10px', textTransform: 'uppercase' }}>
+              Netshoes + cupom AGUANTE
+            </span>
+            <h2 style={{ color: '#282828', fontSize: 28, fontWeight: 300, letterSpacing: '-0.05em', lineHeight: 1.12, margin: 0 }}>
+              Camisas oficiais com preço de oportunidade.
             </h2>
-            <p style={{ color: '#62748c', fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35, marginTop: 5 }}>
-              Use AGUANTE para 15% OFF, exceto produtos com tag Seleção.
+            <p style={{ color: '#62748c', fontSize: 14, fontWeight: 300, letterSpacing: '-0.01em', lineHeight: 1.45, marginTop: 10 }}>
+              Use AGUANTE para 15% OFF nas ofertas elegíveis. Selecionamos camisas oficiais e mostramos o menor preço disponível.
             </p>
           </div>
+          <Link
+            className="ag-section-link ag-home-ofertas-link"
+            href="/ofertas-netshoes"
+            style={{ alignItems: 'center', background: '#282828', borderRadius: 8, color: '#fff', display: 'inline-flex', flexShrink: 0, fontSize: 14, fontWeight: 700, gap: 6, letterSpacing: '-0.02em', lineHeight: 1, padding: '11px 14px', textDecoration: 'none', transition: 'background 150ms ease, transform 150ms ease' }}
+          >
+            ver ofertas
+            <img src={imgChevronRight} alt="" style={{ filter: 'brightness(0) invert(1)', height: 18, width: 18 }} />
+          </Link>
         </div>
         <div className="ag-cards">
           {ofertas.map(oferta => <CardOferta key={oferta.id} oferta={oferta} />)}
@@ -111,9 +122,9 @@ function SecaoOfertas({ ofertas }: { ofertas: OfertaAfiliada[] }) {
 function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
   if (produtos.length === 0) return null
   return (
-    <section className="ag-copa-section" style={{ background: '#f5f5f5', padding: '32px 0 24px' }}>
+    <section className="ag-copa-section ag-section-before-ofertas" style={{ background: '#f5f5f5', padding: '32px 0 64px' }}>
       <div className="ag-container">
-        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, marginBottom: 24 }}>
           <div style={{ maxWidth: 620 }}>
             <h2
               className="ag-copa-products-title"
@@ -147,9 +158,9 @@ function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
 
 function SecaoCardsLoading({ titulo }: { titulo: string }) {
   return (
-    <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 40 }}>
+    <section style={{ background: '#f5f5f5', paddingTop: 32, paddingBottom: 32 }}>
       <div className="ag-container">
-        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 32 }}>
+        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap' as const, gap: 24 }}>
           <h2 style={{ fontWeight: 700, fontSize: 20, color: '#282828', letterSpacing: '-0.02em' }}>{titulo}</h2>
         </div>
         <div className="ag-cards">
@@ -164,7 +175,7 @@ function SecaoCardsLoading({ titulo }: { titulo: string }) {
 
 function SecaoMercados() {
   return (
-    <section style={{ background: '#f5f5f5', paddingTop: 12, paddingBottom: 56 }}>
+    <section style={{ background: '#f5f5f5', paddingTop: 32, paddingBottom: 32 }}>
       <div className="ag-container">
         <h2 className="ag-mercados-title" style={{ fontWeight: 300, fontSize: 20, color: '#000', letterSpacing: '-0.04em', marginBottom: 20 }}>
           Explore <strong style={{ fontWeight: 700 }}>todos os mercados</strong>
@@ -272,7 +283,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
         .ag-copa-card-grid .ag-card { margin-bottom: 0; }
-        .ag-copa-section { margin-bottom: 8px; }
+        .ag-copa-section { margin-bottom: 0; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         .ag-hero-img { display: block; }
         .ag-hero-video {
@@ -336,6 +347,13 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-mercado-card:hover img { transform: scale(1.04); }
         .ag-ver-todas-txt { display: inline; }
         .ag-section-link { flex-shrink: 0; }
+        .ag-home-ofertas + section {
+          padding-top: 64px !important;
+        }
+        .ag-home-ofertas-link:hover {
+          background: #550fed !important;
+          transform: translateY(-1px);
+        }
         .ag-copa-products-title {
           color: #282828 !important;
           -webkit-text-fill-color: #282828 !important;
@@ -345,9 +363,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           line-height: 1.2 !important;
           opacity: 1 !important;
         }
-        .ag-copa-products-title {
-          margin: 0 0 28px !important;
-        }
         @keyframes ag-clubes-slide {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
@@ -355,9 +370,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
 
         @media (max-width: 768px) {
           .ag-ver-todas-txt { display: inline !important; }
-          .ag-section-head { align-items: flex-end !important; flex-direction: row !important; justify-content: space-between !important; gap: 32px !important; }
+          .ag-section-head { align-items: center !important; flex-direction: row !important; justify-content: space-between !important; gap: 24px !important; }
           .ag-section-link { margin-bottom: 0 !important; }
-          .ag-copa-section { margin-bottom: 16px; }
+          .ag-copa-section { margin-bottom: 0; }
           .ag-cards { grid-template-columns: repeat(2,1fr) !important; }
           .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
@@ -381,6 +396,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-clubes-wrapper {
             margin: 0 -24px !important;
             overflow: hidden !important;
+          }
+          .ag-clubes-heading {
+            display: none !important;
           }
           .ag-clubes-wrapper.manual {
             overflow-x: auto !important;
@@ -462,6 +480,18 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             right: 18px;
             bottom: 18px;
             font-size: 20px;
+          }
+          .ag-home-ofertas {
+            padding-top: 64px !important;
+            padding-bottom: 64px !important;
+          }
+          .ag-home-ofertas-head {
+            align-items: flex-start !important;
+            flex-direction: column !important;
+            gap: 18px !important;
+          }
+          .ag-home-ofertas h2 {
+            font-size: 26px !important;
           }
         }
 
@@ -575,7 +605,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           </div>
         </section>
 
-        <section style={{ background: '#f5f5f5', paddingTop: 20, paddingBottom: 56 }}>
+        <section style={{ background: '#f5f5f5', paddingTop: 32, paddingBottom: 32 }}>
           <div className="ag-container">
             <div
               className="ag-clubes-heading"
@@ -587,7 +617,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
                 WebkitTextFillColor: '#282828',
               }}
             >
-              Explore por clube
+              Os clubes mais populares
             </div>
             <div
               className={`ag-clubes-wrapper${clubesManualScroll ? ' manual' : ''}`}
@@ -644,17 +674,17 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             linkTodas={`/search?q=${encodeURIComponent(clubePreferido)}&ordenar=mais-vistos`}
           />
         )}
-        <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
         <SecaoMercados />
-        <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
+        <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
         <SecaoOfertas ofertas={ofertas.slice(0, quantidadeDestaques)} />
+        <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 
         {/* Em alta */}
         {emAlta.length > 0 && (
-          <section style={{ background: '#f5f5f5', paddingTop: 16, paddingBottom: 56 }}>
+          <section style={{ background: '#f5f5f5', paddingTop: 32, paddingBottom: 32 }}>
             <div className="ag-container">
-              <div className="ag-section-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, marginBottom: 24 }}>
+              <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M12 2C9 7 6 9 6 13a6 6 0 0012 0c0-4-3-6-6-11z" fill="#FF4D00" opacity="0.9"/>
