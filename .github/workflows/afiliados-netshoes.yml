@@ -1,0 +1,101 @@
+name: Afiliados Netshoes Rakuten
+run-name: Afiliados Netshoes Rakuten (${{ github.event_name }})
+
+on:
+  schedule:
+    # GitHub Actions usa UTC. 08:30 UTC = 05:30 em São Paulo/Brasília.
+    - cron: '30 8 * * *'
+  workflow_dispatch:
+    inputs:
+      max_por_clube:
+        description: 'Máximo de ofertas por clube'
+        required: false
+        default: '16'
+      sem_desativar:
+        description: 'Salvar sem ocultar ofertas antigas'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Simular sem gravar no Supabase'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: afiliados-netshoes-rakuten
+  cancel-in-progress: false
+
+jobs:
+  netshoes:
+    name: Netshoes via Rakuten
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      TZ: America/Sao_Paulo
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RAKUTEN_TOKEN_KEY: ${{ secrets.RAKUTEN_TOKEN_KEY }}
+      RAKUTEN_CLIENT_ID: ${{ secrets.RAKUTEN_CLIENT_ID }}
+      RAKUTEN_CLIENT_SECRET: ${{ secrets.RAKUTEN_CLIENT_SECRET }}
+      RAKUTEN_ACCOUNT_ID: '4700910'
+      RAKUTEN_NETSHOES_MID: '43984'
+      NETSHOES_DEFAULT_COUPON_CODE: AGUANTE
+      NETSHOES_DEFAULT_COUPON_PERCENT: '15'
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v5
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Verificar secrets obrigatórios
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          if [ -z "$RAKUTEN_TOKEN_KEY" ] && { [ -z "$RAKUTEN_CLIENT_ID" ] || [ -z "$RAKUTEN_CLIENT_SECRET" ]; }; then
+            echo "::error::Configure RAKUTEN_TOKEN_KEY ou RAKUTEN_CLIENT_ID + RAKUTEN_CLIENT_SECRET em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Executar automação Netshoes
+        run: |
+          MAX_POR_CLUBE="${{ github.event.inputs.max_por_clube }}"
+          SEM_DESATIVAR="${{ github.event.inputs.sem_desativar }}"
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+
+          if [ -z "$MAX_POR_CLUBE" ]; then
+            MAX_POR_CLUBE="16"
+          fi
+
+          export NETSHOES_MAX_OFFERS_PER_CLUB="$MAX_POR_CLUBE"
+
+          ARGS=""
+          if [ "$SEM_DESATIVAR" = "true" ]; then
+            ARGS="$ARGS --sem-desativar"
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          echo "Rodando Netshoes com limite de $NETSHOES_MAX_OFFERS_PER_CLUB ofertas por clube."
+          npm run afiliados:netshoes -- $ARGS
+
+      - name: Relatório final
+        if: always()
+        run: |
+          echo "✅ Rotina Netshoes/Rakuten concluída em $(date)"
+          echo "Escopo atual: clubes brasileiros configurados no netshoes-rakuten.js"

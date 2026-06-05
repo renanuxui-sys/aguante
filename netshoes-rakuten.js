@@ -69,6 +69,20 @@ const dryRun = process.argv.includes('--dry-run')
 const somenteCupons = process.argv.includes('--somente-cupons')
 const semDesativar = process.argv.includes('--sem-desativar')
 const listarProdutos = process.argv.includes('--listar')
+const TAMANHO_LOTE_SUPABASE = 50
+
+function dividirEmLotes(lista, tamanho = TAMANHO_LOTE_SUPABASE) {
+  const lotes = []
+  for (let i = 0; i < lista.length; i += tamanho) {
+    lotes.push(lista.slice(i, i + tamanho))
+  }
+  return lotes
+}
+
+function mensagemErroSupabase(error) {
+  if (!error) return 'erro desconhecido'
+  return [error.message, error.details, error.hint, error.code].filter(Boolean).join(' | ')
+}
 
 function tokenRakutenInformado() {
   return process.env.RAKUTEN_ACCESS_TOKEN || process.env.RAKUTEN_BEARER_TOKEN || ''
@@ -144,8 +158,10 @@ function texto($, el, seletor) {
 }
 
 function preco(valor) {
-  const numero = Number(String(valor || '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'))
-  return Number.isFinite(numero) ? numero : null
+  const limpo = String(valor || '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.')
+  if (!limpo) return null
+  const numero = Number(limpo)
+  return Number.isFinite(numero) && numero > 0 ? numero : null
 }
 
 function urlAbsoluta(valor) {
@@ -459,14 +475,12 @@ async function buscarCuponsRakuten() {
   return parseCuponsXml(await res.text())
 }
 
-function cupomPrincipal(cupons) {
-  const codigoPadrao = normalizarTexto(DEFAULT_CUPOM_CODIGO)
-  const encontrado = cupons.find(cupom => normalizarTexto(cupom.code) === codigoPadrao) || cupons[0]
+function cupomPrincipal() {
   return {
     cupom_codigo: DEFAULT_CUPOM_CODIGO,
-    cupom_percentual: encontrado?.percentual || DEFAULT_CUPOM_PERCENTUAL,
+    cupom_percentual: DEFAULT_CUPOM_PERCENTUAL,
     cupom_percentual_variavel: DEFAULT_CUPOM_VARIAVEL,
-    cupom_descricao: encontrado?.description || DEFAULT_CUPOM_DESCRICAO,
+    cupom_descricao: DEFAULT_CUPOM_DESCRICAO,
   }
 }
 
@@ -493,21 +507,105 @@ function extrairPrimeiroCentavos(html, padroes) {
 }
 
 function precoPixProdutoHtml(html) {
-  const trechosPix = html.match(/.{0,900}paymentMethod["']?\s*:\s*["']PIX["'].{0,900}/gi) || []
+  const precoAtual = precoAtualProdutoHtml(html)
+  if (precoAtual?.precoPix) return precoAtual.precoPix
+
+  const trechosPix = html.match(/.{0,1400}paymentMethod["']?\s*:\s*["']PIX["'].{0,900}/gi) || []
 
   for (const trecho of trechosPix) {
-    const precoPix = extrairPrimeiroCentavos(trecho, [
-      /saleInCents["']?\s*:\s*(\d+)/i,
-      /minSalePrice["']?\s*:\s*(\d+)/i,
-      /cents["']?\s*:\s*(\d+)/i,
-    ])
-    if (precoPix) return precoPix
+    const valorCheio = trecho.match(/fullAmountInCents["']?\s*:\s*(\d+)/i)?.[1]
+    const descontoPix = trecho.match(/paymentBenefit["']?\s*:\s*\{[^}]*totalDiscountInCents["']?\s*:\s*(\d+)/i)?.[1]
+      || trecho.match(/type["']?\s*:\s*["']PAYMENT_METHOD_DISCOUNT["'][^}]*discountInCents["']?\s*:\s*(\d+)/i)?.[1]
+    if (valorCheio && descontoPix) {
+      const precoPix = (Number(valorCheio) - Number(descontoPix)) / 100
+      if (Number.isFinite(precoPix) && precoPix > 0) return Math.round(precoPix * 100) / 100
+    }
+
+    const saleInCents = extrairPrimeiroCentavos(trecho, [/saleInCents["']?\s*:\s*(\d+)/i])
+    if (saleInCents) return saleInCents
   }
 
   return extrairPrimeiroCentavos(html, [
     /saleInCents["']?\s*:\s*(\d+)/i,
     /minSalePrice["']?\s*:\s*(\d+)/i,
   ])
+}
+
+function precoCheioProdutoHtml(html) {
+  const precoAtual = precoAtualProdutoHtml(html)
+  if (precoAtual?.preco) return precoAtual.preco
+
+  return extrairPrimeiroCentavos(html, [
+    /finalPriceWithoutPaymentBenefitDiscount["']?\s*:\s*(\d+)/i,
+    /fullAmountInCents["']?\s*:\s*(\d+)/i,
+    /listInCents["']?\s*:\s*(\d+)/i,
+    /ncardInCents["']?\s*:\s*(\d+)/i,
+  ])
+}
+
+function extrairArrayJson(html, marcador) {
+  const inicioMarcador = html.indexOf(marcador)
+  if (inicioMarcador === -1) return null
+  const inicioArray = html.indexOf('[', inicioMarcador)
+  if (inicioArray === -1) return null
+
+  let profundidade = 0
+  let emString = false
+  let escapado = false
+  for (let i = inicioArray; i < html.length; i += 1) {
+    const char = html[i]
+    if (escapado) {
+      escapado = false
+      continue
+    }
+    if (char === '\\') {
+      escapado = true
+      continue
+    }
+    if (char === '"') {
+      emString = !emString
+      continue
+    }
+    if (emString) continue
+    if (char === '[') profundidade += 1
+    if (char === ']') profundidade -= 1
+    if (profundidade === 0) return html.slice(inicioArray, i + 1)
+  }
+
+  return null
+}
+
+function precoAtualProdutoHtml(html) {
+  const arrayPrecos = extrairArrayJson(html, '"prices"')
+  if (!arrayPrecos) return null
+
+  try {
+    const precos = JSON.parse(arrayPrecos)
+    if (!Array.isArray(precos)) return null
+    const disponiveis = precos.filter(precoItem => precoItem?.available !== false)
+    const precosBase = disponiveis.length > 0 ? disponiveis : precos
+
+    const normalizados = precosBase.map(precoItem => {
+      const precoCheioCentavos = disponiveis.length > 0
+        ? Number(precoItem.finalPriceWithoutPaymentBenefitDiscount || precoItem.fullAmountInCents || precoItem.saleInCents || precoItem.listInCents)
+        : Number(precoItem.listInCents || precoItem.finalPriceWithoutPaymentBenefitDiscount || precoItem.fullAmountInCents || precoItem.saleInCents)
+      const descontoPixCentavos = disponiveis.length > 0 ? Number(precoItem.paymentBenefit?.totalDiscountInCents || 0) : 0
+      const precoPixCentavos = disponiveis.length > 0
+        ? Number(precoItem.saleInCents || (precoCheioCentavos && descontoPixCentavos ? precoCheioCentavos - descontoPixCentavos : 0))
+        : precoCheioCentavos
+      const precoCheio = Number.isFinite(precoCheioCentavos) && precoCheioCentavos > 0 ? Math.round(precoCheioCentavos) / 100 : null
+      const precoPix = Number.isFinite(precoPixCentavos) && precoPixCentavos > 0 ? Math.round(precoPixCentavos) / 100 : null
+      return {
+        preco: precoCheio,
+        precoPix: precoCheio && precoPix && precoPix > precoCheio ? precoCheio : precoPix,
+      }
+    }).filter(precoItem => precoItem.preco || precoItem.precoPix)
+
+    if (normalizados.length === 0) return { disponivel: false, preco: null, precoPix: null }
+    return normalizados.sort((a, b) => (a.precoPix || a.preco || Infinity) - (b.precoPix || b.preco || Infinity))[0]
+  } catch {
+    return null
+  }
 }
 
 async function metadadosProdutoNetshoes(linkProduto) {
@@ -524,12 +622,17 @@ async function metadadosProdutoNetshoes(linkProduto) {
 
     if (!res.ok) return { tagSelecao: false, precoPix: null }
     const html = await res.text()
+    const precoAtual = precoAtualProdutoHtml(html)
+    const precoCheio = precoAtual?.preco || precoCheioProdutoHtml(html)
+    const precoPix = precoAtual?.precoPix || precoPixProdutoHtml(html)
     return {
       tagSelecao: produtoTemTagSelecaoHtml(html),
-      precoPix: precoPixProdutoHtml(html),
+      disponivel: true,
+      preco: precoCheio,
+      precoPix: precoCheio && precoPix && precoPix > precoCheio ? precoCheio : precoPix,
     }
   } catch {
-    return { tagSelecao: false, precoPix: null }
+    return { tagSelecao: false, preco: null, precoPix: null }
   }
 }
 
@@ -585,30 +688,84 @@ async function desativarOfertasAntigas(supabase, externalIdsVistos) {
     return 0
   }
 
-  const { data, error } = await supabase
+  const { data: ofertasAtivas, error: buscaError } = await supabase
     .from('ofertas_afiliadas')
-    .update({ ativo: false, inactivated_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .select('id,external_id')
     .eq('loja', LOJA)
     .eq('automacao_origem', ORIGEM)
-    .not('external_id', 'in', `(${externalIdsVistos.map(id => `"${id.replace(/"/g, '""')}"`).join(',')})`)
     .eq('ativo', true)
-    .select('id')
 
-  if (error) {
-    console.warn(`  Aviso: não foi possível desativar ofertas antigas: ${error.message}`)
+  if (buscaError) {
+    console.warn(`  Aviso: não foi possível consultar ofertas antigas: ${mensagemErroSupabase(buscaError)}`)
     return 0
   }
 
-  return data?.length || 0
+  const vistos = new Set(externalIdsVistos)
+  const idsParaDesativar = (ofertasAtivas || [])
+    .filter(oferta => oferta.external_id && !vistos.has(oferta.external_id))
+    .map(oferta => oferta.id)
+
+  if (idsParaDesativar.length === 0) return 0
+
+  let total = 0
+  for (const loteIds of dividirEmLotes(idsParaDesativar)) {
+    const { data, error } = await supabase
+    .from('ofertas_afiliadas')
+    .update({ ativo: false, inactivated_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .in('id', loteIds)
+    .select('id')
+
+    if (error) {
+      console.warn(`  Aviso: não foi possível desativar um lote de ofertas antigas: ${mensagemErroSupabase(error)}`)
+      continue
+    }
+
+    total += data?.length || 0
+  }
+
+  return total
 }
 
 async function salvarOfertas(supabase, ofertas) {
   if (ofertas.length === 0 || dryRun) return 0
   const ofertasUnicas = Array.from(new Map(ofertas.map(oferta => [oferta.external_id, oferta])).values())
+  const externalIds = ofertasUnicas.map(oferta => oferta.external_id)
+
+  const ofertasAtuais = []
+  for (const loteExternalIds of dividirEmLotes(externalIds)) {
+    const { data, error: buscaError } = await supabase
+      .from('ofertas_afiliadas')
+      .select('external_id,cupom_codigo,cupom_percentual,cupom_percentual_variavel,cupom_descricao')
+      .eq('loja', LOJA)
+      .eq('automacao_origem', ORIGEM)
+      .in('external_id', loteExternalIds)
+
+    if (buscaError) throw new Error(`Erro ao consultar ofertas atuais: ${mensagemErroSupabase(buscaError)}`)
+    ofertasAtuais.push(...(data || []))
+  }
+
+  const cuponsAtuais = new Map((ofertasAtuais || []).map(oferta => [oferta.external_id, oferta]))
+  const ofertasParaSalvar = ofertasUnicas.map(oferta => {
+    const atual = cuponsAtuais.get(oferta.external_id)
+    if (!atual) return oferta
+
+    const cupomPercentual = atual.cupom_percentual ?? oferta.cupom_percentual
+    const cupomPercentualVariavel = atual.cupom_percentual_variavel ?? oferta.cupom_percentual_variavel
+    const precoBase = oferta.preco_pix || oferta.preco
+
+    return {
+      ...oferta,
+      cupom_codigo: atual.cupom_codigo ?? oferta.cupom_codigo,
+      cupom_percentual: cupomPercentual,
+      cupom_percentual_variavel: cupomPercentualVariavel,
+      cupom_descricao: atual.cupom_descricao ?? oferta.cupom_descricao,
+      preco_com_cupom: precoComCupom(precoBase, Number(cupomPercentual), cupomPercentualVariavel, oferta.cupom_aplicavel),
+    }
+  })
 
   const { data, error } = await supabase
     .from('ofertas_afiliadas')
-    .upsert(ofertasUnicas, { onConflict: 'external_id', ignoreDuplicates: false })
+    .upsert(ofertasParaSalvar, { onConflict: 'external_id', ignoreDuplicates: false })
     .select('id')
 
   if (error) throw new Error(`Erro ao salvar ofertas afiliadas: ${error.message}`)
@@ -630,7 +787,7 @@ async function main() {
   if (dryRun) console.log('Modo dry-run ativo: nada será gravado.')
 
   const cupons = await buscarCuponsRakuten()
-  const cupom = cupomPrincipal(cupons)
+  const cupom = cupomPrincipal()
   const cuponsSalvos = await sincronizarCupons(supabase, cupons)
 
   if (somenteCupons) {
@@ -658,7 +815,8 @@ async function main() {
       const tagSelecao = metadadosProduto.tagSelecao
       const cupomAplicavel = !tagSelecao
       const linkAfiliado = dryRun ? produto.link_produto : await gerarDeepLink(produto.link_produto, u1)
-      const precoBase = metadadosProduto.precoPix || produto.preco
+      const precoCheio = metadadosProduto.preco || produto.preco
+      const precoBase = metadadosProduto.precoPix || precoCheio
 
       if (!linkAfiliado) {
         console.warn(`  Aviso: sem deep link para ${produto.titulo}`)
@@ -668,7 +826,7 @@ async function main() {
       ofertas.push({
         loja: LOJA,
         titulo: produto.titulo,
-        preco: produto.preco,
+        preco: precoCheio,
         preco_pix: metadadosProduto.precoPix,
         preco_com_cupom: precoComCupom(precoBase, cupom.cupom_percentual, cupom.cupom_percentual_variavel, cupomAplicavel),
         imagem_url: produto.imagem_url,
