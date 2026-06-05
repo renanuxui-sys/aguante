@@ -24,8 +24,8 @@ const DEFAULT_CUPOM_CODIGO = process.env.NETSHOES_DEFAULT_COUPON_CODE || 'AGUANT
 const DEFAULT_CUPOM_PERCENTUAL = Number(process.env.NETSHOES_DEFAULT_COUPON_PERCENT || 15)
 const DEFAULT_CUPOM_VARIAVEL = process.env.NETSHOES_DEFAULT_COUPON_VARIABLE === 'true'
 const DEFAULT_CUPOM_DESCRICAO = process.env.NETSHOES_DEFAULT_COUPON_DESCRIPTION || 'Cupom não válido para produtos com tag SELEÇÃO'
-const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 32))
-const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 50)))
+const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 48))
+const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 100)))
 let accessTokenCache = null
 
 const MARCAS_OFICIAIS = [
@@ -312,8 +312,6 @@ async function buscarProdutosPorTermo(clube, termoBusca) {
   url.searchParams.set('keyword', termoTemTipoProduto ? termoBusca : `camisa ${termoBusca}`)
   url.searchParams.set('mid', mid)
   url.searchParams.set('max', String(RESULTADOS_POR_BUSCA))
-  url.searchParams.set('sort', 'retailprice')
-  url.searchParams.set('sorttype', 'asc')
 
   const res = await fetch(url, { headers: await authHeaders(), timeout: 30000 })
   if (!res.ok) throw new Error(`Product Search falhou para ${clube.nome}: ${res.status} ${await res.text()}`)
