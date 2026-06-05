@@ -4,6 +4,7 @@ import { importarOferta, type LojaOferta } from '@/lib/oferta-metadata'
 import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 
 const LOJAS = new Set<LojaOferta>(['Mercado Livre', 'Netshoes'])
+const TAMANHO_LOTE_ATUALIZACAO = 100
 
 async function sessaoAdminValida() {
   const cookieStore = await cookies()
@@ -30,6 +31,14 @@ function percentualOpcional(valor: unknown) {
 function precoComCupom(preco: number | null | undefined, percentual: number | null) {
   if (typeof preco !== 'number' || !Number.isFinite(preco) || !percentual) return null
   return Math.round(preco * (1 - percentual / 100) * 100) / 100
+}
+
+function dividirEmLotes<T>(lista: T[], tamanho = TAMANHO_LOTE_ATUALIZACAO) {
+  const lotes: T[][] = []
+  for (let i = 0; i < lista.length; i += tamanho) {
+    lotes.push(lista.slice(i, i + tamanho))
+  }
+  return lotes
 }
 
 function menorPreco(preco: unknown, precoPix: unknown) {
@@ -109,6 +118,48 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json()
+    if (body.acao === 'atualizar_cupom_netshoes') {
+      const cupomPercentual = percentualOpcional(body.cupom_percentual)
+      if (!cupomPercentual) return Response.json({ error: 'Informe um percentual válido.' }, { status: 400 })
+
+      const cupomCodigo = textoOpcional(body.cupom_codigo, 40) ?? 'AGUANTE'
+      const cupomDescricao = textoOpcional(body.cupom_descricao) ?? 'Cupom não válido para produtos com tag SELEÇÃO'
+      const agora = new Date().toISOString()
+      const supabase = criarSupabaseAdmin()
+      const { data: ofertas, error: buscaError } = await supabase
+        .from('ofertas_afiliadas')
+        .select('*')
+        .eq('loja', 'Netshoes')
+
+      if (buscaError) return Response.json({ error: buscaError.message }, { status: 500 })
+
+      const atualizacoes = (ofertas || []).map(oferta => ({
+        ...oferta,
+        id: oferta.id,
+        cupom_codigo: cupomCodigo,
+        cupom_percentual: cupomPercentual,
+        cupom_percentual_variavel: false,
+        cupom_descricao: cupomDescricao,
+        preco_com_cupom: oferta.cupom_aplicavel === false
+          ? null
+          : precoComCupom(menorPreco(oferta.preco, oferta.preco_pix), cupomPercentual),
+        updated_at: agora,
+      }))
+
+      const atualizadas: unknown[] = []
+      for (const lote of dividirEmLotes(atualizacoes)) {
+        const { data, error } = await supabase
+          .from('ofertas_afiliadas')
+          .upsert(lote, { onConflict: 'id', ignoreDuplicates: false })
+          .select('*')
+
+        if (error) return Response.json({ error: error.message }, { status: 500 })
+        atualizadas.push(...(data || []))
+      }
+
+      return Response.json({ ofertas: atualizadas, total: atualizadas.length })
+    }
+
     const id = String(body.id || '')
     if (!id) return Response.json({ error: 'Oferta não informada.' }, { status: 400 })
 

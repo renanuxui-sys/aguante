@@ -510,12 +510,25 @@ async function buscarCuponsRakuten() {
   return parseCuponsXml(await res.text())
 }
 
-function cupomPrincipal() {
+function cupomPrincipal(cupons) {
+  const codigoPadrao = normalizarTexto(DEFAULT_CUPOM_CODIGO)
+  const cupomApi = cupons.find(cupom => normalizarTexto(cupom.code) === codigoPadrao && cupom.percentual)
+  if (cupomApi) {
+    return {
+      cupom_codigo: DEFAULT_CUPOM_CODIGO,
+      cupom_percentual: cupomApi.percentual,
+      cupom_percentual_variavel: cupomApi.percentual_variavel,
+      cupom_descricao: cupomApi.description || DEFAULT_CUPOM_DESCRICAO,
+      cupom_origem: 'coupon-api',
+    }
+  }
+
   return {
     cupom_codigo: DEFAULT_CUPOM_CODIGO,
     cupom_percentual: DEFAULT_CUPOM_PERCENTUAL,
     cupom_percentual_variavel: DEFAULT_CUPOM_VARIAVEL,
     cupom_descricao: DEFAULT_CUPOM_DESCRICAO,
+    cupom_origem: 'config',
   }
 }
 
@@ -761,7 +774,7 @@ async function desativarOfertasAntigas(supabase, externalIdsVistos) {
   return total
 }
 
-async function salvarOfertas(supabase, ofertas) {
+async function salvarOfertas(supabase, ofertas, opcoes = {}) {
   if (ofertas.length === 0 || dryRun) return 0
   const ofertasUnicas = Array.from(new Map(ofertas.map(oferta => [oferta.external_id, oferta])).values())
   const externalIds = ofertasUnicas.map(oferta => oferta.external_id)
@@ -784,16 +797,16 @@ async function salvarOfertas(supabase, ofertas) {
     const atual = cuponsAtuais.get(oferta.external_id)
     if (!atual) return oferta
 
-    const cupomPercentual = atual.cupom_percentual ?? oferta.cupom_percentual
-    const cupomPercentualVariavel = atual.cupom_percentual_variavel ?? oferta.cupom_percentual_variavel
+    const cupomPercentual = opcoes.atualizarCupomExistente ? oferta.cupom_percentual : (atual.cupom_percentual ?? oferta.cupom_percentual)
+    const cupomPercentualVariavel = opcoes.atualizarCupomExistente ? oferta.cupom_percentual_variavel : (atual.cupom_percentual_variavel ?? oferta.cupom_percentual_variavel)
     const precoBase = oferta.preco_pix || oferta.preco
 
     return {
       ...oferta,
-      cupom_codigo: atual.cupom_codigo ?? oferta.cupom_codigo,
+      cupom_codigo: opcoes.atualizarCupomExistente ? oferta.cupom_codigo : (atual.cupom_codigo ?? oferta.cupom_codigo),
       cupom_percentual: cupomPercentual,
       cupom_percentual_variavel: cupomPercentualVariavel,
-      cupom_descricao: atual.cupom_descricao ?? oferta.cupom_descricao,
+      cupom_descricao: opcoes.atualizarCupomExistente ? oferta.cupom_descricao : (atual.cupom_descricao ?? oferta.cupom_descricao),
       preco_com_cupom: precoComCupom(precoBase, Number(cupomPercentual), cupomPercentualVariavel, oferta.cupom_aplicavel),
     }
   })
@@ -822,7 +835,8 @@ async function main() {
   if (dryRun) console.log('Modo dry-run ativo: nada será gravado.')
 
   const cupons = await buscarCuponsRakuten()
-  const cupom = cupomPrincipal()
+  const cupom = cupomPrincipal(cupons)
+  console.log(`Cupom principal: ${cupom.cupom_codigo} ${cupom.cupom_percentual}% (${cupom.cupom_origem})`)
   const cuponsSalvos = await sincronizarCupons(supabase, cupons)
 
   if (somenteCupons) {
@@ -890,7 +904,7 @@ async function main() {
   }
 
   const ofertasUnicas = Array.from(new Map(ofertas.map(oferta => [oferta.external_id, oferta])).values())
-  const salvas = await salvarOfertas(supabase, ofertasUnicas)
+  const salvas = await salvarOfertas(supabase, ofertasUnicas, { atualizarCupomExistente: cupom.cupom_origem === 'coupon-api' })
   const desativadas = await desativarOfertasAntigas(supabase, ofertasUnicas.map(oferta => oferta.external_id))
 
   console.log(`\nResumo Netshoes/Rakuten`)
