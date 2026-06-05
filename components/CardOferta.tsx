@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { OfertaAfiliada } from '@/types'
 
 function formatarPreco(preco: number | null | undefined) {
-  if (typeof preco !== 'number' || !Number.isFinite(preco)) return null
+  if (typeof preco !== 'number' || !Number.isFinite(preco) || preco <= 0) return null
   return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
@@ -12,14 +12,15 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
   const [sessionId, setSessionId] = useState('')
   const [cupomCopiado, setCupomCopiado] = useState(false)
   const cupomAplicavel = oferta.cupom_aplicavel !== false
-  const precos = [oferta.preco_pix, oferta.preco].filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor))
+  const percentualCupom = oferta.cupom_percentual || 15
+  const precos = [oferta.preco_pix, oferta.preco].filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor) && valor > 0)
   const precoPrincipal = precos.length ? Math.min(...precos) : null
   const preco = formatarPreco(precoPrincipal)
-  const descontoCalculado = cupomAplicavel && precoPrincipal && oferta.cupom_percentual
-    ? Math.round(precoPrincipal * (1 - oferta.cupom_percentual / 100) * 100) / 100
+  const descontoCalculado = cupomAplicavel && precoPrincipal && percentualCupom
+    ? Math.round(precoPrincipal * (1 - percentualCupom / 100) * 100) / 100
     : null
   const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
-  const percentualLabel = cupomAplicavel ? '15% OFF' : null
+  const percentualLabel = cupomAplicavel ? `${Math.round(percentualCupom)}% OFF` : null
   const params = new URLSearchParams()
   if (sessionId) params.set('sid', sessionId)
   if (oferta.cupom_codigo && cupomAplicavel) params.set('cupom_revelado', 'true')
@@ -109,7 +110,7 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
               {cupomCopiado ? 'copiado' : 'copiar'}
             </button>
             <span style={{ background: '#E8FFF4', borderRadius: 6, color: '#087443', fontSize: 11, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1, padding: '6px 8px' }}>
-              15% OFF usando o cupom
+              {Math.round(percentualCupom)}% OFF usando o cupom
             </span>
           </div>
         )}

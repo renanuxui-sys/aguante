@@ -10,8 +10,8 @@ const imgHome      = "/assets/home.svg"
 const imgChevron   = "/assets/chevron-down.svg"
 const imgNavSearch = "/assets/ico-search.svg"
 const imgCoupon    = "/assets/coupon.svg"
+const imgNetshoes  = "/assets/netshoes.svg"
 const imgProfile   = "/assets/profile.svg"
-const imgFavorite  = "/assets/ico-favorite.svg"
 const imgMenu      = "/assets/menu.svg"
 const imgClose     = "/assets/close.svg"
 
@@ -147,6 +147,7 @@ export default function Navbar() {
   }, [])
 
   const inicioAtivo = pathname === '/'
+  const ofertasNetshoesAtivo = pathname === '/ofertas-netshoes'
 
   return (
     <>
@@ -164,7 +165,7 @@ export default function Navbar() {
           <img src={imgLogo} alt="Aguante" style={{ width: 136, height: 55, display: 'block' }} />
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="ag-nav-links">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="ag-nav-links">
           <div style={{ position: 'relative' }} onMouseEnter={onSubmenuEnter} onMouseLeave={onSubmenuLeave}>
             <button style={{
               background: 'none', border: 'none', cursor: 'pointer',
@@ -183,6 +184,11 @@ export default function Navbar() {
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
             Conheça Aguante
+          </Link>
+          <Link href="/ofertas-netshoes" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
+            onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
+            onMouseLeave={e => (e.currentTarget.style.color='#000')}>
+            Ofertas Netshoes
           </Link>
           <button
             type="button"
@@ -238,6 +244,13 @@ export default function Navbar() {
           <span>Perfil</span>
         </button>
 
+        <Link href="/ofertas-netshoes" className={`ag-mobile-nav-item${ofertasNetshoesAtivo ? ' ag-mobile-nav-active' : ''}`} onClick={() => { setMenuMobile(false); setBuscaMobile(false) }}>
+          <span className="ag-mobile-nav-icon">
+            <img src={imgNetshoes} alt="" />
+          </span>
+          <span>Ofertas</span>
+        </Link>
+
         <button type="button" className="ag-mobile-nav-item ag-mobile-nav-muted" aria-disabled="true">
           <span className="ag-mobile-nav-icon">
             <img src={imgCoupon} alt="" />
@@ -250,13 +263,6 @@ export default function Navbar() {
             <img src={imgNavSearch} alt="" />
           </span>
           <span>Procurar</span>
-        </button>
-
-        <button type="button" className="ag-mobile-nav-item" onClick={() => { setBuscaMobile(false); setMenuMobile(false); router.push('/favoritos') }}>
-          <span className="ag-mobile-nav-icon">
-            <img src={imgFavorite} alt="" />
-          </span>
-          <span>Favoritos</span>
         </button>
 
       </nav>
@@ -373,6 +379,7 @@ export default function Navbar() {
               {[
                 { href: '/', label: 'Inicio' },
                 { href: '/sobre', label: 'Sobre Aguante' },
+                { href: '/ofertas-netshoes', label: 'Ofertas Netshoes' },
                 { href: '/contato', label: 'Contato' },
               ].map(l => (
                 <Link key={l.href} href={l.href} onClick={() => setMenuMobile(false)}
@@ -407,8 +414,8 @@ export default function Navbar() {
             width: 122px !important;
             height: auto !important;
           }
-          body.ag-has-mobile-bottom-nav main > section:first-of-type,
-          body.ag-has-mobile-bottom-nav main > div:first-of-type {
+          body.ag-has-mobile-bottom-nav main > section:first-of-type:not(.ag-mobile-keep-top),
+          body.ag-has-mobile-bottom-nav main > div:first-of-type:not(.ag-mobile-keep-top) {
             padding-top: 0 !important;
           }
           .ag-nav-links     { display: none !important; }

@@ -1,68 +1,32 @@
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import CuponsClient from '@/app/cupons/CuponsClient'
-import { criarSupabaseAdmin } from '@/lib/supabase-admin'
-import type { OfertaAfiliada } from '@/types'
 
-export const revalidate = 60
+export const revalidate = 300
 
-async function carregarOfertas() {
-  try {
-    const { data, error } = await criarSupabaseAdmin()
-      .from('ofertas_afiliadas')
-      .select('*')
-      .eq('ativo', true)
-      .order('ordem', { ascending: true })
-      .order('created_at', { ascending: false })
-      .returns<OfertaAfiliada[]>()
-
-    if (error) throw new Error(error.message)
-    return data || []
-  } catch (error) {
-    console.warn('Não foi possível carregar cupons:', error instanceof Error ? error.message : error)
-    return []
-  }
-}
-
-export default async function CuponsPage() {
-  const ofertas = await carregarOfertas()
-
+export default function CuponsPage() {
   return (
     <main style={{ background: '#f5f5f5', fontFamily: 'Onest, sans-serif', minHeight: '100vh' }}>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; }
-        .ag-container { max-width: 1140px; margin: 0 auto; padding: 0 24px; width: 100%; }
-        .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
-        .ag-oferta-card { width: 100%; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; }
-        .ag-oferta-card:hover { transform: translateY(-3px); }
-        @media (max-width: 768px) {
-          .ag-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .ag-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        }
-      `}</style>
       <Navbar />
 
-      <section style={{ padding: '144px 0 48px' }}>
-        <div className="ag-container">
+      <section style={{ padding: '144px 0 72px' }}>
+        <div style={{ margin: '0 auto', maxWidth: 1140, padding: '0 24px', width: '100%' }}>
           <div style={{ maxWidth: 640 }}>
             <p style={{ color: '#550fed', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 14, textTransform: 'uppercase' }}>
               Cupons Aguante
             </p>
             <h1 style={{ color: '#282828', fontSize: 44, fontWeight: 300, letterSpacing: '-0.06em', lineHeight: 1.08, margin: 0 }}>
-              Camisas novas com desconto para a sua coleção.
+              Cupons de lojas parceiras.
             </h1>
             <p style={{ color: '#62748c', fontSize: 16, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.5, marginTop: 18 }}>
-              Use o cupom AGUANTE nas ofertas Netshoes selecionadas. O desconto não vale para produtos com tag Seleção.
+              Em breve, reuniremos aqui cupons ativos das lojas parceiras do Aguante.
             </p>
+            <a
+              href="/ofertas-netshoes"
+              style={{ background: '#550fed', borderRadius: 8, color: '#fff', display: 'inline-flex', fontSize: 14, fontWeight: 800, letterSpacing: '-0.01em', marginTop: 28, padding: '12px 16px', textDecoration: 'none' }}
+            >
+              Ver ofertas Netshoes
+            </a>
           </div>
-        </div>
-      </section>
-
-      <section style={{ padding: '0 0 72px' }}>
-        <div className="ag-container">
-          <CuponsClient ofertas={ofertas} />
         </div>
       </section>
 
