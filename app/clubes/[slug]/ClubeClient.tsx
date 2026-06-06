@@ -28,6 +28,7 @@ type SearchData = {
   ofertas?: OfertaAfiliada[]
   total: number | null
   temProxima: boolean
+  porPagina?: number
 }
 
 type ClubeClientProps = {
@@ -63,7 +64,7 @@ function hashTexto(texto: string) {
   return Math.abs(hash)
 }
 
-function montarGradeComOfertas(produtos: Produto[], ofertas: OfertaAfiliada[], seed: string) {
+function montarGradeComOfertas(produtos: Produto[], ofertas: OfertaAfiliada[], seed: string, paginaAtual: number) {
   if (produtos.length === 0 || ofertas.length === 0) {
     return produtos.map<ItemGrade>(produto => ({ tipo: 'produto', produto }))
   }
@@ -78,10 +79,15 @@ function montarGradeComOfertas(produtos: Produto[], ofertas: OfertaAfiliada[], s
   }
 
   const itens: ItemGrade[] = []
+  let ofertasUsadas = 0
+  const inicioOfertas = ((paginaAtual - 1) * quantidadeOfertas) % ofertas.length
   produtos.forEach((produto, index) => {
     if (posicoes.has(index)) {
-      const oferta = ofertas[itens.filter(item => item.tipo === 'oferta').length]
-      if (oferta) itens.push({ tipo: 'oferta', oferta })
+      const oferta = ofertas[(inicioOfertas + ofertasUsadas) % ofertas.length]
+      if (oferta) {
+        itens.push({ tipo: 'oferta', oferta })
+        ofertasUsadas += 1
+      }
     }
     itens.push({ tipo: 'produto', produto })
   })
@@ -104,6 +110,7 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
   const [produtos, setProdutos] = useState<Produto[]>(initialData.produtos)
   const [ofertasNetshoes, setOfertasNetshoes] = useState<OfertaAfiliada[]>(initialData.ofertas || [])
   const [total, setTotal] = useState<number | null>(initialData.total)
+  const [porPagina, setPorPagina] = useState(initialData.porPagina || POR_PAGINA)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -119,6 +126,7 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
       try {
         const params = new URLSearchParams()
         params.set(catalogo.filtroParam, catalogo.nome)
+        if (catalogo.filtroParam === 'clube') params.set('ofertas_netshoes_grade', 'true')
         if (decada) params.set('decada', decada)
         if (ordenar) params.set('ordenar', ordenar)
         if (deJogo) params.set('de_jogo', 'true')
@@ -132,11 +140,13 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
         setProdutos(data.produtos || [])
         setOfertasNetshoes(data.ofertas || [])
         setTotal(data.total)
+        setPorPagina(data.porPagina || POR_PAGINA)
       } catch {
         if (!ativo) return
         setProdutos([])
         setOfertasNetshoes([])
         setTotal(0)
+        setPorPagina(POR_PAGINA)
       } finally {
         if (ativo) setLoading(false)
       }
@@ -194,12 +204,16 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const totalPaginas = total ? Math.ceil(total / POR_PAGINA) : 0
-  const itensGrade = montarGradeComOfertas(
-    produtos,
-    catalogo.filtroParam === 'clube' ? ofertasNetshoes : [],
-    `${catalogo.nome}:${paginaParam}:${produtos.map(produto => produto.id).join(':')}`,
-  )
+  const totalPaginas = total ? Math.ceil(total / porPagina) : 0
+  const ofertasRelacionadas = catalogo.filtroParam === 'clube' ? ofertasNetshoes : []
+  const itensGrade = ofertasRelacionadas.length > 0
+    ? montarGradeComOfertas(
+        produtos,
+        ofertasRelacionadas,
+        `${catalogo.nome}:${paginaParam}:${produtos.map(produto => produto.id).join(':')}`,
+        paginaParam,
+      )
+    : produtos.map<ItemGrade>(produto => ({ tipo: 'produto', produto }))
   const paginasVisiveis = (() => {
     if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, index) => index + 1)
 

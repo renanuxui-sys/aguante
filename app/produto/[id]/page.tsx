@@ -15,7 +15,7 @@ export default async function ProdutoPage({ params }: { params: Promise<{ id: st
   const [relacionados, cupom, ofertasNetshoes] = await Promise.all([
     carregarProdutosRelacionados(produto),
     carregarCupomAtivoProduto(produto),
-    carregarOfertasNetshoes({ clube: produto.clube, limite: 5, fallbackAleatorio: true }),
+    carregarOfertasNetshoes({ clube: produto.clube, limite: 5 }),
   ])
 
   return <ProdutoClient produtoInicial={produto} relacionadosIniciais={relacionados} cupomInicial={cupom} ofertasNetshoesIniciais={ofertasNetshoes} />

@@ -35,6 +35,7 @@ export type SearchDataParams = {
   pagina?: string | number | null
   novidades?: string | boolean | null
   raridades?: string | boolean | null
+  ofertasNetshoesNaGrade?: string | boolean | null
 }
 
 export async function carregarSearchData(params: SearchDataParams) {
@@ -55,9 +56,12 @@ export async function carregarSearchData(params: SearchDataParams) {
   const pagina = Math.max(1, Number(params.pagina || '1') || 1)
   const novidades = params.novidades === true || params.novidades === 'true'
   const raridades = params.raridades === true || params.raridades === 'true'
-  const ofertasNetshoes = clubeExato
-    ? await carregarOfertasNetshoes({ clube: clubeExato, limite: 8 })
+  const ofertasNetshoesNaGrade = params.ofertasNetshoesNaGrade === true || params.ofertasNetshoesNaGrade === 'true'
+  const ofertasNetshoes = clubeExato && ofertasNetshoesNaGrade
+    ? await carregarOfertasNetshoes({ clube: clubeExato, limite: 40 })
     : []
+  const ofertasPorPagina = ofertasNetshoes.length > 0 ? Math.min(2, ofertasNetshoes.length) : 0
+  const produtosPorPagina = POR_PAGINA - ofertasPorPagina
 
   let query = aplicarFiltroFontesVisiveis(supabase
     .from('produtos')
@@ -74,7 +78,7 @@ export async function carregarSearchData(params: SearchDataParams) {
     if (error) throw error
 
     const nomes = (clubesCategoria || []).map(clube => clube.nome).filter(Boolean)
-    if (nomes.length === 0) return { produtos: [], total: 0, temProxima: false, ofertas: [] }
+    if (nomes.length === 0) return { produtos: [], total: 0, temProxima: false, ofertas: [], porPagina: POR_PAGINA }
     query = query.in('clube', nomes)
   }
 
@@ -109,13 +113,14 @@ export async function carregarSearchData(params: SearchDataParams) {
     if (error) throw error
 
     const produtos = embaralharEstavelPorDia(data || [])
-    const inicio = (pagina - 1) * POR_PAGINA
+    const inicio = (pagina - 1) * produtosPorPagina
 
     return {
-      produtos: aplicarCupomAtivo(produtos.slice(inicio, inicio + POR_PAGINA), lojasComCupom),
+      produtos: aplicarCupomAtivo(produtos.slice(inicio, inicio + produtosPorPagina), lojasComCupom),
       total: count ?? produtos.length,
-      temProxima: (count ?? produtos.length) > pagina * POR_PAGINA,
+      temProxima: (count ?? produtos.length) > pagina * produtosPorPagina,
       ofertas: ofertasNetshoes,
+      porPagina: produtosPorPagina,
     }
   }
 
@@ -129,16 +134,17 @@ export async function carregarSearchData(params: SearchDataParams) {
     query = query.order('created_at', { ascending: false })
   }
 
-  const inicio = (pagina - 1) * POR_PAGINA
-  const { data, error, count } = await query.range(inicio, inicio + POR_PAGINA)
+  const inicio = (pagina - 1) * produtosPorPagina
+  const { data, error, count } = await query.range(inicio, inicio + produtosPorPagina)
   if (error) throw error
 
   const produtos = data || []
 
   return {
-    produtos: aplicarCupomAtivo(produtos.slice(0, POR_PAGINA), lojasComCupom),
+    produtos: aplicarCupomAtivo(produtos.slice(0, produtosPorPagina), lojasComCupom),
     total: count ?? 0,
-    temProxima: produtos.length > POR_PAGINA,
+    temProxima: produtos.length > produtosPorPagina,
     ofertas: ofertasNetshoes,
+    porPagina: produtosPorPagina,
   }
 }
