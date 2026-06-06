@@ -84,7 +84,7 @@ export default async function OfertasNetshoesPage() {
               Camisas oficiais na etiqueta, com desconto.
             </h1>
             <p style={{ color: '#62748c', fontSize: 16, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.5, marginTop: 18 }}>
-              Use cupom AGUANTE desconto especial nas ofertas elegíveis. O desconto não vale para produtos com tag Seleção.
+              Use cupom AGUANTE e garanta desconto especial nas ofertas elegíveis. Cupom não é válido para produtos com tag Seleção.
             </p>
           </div>
         </div>

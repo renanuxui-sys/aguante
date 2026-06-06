@@ -5,12 +5,13 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
+import CardOferta from '@/components/CardOferta'
 import { supabase } from '@/lib/supabase'
 import { imagemComProxy } from '@/lib/image-url'
 import { gerarSlugLoja } from '@/lib/loja-utils'
 import { formatarPrecoProduto } from '@/lib/price-format'
 import { formatarResumoProduto } from '@/lib/product-description'
-import type { Produto, StoreCoupon } from '@/types'
+import type { OfertaAfiliada, Produto, StoreCoupon } from '@/types'
 
 const imgArrowLeft    = "/assets/arrow-left.svg"
 const imgLightning    = "https://www.figma.com/api/mcp/asset/7d7e1469-42a4-4078-be97-1e683db9145c"
@@ -27,6 +28,7 @@ type ProdutoClientProps = {
   produtoInicial: ProdutoComStats
   relacionadosIniciais: Produto[]
   cupomInicial: StoreCoupon | null
+  ofertasNetshoesIniciais: OfertaAfiliada[]
 }
 
 type RastreamentoSaida = {
@@ -50,12 +52,13 @@ function origemInicialDoUsuario() {
   }
 }
 
-export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cupomInicial }: ProdutoClientProps) {
+export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cupomInicial, ofertasNetshoesIniciais }: ProdutoClientProps) {
   const id = produtoInicial.id
   const router = useRouter()
   const produto = produtoInicial
   const precoProduto = formatarPrecoProduto(produto.preco)
   const [relacionados] = useState<Produto[]>(relacionadosIniciais)
+  const [ofertasNetshoes] = useState<OfertaAfiliada[]>(ofertasNetshoesIniciais)
   const [alertaAberto, setAlertaAberto] = useState(false)
   const [favoritado, setFavoritado]     = useState(false)
   const [likes, setLikes]               = useState(produtoInicial.likes || 0)
@@ -497,6 +500,20 @@ export default function ProdutoClient({ produtoInicial, relacionadosIniciais, cu
               </div>
               <div className="ag-relacionados" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 218px)', gap: 12 }}>
                 {relacionados.map(r => <CardProduto key={r.id} produto={r} />)}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {ofertasNetshoes.length > 0 && (
+          <section style={{ position: 'relative', zIndex: 1, paddingTop: relacionados.length > 0 ? 16 : 64, paddingBottom: 64 }}>
+            <div className="ag-container">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
+                <p style={{ fontWeight: 300, fontSize: 24, color: '#000', letterSpacing: '-0.48px', lineHeight: 1.2 }}>Produtos oficiais com desconto na <strong style={{ fontWeight: 700 }}>Netshoes</strong></p>
+                <img src={imgChevronRight} alt="" style={{ width: 20, height: 20, transform: 'rotate(-90deg)', flexShrink: 0 }} />
+              </div>
+              <div className="ag-relacionados" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 218px)', gap: 12 }}>
+                {ofertasNetshoes.map(oferta => <CardOferta key={oferta.id} oferta={oferta} />)}
               </div>
             </div>
           </section>

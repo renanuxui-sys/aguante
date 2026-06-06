@@ -2,6 +2,7 @@ import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
 import { aplicarCupomAtivo, carregarLojasComCupomAtivo } from '@/lib/cupom-data'
+import { carregarOfertasNetshoes } from '@/lib/ofertas-data'
 
 function embaralhar<T>(itens: T[]) {
   const copia = [...itens]
@@ -57,14 +58,7 @@ export async function carregarHomeDataServidor() {
       .order('views', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(50)),
-    supabase
-      .from('ofertas_afiliadas')
-      .select('*')
-      .eq('loja', 'Netshoes')
-      .eq('ativo', true)
-      .order('ordem', { ascending: true })
-      .order('created_at', { ascending: false })
-      .limit(12),
+    carregarOfertasNetshoes({ limite: 120 }),
     produtosPublicos(supabase.from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
@@ -99,10 +93,7 @@ export async function carregarHomeDataServidor() {
     novidades: embaralhar(aplicarCupomAtivo(novidades.data || [], lojasComCupom)),
     selecoes: embaralhar(aplicarCupomAtivo(selecoes.data || [], lojasComCupom)),
     emAlta: embaralhar(aplicarCupomAtivo(emAlta.data || [], lojasComCupom)),
-    ofertas: (ofertas.data || []).filter(oferta => {
-      const precos = [oferta.preco_pix, oferta.preco].map(Number)
-      return precos.some(preco => Number.isFinite(preco) && preco > 0)
-    }),
+    ofertas,
     anos80: aplicarCupomAtivo(anos80.data || [], lojasComCupom),
     clubes: clubes.data || [],
   }

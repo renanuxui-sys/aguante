@@ -85,6 +85,7 @@ export default async function ClubePage({ params, searchParams }: ClubePageProps
     de_jogo: valor(query?.de_jogo) || null,
     ordem: valor(query?.ordem) || null,
     pagina: valor(query?.pagina) || '1',
+    ofertasNetshoesNaGrade: true,
   })
 
   return (

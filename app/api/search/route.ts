@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       pagina: params.get('pagina'),
       novidades: params.get('novidades'),
       raridades: params.get('raridades'),
+      ofertasNetshoesNaGrade: params.get('ofertas_netshoes_grade'),
     }))
   } catch (error) {
     return NextResponse.json(
