@@ -2,6 +2,7 @@ import { criarSupabaseAdmin } from '@/lib/supabase-admin'
 import { PRODUCT_CARD_SELECT } from '@/lib/product-select'
 import { aplicarFiltroFontesVisiveis, carregarNomesFontesOcultas } from '@/lib/fonte-data'
 import { aplicarCupomAtivo, carregarLojasComCupomAtivo } from '@/lib/cupom-data'
+import { carregarOfertasNetshoes } from '@/lib/ofertas-data'
 
 const POR_PAGINA = 20
 
@@ -54,6 +55,9 @@ export async function carregarSearchData(params: SearchDataParams) {
   const pagina = Math.max(1, Number(params.pagina || '1') || 1)
   const novidades = params.novidades === true || params.novidades === 'true'
   const raridades = params.raridades === true || params.raridades === 'true'
+  const ofertasNetshoes = clubeExato
+    ? await carregarOfertasNetshoes({ clube: clubeExato, limite: 8 })
+    : []
 
   let query = aplicarFiltroFontesVisiveis(supabase
     .from('produtos')
@@ -70,7 +74,7 @@ export async function carregarSearchData(params: SearchDataParams) {
     if (error) throw error
 
     const nomes = (clubesCategoria || []).map(clube => clube.nome).filter(Boolean)
-    if (nomes.length === 0) return { produtos: [], total: 0, temProxima: false }
+    if (nomes.length === 0) return { produtos: [], total: 0, temProxima: false, ofertas: [] }
     query = query.in('clube', nomes)
   }
 
@@ -111,6 +115,7 @@ export async function carregarSearchData(params: SearchDataParams) {
       produtos: aplicarCupomAtivo(produtos.slice(inicio, inicio + POR_PAGINA), lojasComCupom),
       total: count ?? produtos.length,
       temProxima: (count ?? produtos.length) > pagina * POR_PAGINA,
+      ofertas: ofertasNetshoes,
     }
   }
 
@@ -134,5 +139,6 @@ export async function carregarSearchData(params: SearchDataParams) {
     produtos: aplicarCupomAtivo(produtos.slice(0, POR_PAGINA), lojasComCupom),
     total: count ?? 0,
     temProxima: produtos.length > POR_PAGINA,
+    ofertas: ofertasNetshoes,
   }
 }

@@ -43,6 +43,14 @@ function embaralhar<T>(arr: T[]): T[] {
   return a
 }
 
+function normalizarTexto(valor: string | null | undefined) {
+  return (valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
 type HomeMetricas = {
   total_produtos: number | null
   novos_24h: number | null
@@ -117,6 +125,19 @@ function SecaoOfertas({ ofertas }: { ofertas: OfertaAfiliada[] }) {
       </div>
     </section>
   )
+}
+
+function selecionarOfertasDaHome(ofertas: OfertaAfiliada[], clubePreferido: string, limite: number) {
+  const clubeNormalizado = normalizarTexto(clubePreferido)
+  const relacionadas = clubeNormalizado
+    ? ofertas.filter(oferta => normalizarTexto(oferta.clube) === clubeNormalizado)
+    : []
+
+  if (relacionadas.length === 0) return ofertas.slice(0, limite)
+
+  const idsRelacionadas = new Set(relacionadas.map(oferta => oferta.id))
+  const complemento = ofertas.filter(oferta => !idsRelacionadas.has(oferta.id))
+  return [...relacionadas, ...complemento].slice(0, limite)
 }
 
 function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
@@ -205,7 +226,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const [produtosParaVoceBase, setProdutosParaVoceBase] = useState<Produto[]>([])
   const [produtosParaVoceLoading, setProdutosParaVoceLoading] = useState(false)
   const [selecoes] = useState<Produto[]>(initialData.selecoes || [])
-  const [ofertas] = useState<OfertaAfiliada[]>(() => (initialData.ofertas || []).slice(0, 6))
+  const [ofertas] = useState<OfertaAfiliada[]>(() => embaralhar(initialData.ofertas || []))
   const [clubePreferido, setClubePreferido] = useState('')
   const [emAlta]       = useState<Produto[]>(initialData.emAlta || [])
   const [anos80]       = useState<Produto[]>(() => (initialData.anos80 || []).slice(0, 6))
@@ -266,6 +287,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
 
   const quantidadeDestaques = isMobile ? 6 : 5
   const produtosParaVoce = produtosParaVoceBase.slice(0, quantidadeDestaques)
+  const ofertasHome = selecionarOfertasDaHome(ofertas, clubePreferido, quantidadeDestaques)
   const emAltaVisiveis = emAlta.slice(0, isMobile ? 6 : 10)
   const clubes = initialData.clubes || []
 
@@ -676,7 +698,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         )}
         <SecaoMercados />
         <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
-        <SecaoOfertas ofertas={ofertas.slice(0, quantidadeDestaques)} />
+        <SecaoOfertas ofertas={ofertasHome} />
         <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />
 

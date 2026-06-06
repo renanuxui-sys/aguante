@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CardProduto from '@/components/CardProduto'
-import type { Produto } from '@/types'
+import CardOferta from '@/components/CardOferta'
+import type { OfertaAfiliada, Produto } from '@/types'
 
 const imgBgHero = '/assets/bg-hero.png'
 const imgArrowLeft = '/assets/arrow-left.svg'
@@ -24,6 +25,7 @@ export type CatalogoInfo = {
 
 type SearchData = {
   produtos: Produto[]
+  ofertas?: OfertaAfiliada[]
   total: number | null
   temProxima: boolean
 }
@@ -49,6 +51,44 @@ const filtros: FiltroClube[] = [
 ]
 const filtroKeys = ['ordenar', 'decada', 'de_jogo']
 
+type ItemGrade =
+  | { tipo: 'produto'; produto: Produto }
+  | { tipo: 'oferta'; oferta: OfertaAfiliada }
+
+function hashTexto(texto: string) {
+  let hash = 0
+  for (let i = 0; i < texto.length; i += 1) {
+    hash = ((hash << 5) - hash + texto.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+function montarGradeComOfertas(produtos: Produto[], ofertas: OfertaAfiliada[], seed: string) {
+  if (produtos.length === 0 || ofertas.length === 0) {
+    return produtos.map<ItemGrade>(produto => ({ tipo: 'produto', produto }))
+  }
+
+  const quantidadeOfertas = Math.min(ofertas.length, produtos.length >= 10 ? 2 : 1)
+  const base = hashTexto(seed)
+  const posicoes = new Set<number>()
+  for (let i = 0; posicoes.size < quantidadeOfertas && i < produtos.length; i += 1) {
+    const inicioSeguro = produtos.length > 3 ? 2 : 0
+    const areaUtil = Math.max(1, produtos.length - inicioSeguro)
+    posicoes.add(Math.min(produtos.length - 1, inicioSeguro + ((base + i * 7) % areaUtil)))
+  }
+
+  const itens: ItemGrade[] = []
+  produtos.forEach((produto, index) => {
+    if (posicoes.has(index)) {
+      const oferta = ofertas[itens.filter(item => item.tipo === 'oferta').length]
+      if (oferta) itens.push({ tipo: 'oferta', oferta })
+    }
+    itens.push({ tipo: 'produto', produto })
+  })
+
+  return itens
+}
+
 export default function ClubeClient({ catalogo, initialData }: ClubeClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -62,6 +102,7 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
   const ordemUrl = ordemParam || (ordenar === 'mais-vistos' ? 'mais vistos' : 'mais recentes')
 
   const [produtos, setProdutos] = useState<Produto[]>(initialData.produtos)
+  const [ofertasNetshoes, setOfertasNetshoes] = useState<OfertaAfiliada[]>(initialData.ofertas || [])
   const [total, setTotal] = useState<number | null>(initialData.total)
   const [loading, setLoading] = useState(false)
 
@@ -89,10 +130,12 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
         const data: SearchData = res.ok ? await res.json() : { produtos: [], total: 0, temProxima: false }
         if (!ativo) return
         setProdutos(data.produtos || [])
+        setOfertasNetshoes(data.ofertas || [])
         setTotal(data.total)
       } catch {
         if (!ativo) return
         setProdutos([])
+        setOfertasNetshoes([])
         setTotal(0)
       } finally {
         if (ativo) setLoading(false)
@@ -152,6 +195,11 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
   }
 
   const totalPaginas = total ? Math.ceil(total / POR_PAGINA) : 0
+  const itensGrade = montarGradeComOfertas(
+    produtos,
+    catalogo.filtroParam === 'clube' ? ofertasNetshoes : [],
+    `${catalogo.nome}:${paginaParam}:${produtos.map(produto => produto.id).join(':')}`,
+  )
   const paginasVisiveis = (() => {
     if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, index) => index + 1)
 
@@ -305,7 +353,9 @@ export default function ClubeClient({ catalogo, initialData }: ClubeClientProps)
               </div>
             ) : (
               <div className="ag-cards">
-                {produtos.map(p => <CardProduto key={p.id} produto={p} />)}
+                {itensGrade.map(item => item.tipo === 'produto'
+                  ? <CardProduto key={item.produto.id} produto={item.produto} />
+                  : <CardOferta key={`oferta-${item.oferta.id}`} oferta={item.oferta} />)}
               </div>
             )}
 
