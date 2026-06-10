@@ -9,7 +9,6 @@ function formatarPreco(preco: number | null | undefined) {
 }
 
 export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
-  const [sessionId, setSessionId] = useState('')
   const [cupomCopiado, setCupomCopiado] = useState(false)
   const cupomAplicavel = oferta.cupom_aplicavel !== false
   const percentualCupom = oferta.cupom_percentual || 15
@@ -24,19 +23,51 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
     : null
   const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
   const percentualLabel = cupomAplicavel ? `${Math.round(percentualCupom)}% OFF` : null
-  const params = new URLSearchParams()
-  if (sessionId) params.set('sid', sessionId)
-  if (oferta.cupom_codigo && cupomAplicavel) params.set('cupom_revelado', 'true')
-  const href = `/out/oferta/${oferta.id}${params.size ? `?${params.toString()}` : ''}`
+  const href = oferta.link_afiliado
 
   useEffect(() => {
     const chave = 'aguante_session_id'
-    const existente = sessionStorage.getItem(chave)
-    const proximo = existente || crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    if (sessionStorage.getItem(chave)) return
+
+    const proximo = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
     sessionStorage.setItem(chave, proximo)
-    const atualizarSessao = window.setTimeout(() => setSessionId(proximo), 0)
-    return () => window.clearTimeout(atualizarSessao)
   }, [])
+
+  function obterSessionIdAtual() {
+    const chave = 'aguante_session_id'
+    const existente = sessionStorage.getItem(chave)
+    if (existente) return existente
+
+    const proximo = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    sessionStorage.setItem(chave, proximo)
+    return proximo
+  }
+
+  function registrarCliqueSaida() {
+    try {
+      const payload = JSON.stringify({
+        sid: obterSessionIdAtual(),
+        cupom_revelado: Boolean(oferta.cupom_codigo && cupomAplicavel),
+        pagina: window.location.href,
+        origem: 'aguante',
+      })
+      const endpoint = `/api/ofertas/${encodeURIComponent(oferta.id)}/clique`
+
+      if (navigator.sendBeacon) {
+        const enviado = navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }))
+        if (enviado) return
+      }
+
+      void fetch(endpoint, {
+        body: payload,
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        method: 'POST',
+      }).catch(() => null)
+    } catch {
+      // O clique afiliado nao pode depender do registro interno.
+    }
+  }
 
   async function copiarCupom() {
     if (!oferta.cupom_codigo) return
@@ -52,7 +83,11 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
     >
       <a
         href={href}
-        rel="sponsored noreferrer"
+        onAuxClick={event => {
+          if (event.button === 1) registrarCliqueSaida()
+        }}
+        onClick={registrarCliqueSaida}
+        rel="sponsored noopener"
         style={{ color: 'inherit', display: 'block', textDecoration: 'none' }}
         target="_blank"
       >
@@ -92,7 +127,16 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
         </div>
       </a>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 10 }}>
-        <a href={href} rel="sponsored noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} target="_blank">
+        <a
+          href={href}
+          onAuxClick={event => {
+            if (event.button === 1) registrarCliqueSaida()
+          }}
+          onClick={registrarCliqueSaida}
+          rel="sponsored noopener"
+          style={{ color: 'inherit', textDecoration: 'none' }}
+          target="_blank"
+        >
           <p style={{ color: '#282828', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
           {oferta.titulo}
           </p>
