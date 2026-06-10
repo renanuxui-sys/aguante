@@ -76,71 +76,6 @@ const CLUBES = [
   { nome: 'Fortaleza', buscas: ['fortaleza volt', 'fortaleza'], termos: ['fortaleza'], marcas: ['volt'] },
   { nome: 'Bahia', buscas: ['bahia puma', 'bahia'], termos: ['bahia'], marcas: ['puma'] },
   { nome: 'Vitória', buscas: ['vitoria volt', 'vitoria'], termos: ['vitoria', 'vitória'], marcas: ['volt'] },
-  {
-    nome: 'Seleção Brasileira',
-    buscas: ['brasil nike', 'selecao brasileira nike', 'seleção brasileira nike', 'camisa brasil nike', 'camisa seleção brasileira nike'],
-    termos: ['brasil', 'seleção brasileira', 'selecao brasileira'],
-    marcas: ['nike'],
-    permitirSelecoes: true,
-  },
-  {
-    nome: 'Outras Seleções',
-    buscas: [
-      'argentina adidas',
-      'alemanha adidas',
-      'espanha adidas',
-      'frança nike',
-      'franca nike',
-      'italia adidas',
-      'itália adidas',
-      'portugal puma',
-      'inglaterra nike',
-      'holanda nike',
-      'uruguai puma',
-      'mexico adidas',
-      'méxico adidas',
-      'japao adidas',
-      'japão adidas',
-      'croacia nike',
-      'croácia nike',
-      'belgica adidas',
-      'bélgica adidas',
-      'eua nike',
-      'estados unidos nike',
-      'colombia adidas',
-      'colômbia adidas',
-      'chile adidas',
-    ],
-    termos: [
-      'argentina',
-      'alemanha',
-      'espanha',
-      'frança',
-      'franca',
-      'italia',
-      'itália',
-      'portugal',
-      'inglaterra',
-      'holanda',
-      'uruguai',
-      'mexico',
-      'méxico',
-      'japao',
-      'japão',
-      'croacia',
-      'croácia',
-      'belgica',
-      'bélgica',
-      'eua',
-      'estados unidos',
-      'colombia',
-      'colômbia',
-      'chile',
-    ],
-    excluirTermos: ['brasil', 'seleção brasileira', 'selecao brasileira'],
-    marcas: ['adidas', 'nike', 'puma', 'umbro', 'new balance', 'kappa'],
-    permitirSelecoes: true,
-  },
 ]
 
 const dryRun = process.argv.includes('--dry-run')
@@ -399,10 +334,7 @@ function avaliarProduto(produto, clube) {
   if (!/\b(camisa|camiseta|manto|moletom|parka|jaqueta|agasalho|blusao|blusão|corta vento|corta-vento)\b/.test(textoTitulo)) motivos.push('sem tipo permitido')
   if (!contemClube(produto, clube)) motivos.push('sem termo do clube ou termo excluído')
   if (/\s\+\s|combo|conjunto/.test(textoTitulo)) motivos.push('combo/conjunto')
-  const categoriasBloqueadas = clube.permitirSelecoes
-    ? /\b(kit|infantil|juvenil|kids|bebe|bebe|regata|polo|short|bone|bone|chuteira|calca|meiao|top|cropped)\b/
-    : /\b(kit|selecao|selecoes|infantil|juvenil|kids|bebe|bebe|regata|polo|short|bone|bone|chuteira|calca|meiao|top|cropped)\b/
-  if (categoriasBloqueadas.test(textoTitulo)) motivos.push('categoria bloqueada')
+  if (/\b(kit|selecao|selecoes|infantil|juvenil|kids|bebe|bebe|regata|polo|short|bone|bone|chuteira|calca|meiao|top|cropped)\b/.test(textoTitulo)) motivos.push('categoria bloqueada')
   if (/\b(retr[oô]|vintage|personalizada|customizada|historica|hist[oó]rica|legado|epic|replica)\b/.test(textoTitulo)) motivos.push('linha bloqueada')
   const marca = contemMarcaOficial(textoProduto)
   const marcaEsperada = contemMarcaEsperada(textoProduto, clube)
