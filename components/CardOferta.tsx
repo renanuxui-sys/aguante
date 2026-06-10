@@ -9,14 +9,10 @@ function formatarPreco(preco: number | null | undefined) {
 }
 
 function linkAfiliadoSemU1(link: string) {
-  try {
-    const url = new URL(link)
-    url.searchParams.delete('u1')
-    url.searchParams.delete('ranU1')
-    return url.toString()
-  } catch {
-    return link
-  }
+  return link
+    .replace(/([?&])(?:u1|ranU1)=[^&#]*&/g, '$1')
+    .replace(/[?&](?:u1|ranU1)=[^&#]*(?=#|$)/g, '')
+    .replace(/\?&/g, '?')
 }
 
 export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
