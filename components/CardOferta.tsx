@@ -8,6 +8,17 @@ function formatarPreco(preco: number | null | undefined) {
   return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+function linkAfiliadoSemU1(link: string) {
+  try {
+    const url = new URL(link)
+    url.searchParams.delete('u1')
+    url.searchParams.delete('ranU1')
+    return url.toString()
+  } catch {
+    return link
+  }
+}
+
 export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
   const [cupomCopiado, setCupomCopiado] = useState(false)
   const cupomAplicavel = oferta.cupom_aplicavel !== false
@@ -23,7 +34,7 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
     : null
   const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
   const percentualLabel = cupomAplicavel ? `${Math.round(percentualCupom)}% OFF` : null
-  const href = oferta.link_afiliado
+  const href = linkAfiliadoSemU1(oferta.link_afiliado)
 
   useEffect(() => {
     const chave = 'aguante_session_id'
