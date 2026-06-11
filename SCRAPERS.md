@@ -104,6 +104,12 @@ node scraper-oldcollection10.js --dry-run
 node scraper-oldcollection10.js
 ```
 
+Exemplo com Soccer Kits:
+```bash
+node scraper-soccerkits.js --dry-run
+node scraper-soccerkits.js
+```
+
 ---
 
 ## Ciclo de vida dos scrapers (padrão v2)
@@ -207,7 +213,7 @@ GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduzir o tempo total e evitar que uma loja trave as próximas:
 
 - **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
-- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut, Camisa Doze e Old Collection 10 em matriz paralela.
+- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut, Camisa Doze, Old Collection 10 e Soccer Kits em matriz paralela.
 - **Lojas Playwright**: Atrox, Fut Classics e Mania de Camisa em matriz paralela.
 - **Netshoes/Rakuten**: workflow separado em `.github/workflows/afiliados-netshoes.yml`, diário às 05:30 de São Paulo/Brasília. O escopo atual é apenas clubes brasileiros configurados em `netshoes-rakuten.js`; clubes europeus e seleções entram depois ampliando essa lista.
 
@@ -243,6 +249,7 @@ node scraper-araradejogo.js             # Arara de Jogo
 node scraper-originaisdofut.js          # Originais do Fut
 node scraper-camisadoze.js              # Camisa Doze
 node scraper-oldcollection10.js         # Old Collection 10
+node scraper-soccerkits.js              # Soccer Kits
 node scraper-maniadecamisa.js           # Mania de Camisa
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
 # node scraper-apify-mercadolivre.js    # Mercado Livre via Apify (experimental; gera custo)
@@ -625,6 +632,28 @@ node scraper-oldcollection10.js --sem-desativar  # salva sem desativar antigos
 **Seletores/dados:** padrão Nuvemshop, com leitura de `data-variants`, JSON-LD como fallback, preço do card e imagens lazy-load.
 
 **Filtro:** categorias de europeus e sul-americanos salvam apenas produtos com clube identificado no mapa compartilhado.
+
+---
+
+### 16. Soccer Kits (Nuvemshop)
+**Site:** `soccerkits.com.br`
+**Arquivo:** `scraper-soccerkits.js`
+**Abordagem:** node-fetch + cheerio
+**Produtos:** a verificar
+**Paginação automática:** ✅ para após 2 páginas vazias
+
+**URLs rastreadas:** `/clubes-brasileiros/`, `/camisas/`, `/selecoes/`
+
+**Comandos:**
+```bash
+node scraper-soccerkits.js --dry-run        # testa sem salvar no banco
+node scraper-soccerkits.js                  # desativa antigos da fonte e salva ativos
+node scraper-soccerkits.js --sem-desativar  # salva sem desativar antigos
+```
+
+**Seletores/dados:** padrão Nuvemshop, com leitura de `data-variants`, JSON-LD como fallback, preço do card e imagens lazy-load em resolução maior.
+
+**Filtro:** `/camisas/` mistura clubes europeus e sul-americanos; o scraper salva apenas produtos cujo clube é identificado nos mapas compartilhados de `Clubes Europeus` ou `Clubes Sulamericanos`.
 
 ---
 
