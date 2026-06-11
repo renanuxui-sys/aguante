@@ -15,6 +15,14 @@ function linkAfiliadoSemU1(link: string) {
     .replace(/\?&/g, '?')
 }
 
+function limparTituloOferta(titulo: string) {
+  return titulo
+    .replace(/\s*(?:Tamanho|Cor|G[eê]nero)\s*:[\s\S]*$/i, '')
+    .replace(/\s*;\s*/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
   const [cupomCopiado, setCupomCopiado] = useState(false)
   const cupomAplicavel = oferta.cupom_aplicavel !== false
@@ -31,6 +39,7 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
   const precoComCupom = cupomAplicavel ? formatarPreco(oferta.preco_com_cupom ?? descontoCalculado) : null
   const percentualLabel = cupomAplicavel ? `${Math.round(percentualCupom)}% OFF` : null
   const href = linkAfiliadoSemU1(oferta.link_afiliado)
+  const titulo = limparTituloOferta(oferta.titulo)
 
   useEffect(() => {
     const chave = 'aguante_session_id'
@@ -144,8 +153,8 @@ export default function CardOferta({ oferta }: { oferta: OfertaAfiliada }) {
           style={{ color: 'inherit', textDecoration: 'none' }}
           target="_blank"
         >
-          <p style={{ color: '#282828', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
-          {oferta.titulo}
+          <p style={{ color: '#282828', display: '-webkit-box', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, overflow: 'hidden', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3 }}>
+          {titulo}
           </p>
         </a>
         <p style={{ color: '#62748c', fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>

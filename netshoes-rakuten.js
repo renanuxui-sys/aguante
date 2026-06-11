@@ -286,6 +286,14 @@ function itemId(item, linkProduto) {
   return `rakuten-netshoes:${base}`
 }
 
+function limparTituloProdutoNetshoes(titulo) {
+  return String(titulo || '')
+    .replace(/\s*(?:Tamanho|Cor|G[eê]nero)\s*:[\s\S]*$/i, '')
+    .replace(/\s*;\s*/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 function parseProdutosXml(xml) {
   const $ = cheerio.load(xml, { xmlMode: true })
   return $('item').map((_, el) => {
@@ -294,7 +302,7 @@ function parseProdutosXml(xml) {
       $,
       el,
       mid: texto($, el, 'mid'),
-      titulo: texto($, el, 'productname'),
+      titulo: limparTituloProdutoNetshoes(texto($, el, 'productname')),
       preco: preco(texto($, el, 'saleprice') || texto($, el, 'price')),
       imagem_url: urlAbsoluta(texto($, el, 'imageurl')),
       link_produto: linkProduto,
@@ -628,7 +636,7 @@ async function buscarProdutosNetshoesPorTermo(clube, termoBusca) {
     const marca = typeof produto.brand === 'object' ? produto.brand?.name : produto.brand
 
     return {
-      titulo: produto.name || '',
+      titulo: limparTituloProdutoNetshoes(produto.name),
       preco: precoProdutoJsonLd(produto),
       imagem_url: urlAbsoluta(imagemProdutoJsonLd(produto)),
       link_produto: linkProduto,
@@ -962,7 +970,7 @@ async function produtoNetshoesPorUrl(linkProduto) {
   const linkProdutoFinal = produto.url ? new URL(produto.url, NETSHOES_URL).toString() : linkProduto
 
   return {
-    titulo: produto.name || tituloFallback || '',
+    titulo: limparTituloProdutoNetshoes(produto.name || tituloFallback),
     preco: precoCheio,
     preco_pix: precoCheio && precoPix && precoPix > precoCheio ? precoCheio : precoPix,
     imagem_url: urlAbsoluta(imagemProdutoJsonLd(produto)),
