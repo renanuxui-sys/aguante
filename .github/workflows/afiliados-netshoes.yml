@@ -6,7 +6,7 @@ on:
     # GitHub Actions usa UTC. 08:30 UTC = 05:30 em São Paulo/Brasília.
     - cron: '30 8 * * *'
     # 20:00 UTC = 17:00 em São Paulo/Brasília.
-    - cron: '0 21 * * *'
+    - cron: '0 20 * * *'
   workflow_dispatch:
     inputs:
       max_por_clube:
