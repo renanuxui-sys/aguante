@@ -85,6 +85,7 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
 
     setNewsletterStatus('success')
     setNewsletterMensagem('Cadastro feito. Vamos avisar quando uma camisa dos seus clubes baixar de preço.')
+    setPreferenciasAbertas(false)
   }
 
   if (ofertas.length === 0) {
@@ -149,65 +150,73 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
             <span>Camisas que baixaram de preço, e com cupom, no seu e-mail.</span>
           </div>
 
-          <button
-            className="ag-newsletter-clubes-toggle"
-            onClick={() => setPreferenciasAbertas(aberto => !aberto)}
-            type="button"
-          >
-            <span className="ag-newsletter-toggle-check" aria-hidden="true">
-              ✓
-            </span>
-            <span>{labelClubesNewsletter}</span>
-            <span className="ag-newsletter-toggle-arrow" aria-hidden="true">
-              ▾
-            </span>
-          </button>
-
-          <div className="ag-newsletter-actions">
-            <input
-              aria-label="E-mail para receber alertas"
-              id="newsletter-netshoes-email"
-              onChange={event => setEmailNewsletter(event.target.value)}
-              placeholder="seu e-mail"
-              required
-              type="email"
-              value={emailNewsletter}
-            />
-            <button disabled={newsletterStatus === 'loading'} type="submit">
-              {newsletterStatus === 'loading' ? 'enviando...' : 'receber ofertas'}
-            </button>
-          </div>
-
-          {newsletterMensagem && (
-            <p className={`ag-newsletter-status ag-newsletter-status-${newsletterStatus}`}>
+          {newsletterStatus === 'success' ? (
+            <p className="ag-newsletter-success">
               {newsletterMensagem}
             </p>
-          )}
+          ) : (
+            <>
+              <button
+                className="ag-newsletter-clubes-toggle"
+                onClick={() => setPreferenciasAbertas(aberto => !aberto)}
+                type="button"
+              >
+                <span className="ag-newsletter-toggle-check" aria-hidden="true">
+                  ✓
+                </span>
+                <span>{labelClubesNewsletter}</span>
+                <span className="ag-newsletter-toggle-arrow" aria-hidden="true">
+                  ▾
+                </span>
+              </button>
 
-          {preferenciasAbertas && (
-            <div className="ag-newsletter-clubes">
-              <label>
+              <div className="ag-newsletter-actions">
                 <input
-                  checked={todosClubesNewsletter}
-                  onChange={event => setTodosClubesNewsletter(event.target.checked)}
-                  type="checkbox"
+                  aria-label="E-mail para receber alertas"
+                  id="newsletter-netshoes-email"
+                  onChange={event => setEmailNewsletter(event.target.value)}
+                  placeholder="seu e-mail"
+                  required
+                  type="email"
+                  value={emailNewsletter}
                 />
-                Todos os clubes
-              </label>
+                <button disabled={newsletterStatus === 'loading'} type="submit">
+                  {newsletterStatus === 'loading' ? 'enviando...' : 'receber ofertas'}
+                </button>
+              </div>
 
-              <div className="ag-newsletter-clubes-grid">
-                {clubesParaNewsletter.map(clube => (
-                  <label key={clube}>
+              {newsletterMensagem && (
+                <p className={`ag-newsletter-status ag-newsletter-status-${newsletterStatus}`}>
+                  {newsletterMensagem}
+                </p>
+              )}
+
+              {preferenciasAbertas && (
+                <div className="ag-newsletter-clubes">
+                  <label>
                     <input
-                      checked={clubesNewsletter.includes(clube)}
-                      onChange={() => alternarClubeNewsletter(clube)}
+                      checked={todosClubesNewsletter}
+                      onChange={event => setTodosClubesNewsletter(event.target.checked)}
                       type="checkbox"
                     />
-                    {clube}
+                    Todos os clubes
                   </label>
-                ))}
-              </div>
-            </div>
+
+                  <div className="ag-newsletter-clubes-grid">
+                    {clubesParaNewsletter.map(clube => (
+                      <label key={clube}>
+                        <input
+                          checked={clubesNewsletter.includes(clube)}
+                          onChange={() => alternarClubeNewsletter(clube)}
+                          type="checkbox"
+                        />
+                        {clube}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </form>
       </aside>

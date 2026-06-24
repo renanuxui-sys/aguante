@@ -149,6 +149,18 @@ export default async function OfertasNetshoesPage() {
         }
         .ag-newsletter-status-success { color: #E8FFF4; }
         .ag-newsletter-status-error { color: #FFE8E8; }
+        .ag-newsletter-success {
+          grid-column: 2 / -1;
+          margin: 0;
+          padding: 10px 12px;
+          border: 1px solid rgba(255,255,255,0.22);
+          border-radius: 8px;
+          background: rgba(255,255,255,0.12);
+          color: #E8FFF4;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.3;
+        }
         .ag-newsletter-clubes {
           grid-column: 1 / -1;
           display: grid;
@@ -201,6 +213,7 @@ export default async function OfertasNetshoesPage() {
           .ag-newsletter-copy { display: flex; }
           .ag-newsletter-copy strong { padding-right: 34px; font-size: 14px; }
           .ag-newsletter-copy span { padding-right: 8px; font-size: 12px; line-height: 1.28; }
+          .ag-newsletter-success { grid-column: 1; }
           .ag-newsletter-actions { grid-template-columns: minmax(0, 1fr) auto; }
           .ag-newsletter-actions button { padding: 0 12px; }
           .ag-newsletter-clubes-toggle { width: 100%; }
