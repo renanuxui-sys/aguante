@@ -47,8 +47,14 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
     : ofertasOrdenadas.filter(oferta => oferta.clube === clubeSelecionado)
 
   const clubesParaNewsletter = clubes.filter(clube => clube !== TODOS)
+  const labelClubesNewsletter = todosClubesNewsletter
+    ? 'todos os clubes'
+    : clubesNewsletter.length === 1
+      ? clubesNewsletter[0]
+      : `${clubesNewsletter.length || 0} clube${clubesNewsletter.length === 1 ? '' : 's'}`
 
   function alternarClubeNewsletter(clube: string) {
+    if (todosClubesNewsletter) setTodosClubesNewsletter(false)
     setClubesNewsletter(atuais => atuais.includes(clube)
       ? atuais.filter(item => item !== clube)
       : [...atuais, clube]
@@ -151,7 +157,7 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
             <span className="ag-newsletter-toggle-check" aria-hidden="true">
               ✓
             </span>
-            <span>{todosClubesNewsletter ? 'todos os clubes' : `${clubesNewsletter.length || 0} clube${clubesNewsletter.length === 1 ? '' : 's'}`}</span>
+            <span>{labelClubesNewsletter}</span>
             <span className="ag-newsletter-toggle-arrow" aria-hidden="true">
               ▾
             </span>
@@ -189,12 +195,11 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
                 Todos os clubes
               </label>
 
-              <div className="ag-newsletter-clubes-grid" aria-disabled={todosClubesNewsletter}>
+              <div className="ag-newsletter-clubes-grid">
                 {clubesParaNewsletter.map(clube => (
                   <label key={clube}>
                     <input
                       checked={clubesNewsletter.includes(clube)}
-                      disabled={todosClubesNewsletter}
                       onChange={() => alternarClubeNewsletter(clube)}
                       type="checkbox"
                     />

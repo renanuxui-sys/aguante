@@ -173,9 +173,6 @@ export default async function OfertasNetshoesPage() {
           gap: 9px 12px;
           padding-top: 2px;
         }
-        .ag-newsletter-clubes-grid[aria-disabled="true"] { opacity: 0.42; }
-        .ag-newsletter-clubes-grid[aria-disabled="true"] label { color: rgba(255,255,255,0.86); }
-        .ag-newsletter-clubes-grid[aria-disabled="true"] input { opacity: 0.75; }
         .ag-ofertas-kicker {
           display: inline-flex;
           align-items: center;
