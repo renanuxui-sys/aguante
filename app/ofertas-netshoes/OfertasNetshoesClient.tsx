@@ -35,6 +35,7 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
   const [clubesNewsletter, setClubesNewsletter] = useState<string[]>([])
   const [newsletterStatus, setNewsletterStatus] = useState<NewsletterStatus>('idle')
   const [newsletterMensagem, setNewsletterMensagem] = useState('')
+  const [preferenciasAbertas, setPreferenciasAbertas] = useState(false)
 
   const clubes = useMemo(() => {
     return [TODOS, ...Array.from(new Set(ofertas.map(oferta => oferta.clube).filter((clube): clube is string => Boolean(clube)))).sort((a, b) => a.localeCompare(b, 'pt-BR'))]
@@ -89,99 +90,6 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
 
   return (
     <>
-      <section
-        style={{
-          background: '#fff',
-          border: '1px solid #E8E6DF',
-          borderRadius: 12,
-          display: 'grid',
-          gap: 22,
-          gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)',
-          marginBottom: 28,
-          padding: 24,
-        }}
-        className="ag-newsletter-netshoes"
-      >
-        <div>
-          <p style={{ color: '#550fed', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', lineHeight: 1, marginBottom: 12, textTransform: 'uppercase' }}>
-            Alertas por e-mail
-          </p>
-          <h2 style={{ color: '#282828', fontSize: 26, fontWeight: 300, letterSpacing: '-0.04em', lineHeight: 1.12, margin: 0 }}>
-            Receba quando as camisas baixarem de preço.
-          </h2>
-          <p style={{ color: '#62748c', fontSize: 14, fontWeight: 400, lineHeight: 1.45, marginTop: 12 }}>
-            Você escolhe os clubes e a gente envia os produtos que ficaram mais baratos, com link afiliado e indicação de cupom AGUANTE quando disponível.
-          </p>
-        </div>
-
-        <form onSubmit={cadastrarNewsletter} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'grid', gap: 8 }}>
-            <label htmlFor="newsletter-netshoes-email" style={{ color: '#62748c', fontSize: 13, fontWeight: 700 }}>
-              Seu e-mail
-            </label>
-            <input
-              id="newsletter-netshoes-email"
-              onChange={event => setEmailNewsletter(event.target.value)}
-              placeholder="voce@email.com"
-              required
-              style={{ background: '#f8f8f8', border: '1px solid #E8E6DF', borderRadius: 8, color: '#282828', font: '500 14px Onest, sans-serif', height: 44, outline: 'none', padding: '0 14px' }}
-              type="email"
-              value={emailNewsletter}
-            />
-          </div>
-
-          <label style={{ alignItems: 'center', color: '#282828', cursor: 'pointer', display: 'flex', fontSize: 13, fontWeight: 800, gap: 8 }}>
-            <input
-              checked={todosClubesNewsletter}
-              onChange={event => setTodosClubesNewsletter(event.target.checked)}
-              type="checkbox"
-            />
-            Receber alertas de todos os clubes
-          </label>
-
-          {!todosClubesNewsletter && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {clubesParaNewsletter.map(clube => {
-                const ativo = clubesNewsletter.includes(clube)
-                return (
-                  <button
-                    key={clube}
-                    onClick={() => alternarClubeNewsletter(clube)}
-                    type="button"
-                    style={{
-                      background: ativo ? '#282828' : '#fff',
-                      border: `1px solid ${ativo ? '#282828' : '#E8E6DF'}`,
-                      borderRadius: 999,
-                      color: ativo ? '#fff' : '#282828',
-                      cursor: 'pointer',
-                      font: '800 12px Onest, sans-serif',
-                      padding: '8px 11px',
-                    }}
-                  >
-                    {clube}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            <button
-              disabled={newsletterStatus === 'loading'}
-              style={{ background: '#282828', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', font: '800 13px Onest, sans-serif', minHeight: 42, opacity: newsletterStatus === 'loading' ? 0.7 : 1, padding: '0 18px' }}
-              type="submit"
-            >
-              {newsletterStatus === 'loading' ? 'cadastrando...' : 'receber alertas'}
-            </button>
-            {newsletterMensagem && (
-              <p style={{ color: newsletterStatus === 'error' ? '#b42318' : '#087443', fontSize: 12, fontWeight: 700, lineHeight: 1.35 }}>
-                {newsletterMensagem}
-              </p>
-            )}
-          </div>
-        </form>
-      </section>
-
       <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
         {clubes.map(clube => {
           const ativo = clube === clubeSelecionado
@@ -216,6 +124,72 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
           Nenhuma oferta ativa para este clube.
         </div>
       )}
+
+      <div className="ag-newsletter-spacer" />
+      <aside className="ag-newsletter-netshoes">
+        <form className="ag-newsletter-form" onSubmit={cadastrarNewsletter}>
+          <div className="ag-newsletter-copy">
+            <strong>Alertas Netshoes</strong>
+            <span>Receba quando camisas baixarem de preço.</span>
+          </div>
+
+          <div className="ag-newsletter-actions">
+            <input
+              aria-label="E-mail para receber alertas"
+              id="newsletter-netshoes-email"
+              onChange={event => setEmailNewsletter(event.target.value)}
+              placeholder="seu e-mail"
+              required
+              type="email"
+              value={emailNewsletter}
+            />
+            <button disabled={newsletterStatus === 'loading'} type="submit">
+              {newsletterStatus === 'loading' ? 'enviando...' : 'receber ofertas'}
+            </button>
+          </div>
+
+          <button
+            className="ag-newsletter-clubes-toggle"
+            onClick={() => setPreferenciasAbertas(aberto => !aberto)}
+            type="button"
+          >
+            {todosClubesNewsletter ? 'todos os clubes' : `${clubesNewsletter.length || 0} clube${clubesNewsletter.length === 1 ? '' : 's'}`}
+          </button>
+
+          {newsletterMensagem && (
+            <p className={`ag-newsletter-status ag-newsletter-status-${newsletterStatus}`}>
+              {newsletterMensagem}
+            </p>
+          )}
+
+          {preferenciasAbertas && (
+            <div className="ag-newsletter-clubes">
+              <label>
+                <input
+                  checked={todosClubesNewsletter}
+                  onChange={event => setTodosClubesNewsletter(event.target.checked)}
+                  type="checkbox"
+                />
+                Todos os clubes
+              </label>
+
+              <div className="ag-newsletter-clubes-grid" aria-disabled={todosClubesNewsletter}>
+                {clubesParaNewsletter.map(clube => (
+                  <label key={clube}>
+                    <input
+                      checked={clubesNewsletter.includes(clube)}
+                      disabled={todosClubesNewsletter}
+                      onChange={() => alternarClubeNewsletter(clube)}
+                      type="checkbox"
+                    />
+                    {clube}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </form>
+      </aside>
     </>
   )
 }
