@@ -170,27 +170,6 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
                 </span>
               </button>
 
-              <div className="ag-newsletter-actions">
-                <input
-                  aria-label="E-mail para receber alertas"
-                  id="newsletter-netshoes-email"
-                  onChange={event => setEmailNewsletter(event.target.value)}
-                  placeholder="seu e-mail"
-                  required
-                  type="email"
-                  value={emailNewsletter}
-                />
-                <button disabled={newsletterStatus === 'loading'} type="submit">
-                  {newsletterStatus === 'loading' ? 'enviando...' : 'receber ofertas'}
-                </button>
-              </div>
-
-              {newsletterMensagem && (
-                <p className={`ag-newsletter-status ag-newsletter-status-${newsletterStatus}`}>
-                  {newsletterMensagem}
-                </p>
-              )}
-
               {preferenciasAbertas && (
                 <div className="ag-newsletter-clubes">
                   <label>
@@ -215,6 +194,27 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
                     ))}
                   </div>
                 </div>
+              )}
+
+              <div className="ag-newsletter-actions">
+                <input
+                  aria-label="E-mail para receber alertas"
+                  id="newsletter-netshoes-email"
+                  onChange={event => setEmailNewsletter(event.target.value)}
+                  placeholder="seu e-mail"
+                  required
+                  type="email"
+                  value={emailNewsletter}
+                />
+                <button disabled={newsletterStatus === 'loading'} type="submit">
+                  {newsletterStatus === 'loading' ? 'enviando...' : 'receber ofertas'}
+                </button>
+              </div>
+
+              {newsletterMensagem && (
+                <p className={`ag-newsletter-status ag-newsletter-status-${newsletterStatus}`}>
+                  {newsletterMensagem}
+                </p>
               )}
             </>
           )}
