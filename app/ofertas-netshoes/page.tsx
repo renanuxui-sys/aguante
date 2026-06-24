@@ -67,6 +67,7 @@ export default async function OfertasNetshoesPage() {
         @media (max-width: 768px) {
           .ag-ofertas-hero { padding-top: 28px !important; }
           .ag-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 34px; }
+          .ag-newsletter-netshoes { grid-template-columns: 1fr !important; padding: 20px !important; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
           .ag-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
