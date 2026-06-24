@@ -36,6 +36,7 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
   const [newsletterStatus, setNewsletterStatus] = useState<NewsletterStatus>('idle')
   const [newsletterMensagem, setNewsletterMensagem] = useState('')
   const [preferenciasAbertas, setPreferenciasAbertas] = useState(false)
+  const [newsletterOculta, setNewsletterOculta] = useState(false)
 
   const clubes = useMemo(() => {
     return [TODOS, ...Array.from(new Set(ofertas.map(oferta => oferta.clube).filter((clube): clube is string => Boolean(clube)))).sort((a, b) => a.localeCompare(b, 'pt-BR'))]
@@ -125,12 +126,21 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
         </div>
       )}
 
-      <div className="ag-newsletter-spacer" />
-      <aside className="ag-newsletter-netshoes">
+      <div className={`ag-newsletter-spacer${newsletterOculta ? ' ag-newsletter-hidden' : ''}`} />
+      <aside className={`ag-newsletter-netshoes${newsletterOculta ? ' ag-newsletter-hidden' : ''}`}>
         <form className="ag-newsletter-form" onSubmit={cadastrarNewsletter}>
+          <button
+            aria-label="Ocultar alertas Netshoes"
+            className="ag-newsletter-close"
+            onClick={() => setNewsletterOculta(true)}
+            type="button"
+          >
+            ×
+          </button>
+
           <div className="ag-newsletter-copy">
-            <strong>Alertas Netshoes</strong>
-            <span>Camisas que baixaram de preço, no seu e-mail.</span>
+            <strong>Receba Alertas Netshoes</strong>
+            <span>Camisas que baixaram de preço, e com cupom, no seu e-mail.</span>
           </div>
 
           <button

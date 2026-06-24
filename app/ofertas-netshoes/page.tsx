@@ -69,9 +69,23 @@ export default async function OfertasNetshoesPage() {
           box-shadow: 0 22px 54px rgba(85, 15, 237, 0.34);
           backdrop-filter: blur(16px);
         }
+        .ag-newsletter-close {
+          display: none;
+          position: absolute;
+          right: 8px;
+          top: 8px;
+          width: 28px;
+          height: 28px;
+          border: 1px solid rgba(255,255,255,0.22);
+          border-radius: 8px;
+          background: rgba(255,255,255,0.12);
+          color: #fff;
+          cursor: pointer;
+          font: 800 18px/1 Onest, sans-serif;
+        }
         .ag-newsletter-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
         .ag-newsletter-copy strong { color: #fff; font-size: 15px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
-        .ag-newsletter-copy span { color: rgba(255,255,255,0.78); font-size: 12px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; }
+        .ag-newsletter-copy span { color: rgba(255,255,255,0.86); font-size: 12px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; }
         .ag-newsletter-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
         .ag-newsletter-actions input {
           width: 100%;
@@ -160,6 +174,8 @@ export default async function OfertasNetshoesPage() {
           padding-top: 2px;
         }
         .ag-newsletter-clubes-grid[aria-disabled="true"] { opacity: 0.42; }
+        .ag-newsletter-clubes-grid[aria-disabled="true"] label { color: rgba(255,255,255,0.86); }
+        .ag-newsletter-clubes-grid[aria-disabled="true"] input { opacity: 0.75; }
         .ag-ofertas-kicker {
           display: inline-flex;
           align-items: center;
@@ -182,8 +198,12 @@ export default async function OfertasNetshoesPage() {
           .ag-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 34px; }
           .ag-newsletter-spacer { height: 224px; }
           .ag-newsletter-netshoes { bottom: 82px; width: calc(100% - 24px); }
-          .ag-newsletter-form { grid-template-columns: 1fr; gap: 10px; padding: 12px; }
+          .ag-newsletter-hidden { display: none; }
+          .ag-newsletter-form { grid-template-columns: 1fr; gap: 10px; padding: 14px 12px 12px; }
+          .ag-newsletter-close { display: inline-grid; place-items: center; }
           .ag-newsletter-copy { display: flex; }
+          .ag-newsletter-copy strong { padding-right: 34px; font-size: 14px; }
+          .ag-newsletter-copy span { padding-right: 8px; font-size: 12px; line-height: 1.28; }
           .ag-newsletter-actions { grid-template-columns: minmax(0, 1fr) auto; }
           .ag-newsletter-actions button { padding: 0 12px; }
           .ag-newsletter-clubes-toggle { width: 100%; }
