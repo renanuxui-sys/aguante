@@ -25,7 +25,7 @@ const ORIGEM = 'rakuten-netshoes'
 const DELAY_MS = 700
 const DEFAULT_CUPOM_CODIGO = process.env.NETSHOES_DEFAULT_COUPON_CODE || 'AGUANTE'
 const DEFAULT_CUPOM_PERCENTUAL = Number(process.env.NETSHOES_DEFAULT_COUPON_PERCENT || 15)
-const DEFAULT_CUPOM_DESCONTO_MAXIMO = valorDinheiro(process.env.NETSHOES_DEFAULT_COUPON_MAX_DISCOUNT)
+const DEFAULT_CUPOM_DESCONTO_MAXIMO = valorDinheiro(process.env.NETSHOES_DEFAULT_COUPON_MAX_DISCOUNT) ?? 80
 const DEFAULT_CUPOM_VARIAVEL = process.env.NETSHOES_DEFAULT_COUPON_VARIABLE === 'true'
 const DEFAULT_CUPOM_DESCRICAO = process.env.NETSHOES_DEFAULT_COUPON_DESCRIPTION || 'Cupom não válido para produtos com tag SELEÇÃO'
 const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 48))
@@ -33,6 +33,7 @@ const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHO
 const PRICE_ALERT_TO = process.env.PRICE_ALERT_TO || ''
 const PRICE_ALERT_FROM = process.env.PRICE_ALERT_FROM || ''
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'https://aguante.com.br').replace(/\/+$/, '')
 let accessTokenCache = null
 
 const LINHAS_OFICIAIS_BUSCA = ['i', 'ii', 'iii']
@@ -181,7 +182,27 @@ function destinatariosAlertaPreco() {
     .filter(Boolean)
 }
 
-function montarEmailQuedasPreco(quedas) {
+function linkAfiliadoComoNoSite(link) {
+  return String(link || '')
+    .replace(/([?&])(?:u1|ranU1)=[^&#]*&/g, '$1')
+    .replace(/[?&](?:u1|ranU1)=[^&#]*(?=#|$)/g, '')
+    .replace(/\?&/g, '?')
+}
+
+function textoCupomOferta(queda) {
+  if (queda.cupomAplicavel === false || !queda.cupomCodigo) return ''
+
+  const percentual = Number(queda.cupomPercentual)
+  const partes = [`Cupom ${queda.cupomCodigo}`]
+  if (Number.isFinite(percentual) && percentual > 0) partes.push(`${Math.round(percentual)}% OFF`)
+  if (Number.isFinite(Number(queda.cupomDescontoMaximo)) && Number(queda.cupomDescontoMaximo) > 0) {
+    partes.push(`até ${formatarMoeda(queda.cupomDescontoMaximo)}`)
+  }
+
+  return partes.join(' - ')
+}
+
+function montarEmailQuedasPreco(quedas, opcoes = {}) {
   const data = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -191,14 +212,16 @@ function montarEmailQuedasPreco(quedas) {
 
   const linhasTexto = quedas.map((queda, indice) => {
     const percentual = queda.percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+    const cupom = textoCupomOferta(queda)
     return [
       `${indice + 1}. ${queda.titulo}`,
       `Clube: ${queda.clube || '-'}`,
       `Antes: ${formatarMoeda(queda.precoAnterior)}`,
       `Agora: ${formatarMoeda(queda.precoNovo)}`,
       `Queda: ${formatarMoeda(queda.diferenca)} (-${percentual}%)`,
+      cupom || null,
       `Link: ${queda.link}`,
-    ].join('\n')
+    ].filter(Boolean).join('\n')
   }).join('\n\n')
 
   const texto = [
@@ -207,15 +230,18 @@ function montarEmailQuedasPreco(quedas) {
     `${quedas.length} produto${quedas.length === 1 ? '' : 's'} baix${quedas.length === 1 ? 'ou' : 'aram'} de preço:`,
     '',
     linhasTexto,
+    opcoes.descadastroUrl ? `\nPara deixar de receber: ${opcoes.descadastroUrl}` : '',
   ].join('\n')
 
   const linhasHtml = quedas.map(queda => {
     const percentual = queda.percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+    const cupom = textoCupomOferta(queda)
     return `
       <tr>
         <td style="padding:12px;border-bottom:1px solid #eee;">
           <strong>${escapeHtml(queda.titulo)}</strong><br>
           <span style="color:#62748c;">${escapeHtml(queda.clube || '-')}</span><br>
+          ${cupom ? `<span style="display:inline-block;margin:8px 0 2px;padding:5px 8px;border-radius:6px;background:#E8FFF4;color:#087443;font-weight:700;">${escapeHtml(cupom)}</span><br>` : ''}
           <a href="${escapeHtml(queda.link)}" style="color:#550fed;">Abrir produto</a>
         </td>
         <td style="padding:12px;border-bottom:1px solid #eee;white-space:nowrap;">${formatarMoeda(queda.precoAnterior)}</td>
@@ -241,24 +267,15 @@ function montarEmailQuedasPreco(quedas) {
         </thead>
         <tbody>${linhasHtml}</tbody>
       </table>
+      ${opcoes.descadastroUrl ? `<p style="margin-top:18px;color:#62748c;font-size:12px;">Você está recebendo este alerta porque se cadastrou no Aguante. <a href="${escapeHtml(opcoes.descadastroUrl)}" style="color:#550fed;">Descadastrar</a>.</p>` : ''}
     </div>
   `
 
   return { html, texto }
 }
 
-async function enviarAlertaQuedasPreco(quedas) {
-  if (quedas.length === 0 || dryRun) return false
-
-  const to = destinatariosAlertaPreco()
-  if (!RESEND_API_KEY || !PRICE_ALERT_FROM || to.length === 0) {
-    console.warn('  Aviso: quedas de preço detectadas, mas RESEND_API_KEY, PRICE_ALERT_FROM ou PRICE_ALERT_TO não estão configurados.')
-    return false
-  }
-
-  const ordenadas = [...quedas].sort((a, b) => b.percentual - a.percentual || b.diferenca - a.diferenca)
-  const { html, texto } = montarEmailQuedasPreco(ordenadas)
-  const subject = `Aguante: ${quedas.length} produto${quedas.length === 1 ? '' : 's'} Netshoes baix${quedas.length === 1 ? 'ou' : 'aram'} de preço`
+async function enviarEmailResend({ to, subject, html, text }) {
+  if (!to || (Array.isArray(to) && to.length === 0)) return false
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -271,7 +288,7 @@ async function enviarAlertaQuedasPreco(quedas) {
       to,
       subject,
       html,
-      text: texto,
+      text,
     }),
   })
 
@@ -281,6 +298,65 @@ async function enviarAlertaQuedasPreco(quedas) {
   }
 
   return true
+}
+
+async function carregarAssinantesNewsletter(supabase) {
+  const { data, error } = await supabase
+    .from('newsletter_netshoes')
+    .select('email,clubes_interesse,todos_clubes,unsubscribe_token')
+    .eq('ativo', true)
+
+  if (error) {
+    console.warn(`  Aviso: não foi possível consultar assinantes da newsletter (${mensagemErroSupabase(error)}).`)
+    return []
+  }
+
+  return data || []
+}
+
+function quedasParaAssinante(quedas, assinante) {
+  if (assinante.todos_clubes) return quedas
+
+  const clubes = new Set((assinante.clubes_interesse || []).map(clube => normalizarTexto(clube)))
+  if (clubes.size === 0) return quedas
+
+  return quedas.filter(queda => clubes.has(normalizarTexto(queda.clube || '')))
+}
+
+async function enviarAlertaQuedasPreco(supabase, quedas) {
+  if (quedas.length === 0 || dryRun) return { emailsEnviados: 0, assinantesNotificados: 0 }
+
+  if (!RESEND_API_KEY || !PRICE_ALERT_FROM) {
+    console.warn('  Aviso: quedas de preço detectadas, mas RESEND_API_KEY ou PRICE_ALERT_FROM não estão configurados.')
+    return { emailsEnviados: 0, assinantesNotificados: 0 }
+  }
+
+  const ordenadas = [...quedas].sort((a, b) => b.percentual - a.percentual || b.diferenca - a.diferenca)
+  const subject = `Aguante: ${quedas.length} produto${quedas.length === 1 ? '' : 's'} Netshoes baix${quedas.length === 1 ? 'ou' : 'aram'} de preço`
+  let emailsEnviados = 0
+  let assinantesNotificados = 0
+
+  const toInterno = destinatariosAlertaPreco()
+  if (toInterno.length > 0) {
+    const { html, texto } = montarEmailQuedasPreco(ordenadas)
+    if (await enviarEmailResend({ to: toInterno, subject, html, text: texto })) emailsEnviados += toInterno.length
+  }
+
+  const assinantes = await carregarAssinantesNewsletter(supabase)
+  for (const assinante of assinantes) {
+    const quedasFiltradas = quedasParaAssinante(ordenadas, assinante)
+    if (quedasFiltradas.length === 0) continue
+
+    const descadastroUrl = `${SITE_URL}/newsletter-netshoes/descadastrar/${encodeURIComponent(assinante.unsubscribe_token)}`
+    const { html, texto } = montarEmailQuedasPreco(quedasFiltradas, { descadastroUrl })
+    const assuntoAssinante = `Aguante: ${quedasFiltradas.length} oferta${quedasFiltradas.length === 1 ? '' : 's'} Netshoes baix${quedasFiltradas.length === 1 ? 'ou' : 'aram'} de preço`
+    if (await enviarEmailResend({ to: assinante.email, subject: assuntoAssinante, html, text: texto })) {
+      emailsEnviados += 1
+      assinantesNotificados += 1
+    }
+  }
+
+  return { emailsEnviados, assinantesNotificados }
 }
 
 function tokenRakutenInformado() {
@@ -1235,7 +1311,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
   for (const loteExternalIds of dividirEmLotes(externalIds)) {
     const { data, error: buscaError } = await supabase
       .from('ofertas_afiliadas')
-      .select('external_id,titulo,preco,preco_pix,link_produto,link_afiliado,clube,cupom_codigo,cupom_percentual,cupom_desconto_maximo,cupom_percentual_variavel,cupom_descricao')
+      .select('external_id,titulo,preco,preco_pix,link_produto,link_afiliado,clube,cupom_codigo,cupom_percentual,cupom_desconto_maximo,cupom_percentual_variavel,cupom_descricao,cupom_aplicavel')
       .eq('loja', LOJA)
       .eq('automacao_origem', ORIGEM)
       .in('external_id', loteExternalIds)
@@ -1261,7 +1337,11 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
         precoNovo,
         diferenca,
         percentual: Math.round((diferenca / precoAnterior) * 1000) / 10,
-        link: oferta.link_produto || atual.link_produto || oferta.link_afiliado || atual.link_afiliado || '',
+        link: linkAfiliadoComoNoSite(oferta.link_afiliado || atual.link_afiliado || oferta.link_produto || atual.link_produto || ''),
+        cupomCodigo: oferta.cupom_codigo || atual.cupom_codigo || '',
+        cupomPercentual: oferta.cupom_percentual ?? atual.cupom_percentual,
+        cupomDescontoMaximo: oferta.cupom_desconto_maximo ?? atual.cupom_desconto_maximo,
+        cupomAplicavel: oferta.cupom_aplicavel ?? atual.cupom_aplicavel,
       })
     }
 
@@ -1403,14 +1483,14 @@ async function main() {
   const ofertasUnicas = Array.from(new Map(ofertas.map(oferta => [oferta.external_id, oferta])).values())
   const { salvas, quedasPreco } = await salvarOfertas(supabase, ofertasUnicas, { atualizarCupomExistente: cupom.cupom_origem === 'coupon-api' })
   const desativadas = await desativarOfertasAntigas(supabase, ofertasUnicas.map(oferta => oferta.external_id))
-  const alertaEnviado = await enviarAlertaQuedasPreco(quedasPreco)
+  const alertasPreco = await enviarAlertaQuedasPreco(supabase, quedasPreco)
 
   console.log(`\nResumo Netshoes/Rakuten`)
   console.log(`  Ofertas encontradas: ${ofertas.length}`)
   console.log(`  Ofertas únicas: ${ofertasUnicas.length}`)
   console.log(`  Ofertas salvas: ${salvas}`)
   console.log(`  Ofertas antigas ocultadas: ${desativadas}`)
-  console.log(`  Produtos com queda de preço: ${quedasPreco.length}${alertaEnviado ? ' (email enviado)' : ''}`)
+  console.log(`  Produtos com queda de preço: ${quedasPreco.length}${alertasPreco.emailsEnviados ? ` (${alertasPreco.emailsEnviados} e-mail${alertasPreco.emailsEnviados === 1 ? '' : 's'} enviado${alertasPreco.emailsEnviados === 1 ? '' : 's'}, ${alertasPreco.assinantesNotificados} assinante${alertasPreco.assinantesNotificados === 1 ? '' : 's'})` : ''}`)
   console.log(`  Cupons Rakuten encontrados: ${cupons.length}`)
   if (dryRun) console.log('  Dry-run: nada foi gravado.')
 }

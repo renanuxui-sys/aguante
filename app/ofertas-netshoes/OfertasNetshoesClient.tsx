@@ -5,6 +5,7 @@ import CardOferta from '@/components/CardOferta'
 import type { OfertaAfiliada } from '@/types'
 
 const TODOS = 'Todos'
+type NewsletterStatus = 'idle' | 'loading' | 'success' | 'error'
 
 function embaralhar<T>(itens: T[]) {
   const copia = [...itens]
@@ -29,6 +30,13 @@ function ordenarPorClubesEmbaralhados(ofertas: OfertaAfiliada[]) {
 export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfiliada[] }) {
   const [clubeSelecionado, setClubeSelecionado] = useState(TODOS)
   const [ofertasOrdenadas] = useState(() => ordenarPorClubesEmbaralhados(ofertas))
+  const [emailNewsletter, setEmailNewsletter] = useState('')
+  const [todosClubesNewsletter, setTodosClubesNewsletter] = useState(true)
+  const [clubesNewsletter, setClubesNewsletter] = useState<string[]>([])
+  const [newsletterStatus, setNewsletterStatus] = useState<NewsletterStatus>('idle')
+  const [newsletterMensagem, setNewsletterMensagem] = useState('')
+  const [preferenciasAbertas, setPreferenciasAbertas] = useState(false)
+  const [newsletterOculta, setNewsletterOculta] = useState(false)
 
   const clubes = useMemo(() => {
     return [TODOS, ...Array.from(new Set(ofertas.map(oferta => oferta.clube).filter((clube): clube is string => Boolean(clube)))).sort((a, b) => a.localeCompare(b, 'pt-BR'))]
@@ -37,6 +45,48 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
   const ofertasFiltradas = clubeSelecionado === TODOS
     ? ofertasOrdenadas
     : ofertasOrdenadas.filter(oferta => oferta.clube === clubeSelecionado)
+
+  const clubesParaNewsletter = clubes.filter(clube => clube !== TODOS)
+  const labelClubesNewsletter = todosClubesNewsletter
+    ? 'todos os clubes'
+    : clubesNewsletter.length === 1
+      ? clubesNewsletter[0]
+      : `${clubesNewsletter.length || 0} clube${clubesNewsletter.length === 1 ? '' : 's'}`
+
+  function alternarClubeNewsletter(clube: string) {
+    if (todosClubesNewsletter) setTodosClubesNewsletter(false)
+    setClubesNewsletter(atuais => atuais.includes(clube)
+      ? atuais.filter(item => item !== clube)
+      : [...atuais, clube]
+    )
+  }
+
+  async function cadastrarNewsletter(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setNewsletterStatus('loading')
+    setNewsletterMensagem('')
+
+    const res = await fetch('/api/newsletter-netshoes', {
+      body: JSON.stringify({
+        email: emailNewsletter,
+        clubes: clubesNewsletter,
+        todosClubes: todosClubesNewsletter,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    })
+
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setNewsletterStatus('error')
+      setNewsletterMensagem(payload.error || 'Não foi possível cadastrar agora.')
+      return
+    }
+
+    setNewsletterStatus('success')
+    setNewsletterMensagem('Cadastro feito. Vamos avisar quando uma camisa dos seus clubes baixar de preço.')
+    setPreferenciasAbertas(false)
+  }
 
   if (ofertas.length === 0) {
     return (
@@ -82,6 +132,94 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
           Nenhuma oferta ativa para este clube.
         </div>
       )}
+
+      <div className={`ag-newsletter-spacer${newsletterOculta ? ' ag-newsletter-hidden' : ''}`} />
+      <aside className={`ag-newsletter-netshoes${newsletterOculta ? ' ag-newsletter-hidden' : ''}`}>
+        <form className="ag-newsletter-form" onSubmit={cadastrarNewsletter}>
+          <button
+            aria-label="Ocultar alertas Netshoes"
+            className="ag-newsletter-close"
+            onClick={() => setNewsletterOculta(true)}
+            type="button"
+          >
+            ×
+          </button>
+
+          <div className="ag-newsletter-copy">
+            <strong>Receba Alertas Netshoes</strong>
+            <span>Camisas que baixaram de preço, e com cupom, no seu e-mail.</span>
+          </div>
+
+          {newsletterStatus === 'success' ? (
+            <p className="ag-newsletter-success">
+              {newsletterMensagem}
+            </p>
+          ) : (
+            <>
+              <button
+                className="ag-newsletter-clubes-toggle"
+                onClick={() => setPreferenciasAbertas(aberto => !aberto)}
+                type="button"
+              >
+                <span className="ag-newsletter-toggle-check" aria-hidden="true">
+                  ✓
+                </span>
+                <span>{labelClubesNewsletter}</span>
+                <span className="ag-newsletter-toggle-arrow" aria-hidden="true">
+                  ▾
+                </span>
+              </button>
+
+              {preferenciasAbertas && (
+                <div className="ag-newsletter-clubes">
+                  <label>
+                    <input
+                      checked={todosClubesNewsletter}
+                      onChange={event => setTodosClubesNewsletter(event.target.checked)}
+                      type="checkbox"
+                    />
+                    Todos os clubes
+                  </label>
+
+                  <div className="ag-newsletter-clubes-grid">
+                    {clubesParaNewsletter.map(clube => (
+                      <label key={clube}>
+                        <input
+                          checked={clubesNewsletter.includes(clube)}
+                          onChange={() => alternarClubeNewsletter(clube)}
+                          type="checkbox"
+                        />
+                        {clube}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="ag-newsletter-actions">
+                <input
+                  aria-label="E-mail para receber alertas"
+                  id="newsletter-netshoes-email"
+                  onChange={event => setEmailNewsletter(event.target.value)}
+                  placeholder="seu e-mail"
+                  required
+                  type="email"
+                  value={emailNewsletter}
+                />
+                <button disabled={newsletterStatus === 'loading'} type="submit">
+                  {newsletterStatus === 'loading' ? 'enviando...' : 'receber ofertas'}
+                </button>
+              </div>
+
+              {newsletterMensagem && (
+                <p className={`ag-newsletter-status ag-newsletter-status-${newsletterStatus}`}>
+                  {newsletterMensagem}
+                </p>
+              )}
+            </>
+          )}
+        </form>
+      </aside>
     </>
   )
 }
