@@ -30,6 +30,9 @@ const DEFAULT_CUPOM_VARIAVEL = process.env.NETSHOES_DEFAULT_COUPON_VARIABLE === 
 const DEFAULT_CUPOM_DESCRICAO = process.env.NETSHOES_DEFAULT_COUPON_DESCRIPTION || 'Cupom não válido para produtos com tag SELEÇÃO'
 const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 48))
 const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 100)))
+const PRICE_ALERT_TO = process.env.PRICE_ALERT_TO || ''
+const PRICE_ALERT_FROM = process.env.PRICE_ALERT_FROM || ''
+const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 let accessTokenCache = null
 
 const LINHAS_OFICIAIS_BUSCA = ['i', 'ii', 'iii']
@@ -148,6 +151,136 @@ function dividirEmLotes(lista, tamanho = TAMANHO_LOTE_SUPABASE) {
 function mensagemErroSupabase(error) {
   if (!error) return 'erro desconhecido'
   return [error.message, error.details, error.hint, error.code].filter(Boolean).join(' | ')
+}
+
+function menorPrecoOferta(oferta) {
+  const precos = [oferta?.preco_pix, oferta?.preco]
+    .map(valor => Number(valor))
+    .filter(valor => Number.isFinite(valor) && valor > 0)
+
+  return precos.length ? Math.min(...precos) : null
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function escapeHtml(valor) {
+  return String(valor || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function destinatariosAlertaPreco() {
+  return PRICE_ALERT_TO
+    .split(',')
+    .map(email => email.trim())
+    .filter(Boolean)
+}
+
+function montarEmailQuedasPreco(quedas) {
+  const data = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'America/Sao_Paulo',
+  })
+
+  const linhasTexto = quedas.map((queda, indice) => {
+    const percentual = queda.percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+    return [
+      `${indice + 1}. ${queda.titulo}`,
+      `Clube: ${queda.clube || '-'}`,
+      `Antes: ${formatarMoeda(queda.precoAnterior)}`,
+      `Agora: ${formatarMoeda(queda.precoNovo)}`,
+      `Queda: ${formatarMoeda(queda.diferenca)} (-${percentual}%)`,
+      `Link: ${queda.link}`,
+    ].join('\n')
+  }).join('\n\n')
+
+  const texto = [
+    `Atualização Netshoes - ${data}`,
+    '',
+    `${quedas.length} produto${quedas.length === 1 ? '' : 's'} baix${quedas.length === 1 ? 'ou' : 'aram'} de preço:`,
+    '',
+    linhasTexto,
+  ].join('\n')
+
+  const linhasHtml = quedas.map(queda => {
+    const percentual = queda.percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+    return `
+      <tr>
+        <td style="padding:12px;border-bottom:1px solid #eee;">
+          <strong>${escapeHtml(queda.titulo)}</strong><br>
+          <span style="color:#62748c;">${escapeHtml(queda.clube || '-')}</span><br>
+          <a href="${escapeHtml(queda.link)}" style="color:#550fed;">Abrir produto</a>
+        </td>
+        <td style="padding:12px;border-bottom:1px solid #eee;white-space:nowrap;">${formatarMoeda(queda.precoAnterior)}</td>
+        <td style="padding:12px;border-bottom:1px solid #eee;white-space:nowrap;"><strong>${formatarMoeda(queda.precoNovo)}</strong></td>
+        <td style="padding:12px;border-bottom:1px solid #eee;white-space:nowrap;color:#087443;"><strong>${formatarMoeda(queda.diferenca)} (-${percentual}%)</strong></td>
+      </tr>
+    `
+  }).join('')
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;color:#282828;">
+      <h1 style="font-size:20px;margin:0 0 8px;">Produtos Netshoes que baixaram de preço</h1>
+      <p style="margin:0 0 18px;color:#62748c;">Atualização de ${data}</p>
+      <p>${quedas.length} produto${quedas.length === 1 ? '' : 's'} baix${quedas.length === 1 ? 'ou' : 'aram'} de preço desde a última atualização.</p>
+      <table style="border-collapse:collapse;width:100%;font-size:14px;">
+        <thead>
+          <tr>
+            <th align="left" style="padding:12px;border-bottom:2px solid #ddd;">Produto</th>
+            <th align="left" style="padding:12px;border-bottom:2px solid #ddd;">Antes</th>
+            <th align="left" style="padding:12px;border-bottom:2px solid #ddd;">Agora</th>
+            <th align="left" style="padding:12px;border-bottom:2px solid #ddd;">Queda</th>
+          </tr>
+        </thead>
+        <tbody>${linhasHtml}</tbody>
+      </table>
+    </div>
+  `
+
+  return { html, texto }
+}
+
+async function enviarAlertaQuedasPreco(quedas) {
+  if (quedas.length === 0 || dryRun) return false
+
+  const to = destinatariosAlertaPreco()
+  if (!RESEND_API_KEY || !PRICE_ALERT_FROM || to.length === 0) {
+    console.warn('  Aviso: quedas de preço detectadas, mas RESEND_API_KEY, PRICE_ALERT_FROM ou PRICE_ALERT_TO não estão configurados.')
+    return false
+  }
+
+  const ordenadas = [...quedas].sort((a, b) => b.percentual - a.percentual || b.diferenca - a.diferenca)
+  const { html, texto } = montarEmailQuedasPreco(ordenadas)
+  const subject = `Aguante: ${quedas.length} produto${quedas.length === 1 ? '' : 's'} Netshoes baix${quedas.length === 1 ? 'ou' : 'aram'} de preço`
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: PRICE_ALERT_FROM,
+      to,
+      subject,
+      html,
+      text: texto,
+    }),
+  })
+
+  if (!res.ok) {
+    console.warn(`  Aviso: Resend falhou (${res.status}): ${await res.text()}`)
+    return false
+  }
+
+  return true
 }
 
 function tokenRakutenInformado() {
@@ -1094,7 +1227,7 @@ async function desativarOfertasAntigas(supabase, externalIdsVistos) {
 }
 
 async function salvarOfertas(supabase, ofertas, opcoes = {}) {
-  if (ofertas.length === 0 || dryRun) return 0
+  if (ofertas.length === 0 || dryRun) return { salvas: 0, quedasPreco: [] }
   const ofertasUnicas = Array.from(new Map(ofertas.map(oferta => [oferta.external_id, oferta])).values())
   const externalIds = ofertasUnicas.map(oferta => oferta.external_id)
 
@@ -1102,7 +1235,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
   for (const loteExternalIds of dividirEmLotes(externalIds)) {
     const { data, error: buscaError } = await supabase
       .from('ofertas_afiliadas')
-      .select('external_id,cupom_codigo,cupom_percentual,cupom_desconto_maximo,cupom_percentual_variavel,cupom_descricao')
+      .select('external_id,titulo,preco,preco_pix,link_produto,link_afiliado,clube,cupom_codigo,cupom_percentual,cupom_desconto_maximo,cupom_percentual_variavel,cupom_descricao')
       .eq('loja', LOJA)
       .eq('automacao_origem', ORIGEM)
       .in('external_id', loteExternalIds)
@@ -1112,9 +1245,25 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
   }
 
   const cuponsAtuais = new Map((ofertasAtuais || []).map(oferta => [oferta.external_id, oferta]))
+  const quedasPreco = []
   const ofertasParaSalvar = ofertasUnicas.map(oferta => {
     const atual = cuponsAtuais.get(oferta.external_id)
     if (!atual) return oferta
+
+    const precoAnterior = menorPrecoOferta(atual)
+    const precoNovo = menorPrecoOferta(oferta)
+    if (precoAnterior && precoNovo && precoNovo < precoAnterior) {
+      const diferenca = Math.round((precoAnterior - precoNovo) * 100) / 100
+      quedasPreco.push({
+        titulo: oferta.titulo || atual.titulo || 'Produto Netshoes',
+        clube: oferta.clube || atual.clube || '',
+        precoAnterior,
+        precoNovo,
+        diferenca,
+        percentual: Math.round((diferenca / precoAnterior) * 1000) / 10,
+        link: oferta.link_produto || atual.link_produto || oferta.link_afiliado || atual.link_afiliado || '',
+      })
+    }
 
     const cupomPercentual = opcoes.atualizarCupomExistente ? oferta.cupom_percentual : (atual.cupom_percentual ?? oferta.cupom_percentual)
     const cupomDescontoMaximo = opcoes.atualizarCupomExistente ? oferta.cupom_desconto_maximo : (atual.cupom_desconto_maximo ?? oferta.cupom_desconto_maximo)
@@ -1138,7 +1287,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
     .select('id')
 
   if (error) throw new Error(`Erro ao salvar ofertas afiliadas: ${error.message}`)
-  return data?.length || 0
+  return { salvas: data?.length || 0, quedasPreco }
 }
 
 async function main() {
@@ -1252,14 +1401,16 @@ async function main() {
   }
 
   const ofertasUnicas = Array.from(new Map(ofertas.map(oferta => [oferta.external_id, oferta])).values())
-  const salvas = await salvarOfertas(supabase, ofertasUnicas, { atualizarCupomExistente: cupom.cupom_origem === 'coupon-api' })
+  const { salvas, quedasPreco } = await salvarOfertas(supabase, ofertasUnicas, { atualizarCupomExistente: cupom.cupom_origem === 'coupon-api' })
   const desativadas = await desativarOfertasAntigas(supabase, ofertasUnicas.map(oferta => oferta.external_id))
+  const alertaEnviado = await enviarAlertaQuedasPreco(quedasPreco)
 
   console.log(`\nResumo Netshoes/Rakuten`)
   console.log(`  Ofertas encontradas: ${ofertas.length}`)
   console.log(`  Ofertas únicas: ${ofertasUnicas.length}`)
   console.log(`  Ofertas salvas: ${salvas}`)
   console.log(`  Ofertas antigas ocultadas: ${desativadas}`)
+  console.log(`  Produtos com queda de preço: ${quedasPreco.length}${alertaEnviado ? ' (email enviado)' : ''}`)
   console.log(`  Cupons Rakuten encontrados: ${cupons.length}`)
   if (dryRun) console.log('  Dry-run: nada foi gravado.')
 }
