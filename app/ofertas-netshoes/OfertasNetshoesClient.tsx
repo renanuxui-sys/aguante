@@ -130,8 +130,22 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
         <form className="ag-newsletter-form" onSubmit={cadastrarNewsletter}>
           <div className="ag-newsletter-copy">
             <strong>Alertas Netshoes</strong>
-            <span>Receba quando camisas baixarem de preço.</span>
+            <span>Camisas que baixaram de preço, no seu e-mail.</span>
           </div>
+
+          <button
+            className="ag-newsletter-clubes-toggle"
+            onClick={() => setPreferenciasAbertas(aberto => !aberto)}
+            type="button"
+          >
+            <span className="ag-newsletter-toggle-check" aria-hidden="true">
+              ✓
+            </span>
+            <span>{todosClubesNewsletter ? 'todos os clubes' : `${clubesNewsletter.length || 0} clube${clubesNewsletter.length === 1 ? '' : 's'}`}</span>
+            <span className="ag-newsletter-toggle-arrow" aria-hidden="true">
+              ▾
+            </span>
+          </button>
 
           <div className="ag-newsletter-actions">
             <input
@@ -147,14 +161,6 @@ export default function OfertasNetshoesClient({ ofertas }: { ofertas: OfertaAfil
               {newsletterStatus === 'loading' ? 'enviando...' : 'receber ofertas'}
             </button>
           </div>
-
-          <button
-            className="ag-newsletter-clubes-toggle"
-            onClick={() => setPreferenciasAbertas(aberto => !aberto)}
-            type="button"
-          >
-            {todosClubesNewsletter ? 'todos os clubes' : `${clubesNewsletter.length || 0} clube${clubesNewsletter.length === 1 ? '' : 's'}`}
-          </button>
 
           {newsletterMensagem && (
             <p className={`ag-newsletter-status ag-newsletter-status-${newsletterStatus}`}>
