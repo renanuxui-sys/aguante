@@ -59,7 +59,11 @@ function converterProduto(produto, clubeFixo, clubesMap, { somenteIdentificados 
   const titulo   = produto.title || ''
   const link     = `${FONTE_URL}/products/${produto.handle}`
   const imagem   = produto.images?.[0]?.src || null
-  const preco    = produto.variants?.[0]?.price ? parseFloat(produto.variants[0].price) : null
+  const variantes = Array.isArray(produto.variants) ? produto.variants : []
+  const varianteDisponivel = variantes.find(variante => variante?.available !== false)
+  if (!varianteDisponivel) return null
+
+  const preco = varianteDisponivel.price ? parseFloat(varianteDisponivel.price) : null
 
   const clube = clubeFixo || identificarClube(titulo, clubesMap)
   if (somenteIdentificados && !clube) return null
@@ -85,6 +89,7 @@ async function rasparColecao({ slug, clube, categorias = ['Clubes Brasileiros'],
   const clubesMap = combinarClubesMap(...categorias.map(categoria => clubesPorCategoria.get(categoria) || []))
   let page = 1
   let totalColecao = 0
+  let ignorados = 0
 
   while (true) {
     const produtos = await buscarPagina(slug, page)
@@ -94,21 +99,23 @@ async function rasparColecao({ slug, clube, categorias = ['Clubes Brasileiros'],
       .map(p => converterProduto(p, clube, clubesMap, { somenteIdentificados }))
       .filter(Boolean)
     const salvos = await salvarProdutos(supabase, convertidos)
+    ignorados += produtos.length - convertidos.length
     totalColecao += salvos
-    console.log(`  ✅ Página ${page} — ${salvos} salvos (total: ${totalColecao})`)
+    console.log(`  ✅ Página ${page} — ${salvos} salvos, ${produtos.length - convertidos.length} indisponíveis/não identificados ignorados (total: ${totalColecao})`)
 
     if (produtos.length < LIMITE) break
     page++
     await sleep(DELAY_MS)
   }
 
+  if (ignorados > 0) console.log(`  ⏸️  Total ignorados em ${clube || slug}: ${ignorados}`)
   return totalColecao
 }
 
 async function main() {
   console.log('🚀 Scraper — Brechó do Futebol\n')
 
-  await desativarProdutosDaFonte(supabase, FONTE_NOME)
+  await desativarProdutosDaFonte(supabase, FONTE_NOME, FONTE_URL)
   const clubesPorCategoria = await carregarClubesMapPorCategoria(supabase)
 
   let totalGeral = 0
