@@ -507,12 +507,14 @@ function parseProdutosXml(xml) {
   const $ = cheerio.load(xml, { xmlMode: true })
   return $('item').map((_, el) => {
     const linkProduto = extrairUrlProdutoNetshoes(texto($, el, 'linkurl'))
+    const precoPromocional = preco(texto($, el, 'saleprice'))
+    const precoRegular = preco(texto($, el, 'price'))
     return {
       $,
       el,
       mid: texto($, el, 'mid'),
       titulo: limparTituloProdutoNetshoes(texto($, el, 'productname')),
-      preco: preco(texto($, el, 'saleprice') || texto($, el, 'price')),
+      preco: precoPromocional || precoRegular,
       imagem_url: urlAbsoluta(texto($, el, 'imageurl')),
       link_produto: linkProduto,
       descricao: [texto($, el, 'description short'), texto($, el, 'description long'), texto($, el, 'keywords')].filter(Boolean).join(' '),
@@ -1324,7 +1326,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
   const quedasPreco = []
   const ofertasParaSalvar = ofertasUnicas.map(oferta => {
     const atual = cuponsAtuais.get(oferta.external_id)
-    if (!atual) return oferta
+    if (!atual) return menorPrecoOferta(oferta) ? oferta : null
 
     const precoAnterior = menorPrecoOferta(atual)
     const precoNovo = menorPrecoOferta(oferta)
@@ -1348,10 +1350,14 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
     const cupomPercentual = opcoes.atualizarCupomExistente ? oferta.cupom_percentual : (atual.cupom_percentual ?? oferta.cupom_percentual)
     const cupomDescontoMaximo = opcoes.atualizarCupomExistente ? oferta.cupom_desconto_maximo : (atual.cupom_desconto_maximo ?? oferta.cupom_desconto_maximo)
     const cupomPercentualVariavel = opcoes.atualizarCupomExistente ? oferta.cupom_percentual_variavel : (atual.cupom_percentual_variavel ?? oferta.cupom_percentual_variavel)
-    const precoBase = oferta.preco_pix || oferta.preco
+    const precoFinal = oferta.preco ?? atual.preco ?? null
+    const precoPixFinal = oferta.preco_pix ?? atual.preco_pix ?? null
+    const precoBase = precoPixFinal || precoFinal
 
     return {
       ...oferta,
+      preco: precoFinal,
+      preco_pix: precoPixFinal,
       cupom_codigo: opcoes.atualizarCupomExistente ? oferta.cupom_codigo : (atual.cupom_codigo ?? oferta.cupom_codigo),
       cupom_percentual: cupomPercentual,
       cupom_desconto_maximo: cupomDescontoMaximo,
@@ -1359,7 +1365,9 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
       cupom_descricao: opcoes.atualizarCupomExistente ? oferta.cupom_descricao : (atual.cupom_descricao ?? oferta.cupom_descricao),
       preco_com_cupom: precoComCupom(precoBase, Number(cupomPercentual), cupomPercentualVariavel, oferta.cupom_aplicavel, valorDinheiro(cupomDescontoMaximo)),
     }
-  })
+  }).filter(Boolean)
+
+  if (ofertasParaSalvar.length === 0) return { salvas: 0, quedasPreco }
 
   const { data, error } = await supabase
     .from('ofertas_afiliadas')
