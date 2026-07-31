@@ -1047,10 +1047,6 @@ function couponSkuProdutoHtml(html) {
   return match?.[1] ? normalizarTexto(match[1]) : null
 }
 
-function produtoTemCupomBloqueadoHtml(html) {
-  return couponSkuProdutoHtml(html) === 'sem_cupom'
-}
-
 function produtoTemTagLancamentoHtml(html) {
   const textoNormalizado = normalizarTexto(html || '')
   return /promotionflags["']?\s*:\s*["'][^"']*lancamento/.test(textoNormalizado)
@@ -1212,12 +1208,11 @@ async function metadadosProdutoNetshoes(linkProduto) {
     const precoCheio = precoAtual?.preco || precoCheioProdutoHtml(html)
     const precoPix = precoAtual?.precoPix || precoPixProdutoHtml(html)
     const tagSelecao = produtoTemTagSelecaoHtml(html)
-    const cupomBloqueado = produtoTemCupomBloqueadoHtml(html)
     const linkProdutoFinal = res.url ? urlProdutoNetshoesPublica(res.url) : urlProdutoNetshoesPublica(linkProduto)
     return {
       lido: true,
-      tagSelecao: tagSelecao || cupomBloqueado,
-      cupomBloqueado,
+      tagSelecao,
+      couponSku: couponSkuProdutoHtml(html),
       disponivel: true,
       preco: precoCheio,
       precoPix: precoCheio && precoPix && precoPix > precoCheio ? precoCheio : precoPix,
@@ -1261,7 +1256,7 @@ async function produtoNetshoesPorUrl(linkProduto) {
     link_produto: linkProdutoFinal,
     descricao: [produto.description, marca].filter(Boolean).join(' '),
     external_id: `rakuten-netshoes:${canonicalizarUrlProduto(linkProdutoFinal) || produto.sku || produto.name || linkProduto}`,
-    tag_selecao: produtoTemTagSelecaoHtml(html) || produtoTemCupomBloqueadoHtml(html),
+    tag_selecao: produtoTemTagSelecaoHtml(html),
     tag_lancamento: produtoTemTagLancamentoHtml(html),
   }
 }
@@ -1427,11 +1422,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
     const cupomPercentual = opcoes.atualizarCupomExistente ? ofertaBanco.cupom_percentual : (atual.cupom_percentual ?? ofertaBanco.cupom_percentual)
     const cupomDescontoMaximo = opcoes.atualizarCupomExistente ? ofertaBanco.cupom_desconto_maximo : (atual.cupom_desconto_maximo ?? ofertaBanco.cupom_desconto_maximo)
     const cupomPercentualVariavel = opcoes.atualizarCupomExistente ? ofertaBanco.cupom_percentual_variavel : (atual.cupom_percentual_variavel ?? ofertaBanco.cupom_percentual_variavel)
-    const cupomAplicavelFinal = ofertaBanco.cupom_aplicavel === false
-      ? false
-      : metadadosLidos
-        ? ofertaBanco.cupom_aplicavel
-        : false
+    const cupomAplicavelFinal = ofertaBanco.cupom_aplicavel ?? (metadadosLidos ? true : atual.cupom_aplicavel)
     const precoFinal = ofertaBanco.preco ?? (metadadosLidos ? null : atual.preco ?? null)
     const precoPixFinal = metadadosLidos ? (ofertaBanco.preco_pix ?? null) : (ofertaBanco.preco_pix ?? null)
     const precoBase = precoPixFinal || precoFinal
@@ -1530,7 +1521,7 @@ async function main() {
       const u1 = `aguante_${normalizarTexto(clube.nome).replace(/\s+/g, '_')}_${indiceProduto + 1}`
       const metadadosProduto = await metadadosProdutoNetshoes(produto.link_produto)
       const tagSelecao = Boolean(metadadosProduto.tagSelecao)
-      const cupomAplicavel = Boolean(metadadosProduto.lido) && !tagSelecao
+      const cupomAplicavel = !tagSelecao
       const linkProdutoFinal = metadadosProduto.linkProduto || produto.link_produto
       const linkAfiliado = dryRun ? linkProdutoFinal : await gerarDeepLink(linkProdutoFinal, u1)
       const precoCheio = metadadosProduto.preco || produto.preco
