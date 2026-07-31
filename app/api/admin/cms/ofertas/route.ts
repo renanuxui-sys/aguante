@@ -183,6 +183,11 @@ export async function PATCH(request: Request) {
     if (body.cupom_percentual !== undefined) atualizacao.cupom_percentual = percentualOpcional(body.cupom_percentual)
     if (body.cupom_desconto_maximo !== undefined) atualizacao.cupom_desconto_maximo = dinheiroOpcional(body.cupom_desconto_maximo)
     if (body.cupom_descricao !== undefined) atualizacao.cupom_descricao = textoOpcional(body.cupom_descricao)
+    if (typeof body.cupom_aplicavel === 'boolean') {
+      atualizacao.cupom_aplicavel = body.cupom_aplicavel
+      atualizacao.cupom_aplicavel_manual = body.cupom_aplicavel
+      if (body.cupom_aplicavel === false) atualizacao.netshoes_tag_selecao = true
+    }
 
     if (body.reimportar === true) {
       const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
@@ -205,7 +210,11 @@ export async function PATCH(request: Request) {
         )
     }
 
-    if (!body.reimportar && (body.cupom_percentual !== undefined || body.cupom_desconto_maximo !== undefined)) {
+    if (!body.reimportar && (
+      body.cupom_percentual !== undefined
+      || body.cupom_desconto_maximo !== undefined
+      || typeof body.cupom_aplicavel === 'boolean'
+    )) {
       const { data: ofertaAtual, error: buscaError } = await criarSupabaseAdmin()
         .from('ofertas_afiliadas')
         .select('preco,preco_pix,cupom_aplicavel,cupom_percentual,cupom_desconto_maximo')
@@ -213,7 +222,10 @@ export async function PATCH(request: Request) {
         .single()
 
       if (buscaError) return Response.json({ error: buscaError.message }, { status: 500 })
-      atualizacao.preco_com_cupom = ofertaAtual?.cupom_aplicavel === false
+      const cupomAplicavel = typeof atualizacao.cupom_aplicavel === 'boolean'
+        ? atualizacao.cupom_aplicavel
+        : ofertaAtual?.cupom_aplicavel
+      atualizacao.preco_com_cupom = cupomAplicavel === false
         ? null
         : precoComCupom(
           menorPreco(ofertaAtual?.preco, ofertaAtual?.preco_pix),

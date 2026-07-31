@@ -61,6 +61,7 @@ create table if not exists ofertas_afiliadas (
   cupom_percentual_variavel boolean not null default false,
   cupom_descricao text,
   cupom_aplicavel boolean not null default true,
+  cupom_aplicavel_manual boolean,
   netshoes_tag_selecao boolean not null default false,
   clube text,
   automacao_origem text,
@@ -81,6 +82,7 @@ alter table ofertas_afiliadas add column if not exists cupom_desconto_maximo num
 alter table ofertas_afiliadas add column if not exists cupom_percentual_variavel boolean not null default false;
 alter table ofertas_afiliadas add column if not exists cupom_descricao text;
 alter table ofertas_afiliadas add column if not exists cupom_aplicavel boolean not null default true;
+alter table ofertas_afiliadas add column if not exists cupom_aplicavel_manual boolean;
 alter table ofertas_afiliadas add column if not exists netshoes_tag_selecao boolean not null default false;
 alter table ofertas_afiliadas add column if not exists clube text;
 alter table ofertas_afiliadas add column if not exists automacao_origem text;

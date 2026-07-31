@@ -52,6 +52,7 @@ export type OfertaAfiliada = {
   cupom_percentual_variavel?: boolean | null
   cupom_descricao: string | null
   cupom_aplicavel?: boolean | null
+  cupom_aplicavel_manual?: boolean | null
   netshoes_tag_selecao?: boolean | null
   clube?: string | null
   automacao_origem?: string | null

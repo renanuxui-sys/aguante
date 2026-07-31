@@ -114,7 +114,7 @@ export default function AdminOfertas() {
     setSalvando(false)
   }
 
-  async function atualizar(oferta: OfertaAfiliada, dados: { ativo?: boolean; ordem?: number; cupom_codigo?: string; cupom_percentual?: number | null; cupom_desconto_maximo?: number | null; cupom_descricao?: string }) {
+  async function atualizar(oferta: OfertaAfiliada, dados: { ativo?: boolean; ordem?: number; cupom_codigo?: string; cupom_percentual?: number | null; cupom_desconto_maximo?: number | null; cupom_descricao?: string; cupom_aplicavel?: boolean }) {
     setErro('')
     setMensagem('')
     const res = await fetch('/api/admin/cms/ofertas', {
@@ -320,6 +320,24 @@ export default function AdminOfertas() {
                     )}
                   </td>
                   <td style={{ ...celulaStyle, minWidth: 190 }}>
+                    {oferta.loja === 'Netshoes' && (
+                      <button
+                        onClick={() => atualizar(oferta, { cupom_aplicavel: oferta.cupom_aplicavel === false })}
+                        style={{
+                          background: oferta.cupom_aplicavel === false ? '#F0EFEB' : '#E8FFF4',
+                          border: 'none',
+                          borderRadius: 999,
+                          color: oferta.cupom_aplicavel === false ? '#6B6966' : '#087443',
+                          cursor: 'pointer',
+                          font: '700 12px Onest, sans-serif',
+                          marginBottom: 8,
+                          padding: '6px 10px',
+                        }}
+                        type="button"
+                      >
+                        {oferta.cupom_aplicavel === false ? 'Sem cupom' : 'Cupom ativo'}
+                      </button>
+                    )}
                     <div style={{ display: 'grid', gap: 6, gridTemplateColumns: '92px 70px 82px', marginBottom: 6 }}>
                       <input
                         defaultValue={oferta.cupom_codigo || ''}

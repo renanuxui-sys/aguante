@@ -35,6 +35,12 @@ const PRICE_ALERT_TO = process.env.PRICE_ALERT_TO || ''
 const PRICE_ALERT_FROM = process.env.PRICE_ALERT_FROM || ''
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'https://aguante.com.br').replace(/\/+$/, '')
+const NETSHOES_NO_COUPON_SKUS = new Set(
+  (process.env.NETSHOES_NO_COUPON_SKUS || 'FBA-83FI-030,FBA-83GG-014')
+    .split(',')
+    .map(sku => normalizarTexto(sku).replace(/\s+/g, '-'))
+    .filter(Boolean)
+)
 let accessTokenCache = null
 
 const LINHAS_OFICIAIS_BUSCA = ['i', 'ii', 'iii']
@@ -465,6 +471,17 @@ function canonicalizarUrlProduto(linkProduto) {
   } catch {
     return linkProduto.split('?')[0].split('#')[0].toLowerCase()
   }
+}
+
+function skuProdutoNetshoes(linkProduto) {
+  const texto = normalizarTexto(linkProduto || '').replace(/[^a-z0-9]+/g, '-')
+  const match = texto.match(/[a-z0-9]{2,4}-[a-z0-9]{3,5}-[a-z0-9]{3}/)
+  return match?.[0] || ''
+}
+
+function cupomBloqueadoPorSku(linkProduto) {
+  const sku = skuProdutoNetshoes(linkProduto)
+  return Boolean(sku && NETSHOES_NO_COUPON_SKUS.has(sku))
 }
 
 function urlProdutoNetshoesPublica(linkProduto) {
@@ -1381,7 +1398,7 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
   for (const loteExternalIds of dividirEmLotes(externalIds)) {
     const { data, error: buscaError } = await supabase
       .from('ofertas_afiliadas')
-      .select('external_id,titulo,preco,preco_pix,link_produto,link_afiliado,clube,cupom_codigo,cupom_percentual,cupom_desconto_maximo,cupom_percentual_variavel,cupom_descricao,cupom_aplicavel,netshoes_tag_selecao')
+      .select('*')
       .eq('loja', LOJA)
       .eq('automacao_origem', ORIGEM)
       .in('external_id', loteExternalIds)
@@ -1422,7 +1439,8 @@ async function salvarOfertas(supabase, ofertas, opcoes = {}) {
     const cupomPercentual = opcoes.atualizarCupomExistente ? ofertaBanco.cupom_percentual : (atual.cupom_percentual ?? ofertaBanco.cupom_percentual)
     const cupomDescontoMaximo = opcoes.atualizarCupomExistente ? ofertaBanco.cupom_desconto_maximo : (atual.cupom_desconto_maximo ?? ofertaBanco.cupom_desconto_maximo)
     const cupomPercentualVariavel = opcoes.atualizarCupomExistente ? ofertaBanco.cupom_percentual_variavel : (atual.cupom_percentual_variavel ?? ofertaBanco.cupom_percentual_variavel)
-    const cupomAplicavelFinal = ofertaBanco.cupom_aplicavel ?? (metadadosLidos ? true : atual.cupom_aplicavel)
+    const cupomAplicavelManual = typeof atual.cupom_aplicavel_manual === 'boolean' ? atual.cupom_aplicavel_manual : null
+    const cupomAplicavelFinal = cupomAplicavelManual ?? ofertaBanco.cupom_aplicavel ?? (metadadosLidos ? true : atual.cupom_aplicavel)
     const precoFinal = ofertaBanco.preco ?? (metadadosLidos ? null : atual.preco ?? null)
     const precoPixFinal = metadadosLidos ? (ofertaBanco.preco_pix ?? null) : (ofertaBanco.preco_pix ?? null)
     const precoBase = precoPixFinal || precoFinal
@@ -1521,8 +1539,8 @@ async function main() {
       const u1 = `aguante_${normalizarTexto(clube.nome).replace(/\s+/g, '_')}_${indiceProduto + 1}`
       const metadadosProduto = await metadadosProdutoNetshoes(produto.link_produto)
       const tagSelecao = Boolean(metadadosProduto.tagSelecao)
-      const cupomAplicavel = !tagSelecao
       const linkProdutoFinal = metadadosProduto.linkProduto || produto.link_produto
+      const cupomAplicavel = !tagSelecao && !cupomBloqueadoPorSku(linkProdutoFinal)
       const linkAfiliado = dryRun ? linkProdutoFinal : await gerarDeepLink(linkProdutoFinal, u1)
       const precoCheio = metadadosProduto.preco || produto.preco
       const precoBase = metadadosProduto.precoPix || precoCheio
