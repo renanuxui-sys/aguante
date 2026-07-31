@@ -95,6 +95,8 @@ jobs:
             script: scraper-soccerkits.js
           - nome: SR Futebol
             script: scraper-srfutebol.js
+          - nome: Minha Camisa Vermelha
+            script: scraper-minha-camisa-vermelha.js
           - nome: Virou Passeio Store
             script: scraper-viroupasseio.js
 

@@ -123,6 +123,13 @@ node scraper-viroupasseio.js
 ```
 Página pública: `/lojas/virou-passeio-store`
 
+Exemplo com Minha Camisa Vermelha:
+```bash
+node scraper-minha-camisa-vermelha.js --dry-run
+node scraper-minha-camisa-vermelha.js
+```
+Página pública: `/lojas/minha-camisa-vermelha`
+
 ---
 
 ## Ciclo de vida dos scrapers (padrão v2)
@@ -226,7 +233,7 @@ GRANT EXECUTE ON FUNCTION ajustar_likes(UUID, INTEGER) TO anon;
 No GitHub Actions, a rotina roda em paralelo por grupos independentes para reduzir o tempo total e evitar que uma loja trave as próximas:
 
 - **Memórias do Esporte**: `scraper-memorias.js` e depois `scraper-memorias-inter-gremio.js` no mesmo job, porque o segundo complementa o primeiro.
-- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut, Camisa Doze, Old Collection 10, Soccer Kits, SR Futebol e Virou Passeio Store em matriz paralela.
+- **Lojas HTTP/API**: Brechó do Futebol, Jaiminho, Brechó FC, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Xiru FC, Rill Sports, Arara de Jogo, Originais do Fut, Camisa Doze, Old Collection 10, Soccer Kits, SR Futebol, Minha Camisa Vermelha e Virou Passeio Store em matriz paralela.
 - **Lojas Playwright**: Atrox, Fut Classics e Mania de Camisa em matriz paralela.
 - **Netshoes/Rakuten**: workflow separado em `.github/workflows/afiliados-netshoes.yml`, diário às 05:30 de São Paulo/Brasília. O escopo atual é apenas clubes brasileiros configurados em `netshoes-rakuten.js`; clubes europeus e seleções entram depois ampliando essa lista.
 
@@ -264,6 +271,7 @@ node scraper-camisadoze.js              # Camisa Doze
 node scraper-oldcollection10.js         # Old Collection 10
 node scraper-soccerkits.js              # Soccer Kits
 node scraper-srfutebol.js               # SR Futebol
+node scraper-minha-camisa-vermelha.js   # Minha Camisa Vermelha
 node scraper-viroupasseio.js            # Virou Passeio Store
 node scraper-maniadecamisa.js           # Mania de Camisa
 # node scraper-mercadolivre.js          # Mercado Livre (experimental; API bloqueada)
