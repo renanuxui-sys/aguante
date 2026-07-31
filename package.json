@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "scraper:gecko:olx": "node scraper-gecko-olx.js",
+    "scraper:minha-camisa-vermelha": "node scraper-minha-camisa-vermelha.js",
     "scraper:viroupasseio": "node scraper-viroupasseio.js",
     "afiliados:netshoes": "node netshoes-rakuten.js"
   },

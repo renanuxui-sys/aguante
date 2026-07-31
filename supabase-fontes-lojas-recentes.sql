@@ -6,6 +6,7 @@ with lojas(nome, url) as (
   values
     ('Mania de Camisa', 'https://www.maniadecamisafut.com.br'),
     ('Old Collection 10', 'https://oldcollection10.lojavirtualnuvem.com.br'),
+    ('Minha Camisa Vermelha', 'https://www.minhacamisavermelha.com.br'),
     ('Virou Passeio Store', 'https://viroupasseiostore.com')
 ),
 atualizadas as (
