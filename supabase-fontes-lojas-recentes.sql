@@ -1,11 +1,12 @@
 -- Cadastra páginas públicas das lojas recentes já aprovadas.
--- Rode no Supabase SQL Editor para liberar /lojas/mania-de-camisa
--- e /lojas/old-collection-10 antes mesmo do próximo scraping.
+-- Rode no Supabase SQL Editor para liberar as páginas públicas das lojas
+-- antes mesmo do próximo scraping.
 
 with lojas(nome, url) as (
   values
     ('Mania de Camisa', 'https://www.maniadecamisafut.com.br'),
-    ('Old Collection 10', 'https://oldcollection10.lojavirtualnuvem.com.br')
+    ('Old Collection 10', 'https://oldcollection10.lojavirtualnuvem.com.br'),
+    ('Virou Passeio Store', 'https://viroupasseiostore.com')
 ),
 atualizadas as (
   update fontes f
