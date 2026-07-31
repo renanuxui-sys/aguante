@@ -31,6 +31,7 @@ const DEFAULT_CUPOM_VARIAVEL = process.env.NETSHOES_DEFAULT_COUPON_VARIABLE === 
 const DEFAULT_CUPOM_DESCRICAO = process.env.NETSHOES_DEFAULT_COUPON_DESCRIPTION || 'Cupom não válido para produtos com tag SELEÇÃO'
 const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 80))
 const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 100)))
+const NETSHOES_FALLBACK_TERMS_LIMIT = Math.max(24, Number(process.env.NETSHOES_FALLBACK_TERMS_LIMIT || 64))
 const PRICE_ALERT_TO = process.env.PRICE_ALERT_TO || ''
 const PRICE_ALERT_FROM = process.env.PRICE_ALERT_FROM || ''
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
@@ -474,9 +475,17 @@ function canonicalizarUrlProduto(linkProduto) {
 }
 
 function skuProdutoNetshoes(linkProduto) {
-  const texto = normalizarTexto(linkProduto || '').replace(/[^a-z0-9]+/g, '-')
-  const match = texto.match(/[a-z0-9]{2,4}-[a-z0-9]{3,5}-[a-z0-9]{3}/)
-  return match?.[0] || ''
+  let alvo = String(linkProduto || '')
+  try {
+    alvo = new URL(alvo).pathname
+  } catch {
+    // Mantém a string original quando o valor não for uma URL absoluta.
+  }
+  const texto = normalizarTexto(alvo)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  const match = texto.match(/([a-z0-9]{2,4}-[a-z0-9]{3,5}-[a-z0-9]{3})$/)
+  return match?.[1] || ''
 }
 
 function cupomBloqueadoPorSku(linkProduto) {
@@ -873,8 +882,8 @@ function termosBuscaNetshoes(clube) {
     }
   }
 
-  // Mantém o fallback controlado para não transformar a rotina diária em um crawler amplo.
-  return Array.from(termos).slice(0, 24)
+  // Mantém o fallback controlado, mas cobre variações como II/III, goleiro e manga longa.
+  return Array.from(termos).slice(0, NETSHOES_FALLBACK_TERMS_LIMIT)
 }
 
 async function buscarProdutosNetshoesPorTermo(clube, termoBusca) {
