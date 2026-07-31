@@ -95,6 +95,8 @@ jobs:
             script: scraper-soccerkits.js
           - nome: SR Futebol
             script: scraper-srfutebol.js
+          - nome: Virou Passeio Store
+            script: scraper-viroupasseio.js
 
     steps:
       - name: Checkout do repositório
