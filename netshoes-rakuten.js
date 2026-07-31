@@ -20,6 +20,7 @@ const PRODUCT_SEARCH_URL = 'https://api.linksynergy.com/productsearch/1.0'
 const COUPON_URL = 'https://api.linksynergy.com/coupon/1.0'
 const DEEP_LINK_URL = 'https://api.linksynergy.com/v1/links/deep_links'
 const NETSHOES_URL = 'https://www.netshoes.com.br'
+const NETSHOES_LEITURA_URL = process.env.NETSHOES_READ_BASE_URL || 'https://clube.netshoes.com.br'
 const LOJA = 'Netshoes'
 const ORIGEM = 'rakuten-netshoes'
 const DELAY_MS = 700
@@ -28,7 +29,7 @@ const DEFAULT_CUPOM_PERCENTUAL = Number(process.env.NETSHOES_DEFAULT_COUPON_PERC
 const DEFAULT_CUPOM_DESCONTO_MAXIMO = valorDinheiro(process.env.NETSHOES_DEFAULT_COUPON_MAX_DISCOUNT) ?? 80
 const DEFAULT_CUPOM_VARIAVEL = process.env.NETSHOES_DEFAULT_COUPON_VARIABLE === 'true'
 const DEFAULT_CUPOM_DESCRICAO = process.env.NETSHOES_DEFAULT_COUPON_DESCRIPTION || 'Cupom não válido para produtos com tag SELEÇÃO'
-const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 48))
+const MAX_POR_CLUBE = Math.max(1, Number(process.env.NETSHOES_MAX_OFFERS_PER_CLUB || 80))
 const RESULTADOS_POR_BUSCA = Math.min(100, Math.max(1, Number(process.env.NETSHOES_SEARCH_MAX || 100)))
 const PRICE_ALERT_TO = process.env.PRICE_ALERT_TO || ''
 const PRICE_ALERT_FROM = process.env.PRICE_ALERT_FROM || ''
@@ -459,9 +460,34 @@ function canonicalizarUrlProduto(linkProduto) {
     const url = new URL(linkProduto)
     url.hash = ''
     url.search = ''
-    return `${url.hostname.replace(/^www\./, '')}${url.pathname}`.toLowerCase().replace(/\/+$/, '')
+    const hostname = url.hostname.replace(/^www\./, '').replace(/^clube\./, '')
+    return `${hostname}${url.pathname}`.toLowerCase().replace(/\/+$/, '')
   } catch {
     return linkProduto.split('?')[0].split('#')[0].toLowerCase()
+  }
+}
+
+function urlProdutoNetshoesPublica(linkProduto) {
+  if (!linkProduto) return null
+
+  try {
+    const url = new URL(linkProduto, NETSHOES_URL)
+    if (url.hostname.endsWith('netshoes.com.br')) url.hostname = new URL(NETSHOES_URL).hostname
+    return url.toString()
+  } catch {
+    return linkProduto
+  }
+}
+
+function urlProdutoNetshoesLeitura(linkProduto) {
+  if (!linkProduto) return null
+
+  try {
+    const url = new URL(linkProduto, NETSHOES_LEITURA_URL)
+    if (url.hostname.endsWith('netshoes.com.br')) url.hostname = new URL(NETSHOES_LEITURA_URL).hostname
+    return url.toString()
+  } catch {
+    return linkProduto
   }
 }
 
@@ -666,11 +692,15 @@ async function buscarProdutosClube(clube) {
   const buscas = termosBuscaClube(clube)
 
   for (const termoBusca of buscas) {
-    const produtos = await buscarProdutosPorTermo(clube, termoBusca)
-    logDiagnosticoProdutos(clube, termoBusca, produtos)
-    produtos
-      .filter(produto => produto.link_produto && produto.titulo && pareceCamisaOficial(produto, clube))
-      .forEach(produto => produtosPorChave.set(chaveProduto(produto), produto))
+    try {
+      const produtos = await buscarProdutosPorTermo(clube, termoBusca)
+      logDiagnosticoProdutos(clube, termoBusca, produtos)
+      produtos
+        .filter(produto => produto.link_produto && produto.titulo && pareceCamisaOficial(produto, clube))
+        .forEach(produto => produtosPorChave.set(chaveProduto(produto), produto))
+    } catch (error) {
+      console.warn(`  Aviso: Product Search falhou para "${termoBusca}": ${error.message}`)
+    }
 
     await sleep(250)
   }
@@ -831,7 +861,7 @@ function termosBuscaNetshoes(clube) {
 }
 
 async function buscarProdutosNetshoesPorTermo(clube, termoBusca) {
-  const url = `${NETSHOES_URL}/busca/${slugTermoNetshoes(termoBusca)}`
+  const url = `${NETSHOES_LEITURA_URL}/busca/${slugTermoNetshoes(termoBusca)}`
   const res = await fetch(url, {
     headers: {
       Accept: 'text/html,application/xhtml+xml',
@@ -843,7 +873,7 @@ async function buscarProdutosNetshoesPorTermo(clube, termoBusca) {
   if (!res.ok) throw new Error(`Netshoes respondeu ${res.status}`)
 
   const produtos = produtosJsonLd(await res.text()).map(produto => {
-    const linkProduto = produto.url ? new URL(produto.url, NETSHOES_URL).toString() : null
+    const linkProduto = produto.url ? urlProdutoNetshoesPublica(new URL(produto.url, NETSHOES_LEITURA_URL).toString()) : null
     const marca = typeof produto.brand === 'object' ? produto.brand?.name : produto.brand
 
     return {
@@ -1135,7 +1165,8 @@ async function metadadosProdutoNetshoes(linkProduto) {
   if (!linkProduto) return { tagSelecao: false, precoPix: null }
 
   try {
-    const res = await fetch(linkProduto, {
+    const urlLeitura = urlProdutoNetshoesLeitura(linkProduto)
+    const res = await fetch(urlLeitura, {
       headers: {
         Accept: 'text/html,application/xhtml+xml',
         'User-Agent': 'Mozilla/5.0 (compatible; AguanteAfiliados/1.0)',
@@ -1160,7 +1191,8 @@ async function metadadosProdutoNetshoes(linkProduto) {
 }
 
 async function produtoNetshoesPorUrl(linkProduto) {
-  const res = await fetch(linkProduto, {
+  const urlLeitura = urlProdutoNetshoesLeitura(linkProduto)
+  const res = await fetch(urlLeitura, {
     headers: {
       Accept: 'text/html,application/xhtml+xml',
       'User-Agent': 'Mozilla/5.0 (compatible; AguanteAfiliados/1.0)',
@@ -1178,7 +1210,9 @@ async function produtoNetshoesPorUrl(linkProduto) {
   const precoPix = precoAtual?.precoPix || precoPixProdutoHtml(html)
   const $ = cheerio.load(html)
   const tituloFallback = $('h1').first().text().trim() || $('title').first().text().trim()
-  const linkProdutoFinal = produto.url ? new URL(produto.url, NETSHOES_URL).toString() : linkProduto
+  const linkProdutoFinal = produto.url
+    ? urlProdutoNetshoesPublica(new URL(produto.url, NETSHOES_LEITURA_URL).toString())
+    : urlProdutoNetshoesPublica(linkProduto)
 
   return {
     titulo: limparTituloProdutoNetshoes(produto.name || tituloFallback),
