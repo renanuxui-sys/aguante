@@ -22,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
   const [autenticado, setAutenticado] = useState(false)
+  const [usuarioAdmin, setUsuarioAdmin] = useState<string | null>(null)
 
   useEffect(() => {
     let ativo = true
@@ -38,6 +39,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!res.ok) {
         router.replace('/admin/login')
       } else {
+        const data = await res.json().catch(() => null)
+        setUsuarioAdmin(typeof data?.usuario === 'string' ? data.usuario : null)
         setAutenticado(true)
       }
     }
@@ -80,6 +83,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         <div style={{ padding: '16px 12px', borderTop: '1px solid #E8E6DF' }}>
+          {usuarioAdmin && (
+            <div style={{ padding: '0 12px 10px', fontSize: 11, color: '#8A8880', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Logado como <strong style={{ color: '#4A4845', fontWeight: 600 }}>{usuarioAdmin}</strong>
+            </div>
+          )}
           <button onClick={handleLogout} style={{ width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, color: '#8A8880', fontSize: 13, fontFamily: 'Onest, sans-serif', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>↩</span> Sair
           </button>

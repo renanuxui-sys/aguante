@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { compararValorSeguro, criarSessaoAdmin } from '@/lib/admin-auth'
+import { criarSessaoAdmin, listarCredenciaisAdmin, validarCredenciaisAdmin } from '@/lib/admin-auth'
 
 const MAX_TENTATIVAS = 5
 const JANELA_MS = 1000 * 60 * 15
@@ -52,26 +52,22 @@ export async function POST(req: NextRequest) {
   }
 
   const { usuario, senha } = await req.json()
-  const usuarioCorreto = process.env.ADMIN_USERNAME || 'admin'
-  const senhaCorreta = process.env.ADMIN_PASSWORD
+  const credenciaisConfiguradas = listarCredenciaisAdmin()
 
-  if (!senhaCorreta) {
-    return NextResponse.json({ erro: 'ADMIN_PASSWORD não configurado' }, { status: 500 })
+  if (credenciaisConfiguradas.length === 0) {
+    return NextResponse.json({ erro: 'ADMIN_USERS ou ADMIN_PASSWORD não configurado' }, { status: 500 })
   }
 
-  const credenciaisValidas = typeof usuario === 'string'
-    && typeof senha === 'string'
-    && compararValorSeguro(usuario, usuarioCorreto)
-    && compararValorSeguro(senha, senhaCorreta)
+  const admin = validarCredenciaisAdmin(usuario, senha)
 
-  if (!credenciaisValidas) {
+  if (!admin) {
     registrarTentativaInvalida(origem)
     return NextResponse.json({ erro: 'Credenciais incorretas' }, { status: 401 })
   }
 
   tentativasPorOrigem.delete(origem)
   const res = NextResponse.json({ ok: true })
-  res.cookies.set('admin_session', criarSessaoAdmin(), {
+  res.cookies.set('admin_session', criarSessaoAdmin(admin.usuario), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
