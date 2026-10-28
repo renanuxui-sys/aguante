@@ -59,7 +59,6 @@ type HomeMetricas = {
 type HomeData = {
   metricas: HomeMetricas | null
   novidades: Produto[]
-  selecoes: Produto[]
   emAlta: Produto[]
   ofertas: OfertaAfiliada[]
   anos80: Produto[]
@@ -145,43 +144,6 @@ function mesclarOfertas(prioritarias: OfertaAfiliada[], fallback: OfertaAfiliada
   return [...prioritarias, ...fallback.filter(oferta => !ids.has(oferta.id))]
 }
 
-function SecaoCopaDoMundo({ produtos }: { produtos: Produto[] }) {
-  if (produtos.length === 0) return null
-  return (
-    <section className="ag-copa-section ag-section-before-ofertas" style={{ background: '#f5f5f5', padding: '32px 0 64px' }}>
-      <div className="ag-container">
-        <div className="ag-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, marginBottom: 24 }}>
-          <div style={{ maxWidth: 620 }}>
-            <h2
-              className="ag-copa-products-title"
-              style={{
-                font: '700 20px/1.2 Onest, sans-serif',
-                color: '#282828',
-                WebkitTextFillColor: '#282828',
-                letterSpacing: '-0.02em',
-                margin: 0,
-              }}
-            >
-              Camisas das Seleções
-            </h2>
-          </div>
-          <Link
-            className="ag-section-link"
-            href="/search?categoria=Seleções"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#282828', fontFamily: 'Onest, sans-serif', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '-0.02em', flexShrink: 0, padding: 0, marginBottom: 2, textDecoration: 'none' }}
-          >
-            <span className="ag-ver-todas-txt">ver todas</span>
-            <img src={imgChevronRight} alt="" style={{ width: 20, height: 20 }} />
-          </Link>
-        </div>
-        <div className="ag-cards ag-copa-card-grid">
-          {produtos.map(p => <CardProduto key={`copa-${p.id}`} produto={p} />)}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function SecaoCardsLoading({ titulo }: { titulo: string }) {
   return (
     <section style={{ background: '#f5f5f5', paddingTop: 32, paddingBottom: 32 }}>
@@ -230,7 +192,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const [novidades] = useState<Produto[]>(() => (initialData.novidades || []).slice(0, 6))
   const [produtosParaVoceBase, setProdutosParaVoceBase] = useState<Produto[]>([])
   const [produtosParaVoceLoading, setProdutosParaVoceLoading] = useState(false)
-  const [selecoes] = useState<Produto[]>(initialData.selecoes || [])
   const [ofertas] = useState<OfertaAfiliada[]>(() => embaralhar(initialData.ofertas || []))
   const [ofertasPreferencia, setOfertasPreferencia] = useState<OfertaAfiliada[]>([])
   const [clubePreferido, setClubePreferido] = useState('')
@@ -316,8 +277,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         .ag-card { width: 100%; border-radius: 16px; overflow: visible; flex-shrink: 0; transition: transform 0.2s; cursor: pointer; }
         .ag-card:hover { transform: translateY(-3px); }
         .ag-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
-        .ag-copa-card-grid .ag-card { margin-bottom: 0; }
-        .ag-copa-section { margin-bottom: 0; }
         .ag-cta-form { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
         .ag-hero-img { display: block; }
         .ag-hero-video {
@@ -388,15 +347,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           background: #550fed !important;
           transform: translateY(-1px);
         }
-        .ag-copa-products-title {
-          color: #282828 !important;
-          -webkit-text-fill-color: #282828 !important;
-          font-size: 20px !important;
-          font-family: Onest, sans-serif !important;
-          font-weight: 700 !important;
-          line-height: 1.2 !important;
-          opacity: 1 !important;
-        }
         @keyframes ag-clubes-slide {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
@@ -406,7 +356,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-ver-todas-txt { display: inline !important; }
           .ag-section-head { align-items: center !important; flex-direction: row !important; justify-content: space-between !important; gap: 24px !important; }
           .ag-section-link { margin-bottom: 0 !important; }
-          .ag-copa-section { margin-bottom: 0; }
           .ag-cards { grid-template-columns: repeat(2,1fr) !important; }
           .ag-card { width: 100% !important; height: auto !important; min-height: 112px; }
           .ag-cta-form { flex-direction: column !important; }
@@ -492,15 +441,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           .ag-mercados-title {
             font-size: 20px !important;
             margin-bottom: 20px !important;
-          }
-          .ag-copa-products-title {
-            color: #282828 !important;
-            -webkit-text-fill-color: #282828 !important;
-            font-size: 20px !important;
-            font-family: Onest, sans-serif !important;
-            font-weight: 700 !important;
-            line-height: 1.2 !important;
-            opacity: 1 !important;
           }
           .ag-mercados-grid {
             grid-template-columns: 1fr !important;
@@ -709,7 +649,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           />
         )}
         <SecaoMercados />
-        <SecaoCopaDoMundo produtos={selecoes.slice(0, quantidadeDestaques)} />
         <SecaoOfertas ofertas={ofertasHome} />
         <SecaoCards titulo="Novidades encontradas" produtos={novidades.slice(0, quantidadeDestaques)} linkTodas="/search?novidades=true" />
         <SecaoCards titulo="Camisas dos anos 80" produtos={anos80.slice(0, quantidadeDestaques)} linkTodas="/search?decada=80" />

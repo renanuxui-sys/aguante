@@ -33,7 +33,6 @@ export async function carregarHomeDataServidor() {
     totalProdutos,
     novos24h,
     novidades,
-    clubesSelecoes,
     emAlta,
     ofertas,
     anos80,
@@ -47,11 +46,6 @@ export async function carregarHomeDataServidor() {
       .gte('created_at', ontem)
       .order('created_at', { ascending: false })
       .limit(80)),
-    supabase
-      .from('clubes')
-      .select('nome')
-      .eq('ativo', true)
-      .eq('categoria', 'Seleções'),
     produtosPublicos(supabase.from('produtos')
       .select(PRODUCT_CARD_SELECT)
       .eq('ativo', true)
@@ -74,24 +68,12 @@ export async function carregarHomeDataServidor() {
       .order('ordem', { ascending: true }),
   ])
 
-  const nomesSelecoes = (clubesSelecoes.data || []).map(clube => clube.nome).filter(Boolean)
-  const selecoes = nomesSelecoes.length
-    ? await produtosPublicos(supabase.from('produtos')
-        .select(PRODUCT_CARD_SELECT)
-        .eq('ativo', true)
-        .in('clube', nomesSelecoes)
-        .order('views', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(50))
-    : { data: [] }
-
   return {
     metricas: {
       total_produtos: totalProdutos,
       novos_24h: novos24h,
     },
     novidades: embaralhar(aplicarCupomAtivo(novidades.data || [], lojasComCupom)),
-    selecoes: embaralhar(aplicarCupomAtivo(selecoes.data || [], lojasComCupom)),
     emAlta: embaralhar(aplicarCupomAtivo(emAlta.data || [], lojasComCupom)),
     ofertas,
     anos80: aplicarCupomAtivo(anos80.data || [], lojasComCupom),
