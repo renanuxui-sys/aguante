@@ -99,6 +99,8 @@ jobs:
             script: scraper-minha-camisa-vermelha.js
           - nome: Virou Passeio Store
             script: scraper-viroupasseio.js
+          - nome: Relíquia SPFC
+            script: scraper-reliquiaspfc.js
 
     steps:
       - name: Checkout do repositório
@@ -196,4 +198,4 @@ jobs:
       - name: Relatório final
         run: |
           echo "✅ Rotina concluída em $(date)"
-          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Brechó FC, Fut Classics, Atrox, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Rill Sports, Xiru FC, Arara de Jogo, Originais do Fut, Camisa Doze, Old Collection 10, Soccer Kits, SR Futebol, Mania de Camisa"
+          echo "Scrapers executados em paralelo: Memórias, Brechó do Futebol, Jaiminho, Brechó FC, Fut Classics, Atrox, Manto Sagrado, Mundo da Bola, Copero Brechó, Di Gordo, Rill Sports, Xiru FC, Arara de Jogo, Originais do Fut, Camisa Doze, Old Collection 10, Soccer Kits, SR Futebol, Minha Camisa Vermelha, Virou Passeio Store, Relíquia SPFC, Mania de Camisa"
