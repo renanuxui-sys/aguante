@@ -180,6 +180,9 @@ export default function Navbar() {
             </button>
           </div>
 
+          <Link href="/loja" style={{ color: '#000', fontSize: 13, fontWeight: 700, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+            Loja Aguante
+          </Link>
           <Link href="/sobre" style={{ color: '#000', fontSize: 13, textDecoration: 'none', letterSpacing: '-0.01em', transition: 'color 150ms ease' }}
             onMouseEnter={e => (e.currentTarget.style.color='#550fed')}
             onMouseLeave={e => (e.currentTarget.style.color='#000')}>
@@ -379,6 +382,7 @@ export default function Navbar() {
               {[
                 { href: '/', label: 'Inicio' },
                 { href: '/sobre', label: 'Sobre Aguante' },
+                { href: '/loja', label: 'Loja Aguante' },
                 { href: '/ofertas-netshoes', label: 'Ofertas Netshoes' },
                 { href: '/contato', label: 'Contato' },
               ].map(l => (
