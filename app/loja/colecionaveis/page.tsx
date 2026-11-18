@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import ProdutosExemplo from '@/components/loja/ProdutosExemplo'
+import { produtosExemplo } from '@/lib/loja-propria-catalogo'
 
 export const metadata: Metadata = { title: 'Colecionáveis — Loja Aguante', alternates: { canonical: '/loja/colecionaveis' } }
 
@@ -19,6 +21,7 @@ export default async function ColecionaveisPage({ searchParams }: { searchParams
     <h1>Colecionáveis <em>de futebol.</em></h1>
     <p className="loja-page-description">Para montar, exibir e guardar um pedaço da sua paixão.</p>
     <nav className="loja-filters" aria-label="Categorias de colecionáveis">{categorias.map(item => <Link key={item.label} href={item.valor ? `/loja/colecionaveis?categoria=${item.valor}` : '/loja/colecionaveis'} aria-current={selecionada === item.valor ? 'page' : undefined}>{item.label}</Link>)}</nav>
-    <div className="loja-empty"><span aria-hidden="true">✳</span><h2>A coleção está sendo preparada.</h2><p>Em breve, você vai encontrar nossos colecionáveis por aqui.</p><Link href="/loja/iconyx" className="loja-text-link">Conheça a coleção ICONYX ↗</Link></div>
+    <p className="loja-preview-notice">Prévia ilustrativa do catálogo. Produtos, preços e disponibilidade ainda não estão confirmados.</p>
+    <ProdutosExemplo produtos={produtosExemplo.filter(produto => !selecionada || produto.categoria === selecionada)} />
   </div></main>
 }

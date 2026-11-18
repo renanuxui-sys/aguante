@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import ProdutosExemplo from '@/components/loja/ProdutosExemplo'
+import { produtosExemplo } from '@/lib/loja-propria-catalogo'
 
 const categorias = [
   { numero: '01', nome: 'Estádios Premium', detalhe: 'Para olhar de perto cada detalhe.', categoria: 'premium', classe: 'premium' },
@@ -40,9 +42,15 @@ export default function LojaPage() {
         </div>
       </section>
 
+      <section className="loja-featured ag-container">
+        <div className="loja-section-heading"><div><span className="loja-kicker">UMA PRÉVIA DA COLEÇÃO</span><h2>Peça por peça, futebol.</h2></div><Link className="loja-text-link" href="/loja/colecionaveis">Ver todos os exemplos ↗</Link></div>
+        <p className="loja-preview-notice">Exemplos do catálogo ICONYX. Produtos, preços e disponibilidade ainda não estão confirmados.</p>
+        <ProdutosExemplo produtos={produtosExemplo.slice(0, 4)} />
+      </section>
+
       <section className="loja-intro ag-container">
         <div><span className="loja-kicker">A COLEÇÃO ESTÁ CHEGANDO</span><h2>O apito inicial<br /><em>está perto.</em></h2></div>
-        <div className="loja-intro-copy"><p>Estamos preparando uma seleção de colecionáveis para quem carrega o futebol nos detalhes.</p><p>Os produtos e as informações de disponibilidade serão apresentados aqui quando a coleção estiver pronta.</p><Link href="/loja/iconyx" className="loja-text-link">Conheça a coleção ICONYX <span aria-hidden="true">↗</span></Link></div>
+        <div className="loja-intro-copy"><p>Estamos preparando uma seleção de colecionáveis para quem carrega o futebol nos detalhes.</p><p>A seleção acima é uma prévia. As informações de venda e disponibilidade serão divulgadas quando estiverem confirmadas.</p><Link href="/loja/iconyx" className="loja-text-link">Conheça a coleção ICONYX <span aria-hidden="true">↗</span></Link></div>
       </section>
 
       <section className="loja-note"><div className="ag-container loja-note-inner"><span className="loja-note-icon" aria-hidden="true">✳</span><p>O futebol é feito de histórias.<br /><strong>A sua coleção também.</strong></p><Link href="/loja/colecionaveis">Explorar a loja <span aria-hidden="true">↗</span></Link></div></section>
