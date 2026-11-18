@@ -10,7 +10,8 @@ export default async function ProdutosExemplo({ produtos }: { produtos: ProdutoE
   const aliases: Record<string, string[]> = { 'atletico-mineiro': ['atletico-mg'], 'ceara': ['ceara-sc'] }
   function escudo(nome: string) {
     const chave = gerarSlugClube(nome)
-    return escudos.get(chave) || aliases[chave]?.map(alias => escudos.get(alias)).find(Boolean)
+    const fallback: Record<string, string> = { coritiba: '/assets/loja/iconyx/escudo-coritiba.webp', ceara: '/assets/loja/iconyx/escudo-ceara.webp' }
+    return escudos.get(chave) || aliases[chave]?.map(alias => escudos.get(alias)).find(Boolean) || fallback[chave]
   }
   return <div className="loja-product-grid">{produtos.map(produto => <Link className="loja-product-card" href={`/loja/produto/${produto.slug}`} key={produto.sku}>
     <div className={`loja-product-art ${produto.categoria}`}><span className="loja-product-badge">{produto.disponivelSimulacao ? 'EM ESTOQUE · SIMULAÇÃO' : 'LISTA DE ESPERA'}</span>{escudo(produto.clube) && <span className="loja-club-crest"><Image src={escudo(produto.clube)!} alt={`Escudo ${produto.clube}`} width={38} height={38} unoptimized /></span>}<Image className="loja-product-image" src={`/assets/loja/iconyx/${produto.sku.toLowerCase()}.webp`} alt={produto.nome} width={540} height={440} /></div>
