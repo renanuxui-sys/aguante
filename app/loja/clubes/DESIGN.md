@@ -1,0 +1,5 @@
+# Direção visual — Aguante Shop por clube
+
+Referência: https://edukaido.com/ (página inicial, captura e inspeção em 19/11/2026). A captura desktop mostra um hero amplo com cantos arredondados, composição central, título grande e curto, dois CTAs em pílula e uma imagem de produto ocupando a área inferior; o site alterna blocos claros, fotos grandes e texto conciso. A extração Firecrawl identificou Poppins, títulos em torno de 60 px, corpo de 18 px e controles em pílula. As dimensões no layout são aproximações visuais; não foram inspecionados estados mobile ou de animação.
+
+Adaptação para Aguante Shop: usar as fontes existentes Onest e Instrument Serif, roxo Aguante nos links e áreas neutras que valorizem os produtos, com verde e grafite discretos por clube. Construir hero editorial central com imagem real do catálogo, chamadas diretas, especificações verificáveis e cards da loja existente. Imagens do produto: `/assets/loja/iconyx/` (catálogo enviado pelo usuário). Nenhum vídeo específico foi fornecido; não usar vídeo genérico nem simular mídia. Manter a indicação de prévia, PDV sugerido e compra simulada. As páginas continuam sob `/loja` e herdam `noindex`.

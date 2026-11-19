@@ -48,6 +48,8 @@ export default function LojaPage() {
         <ProdutosExemplo produtos={produtosExemplo.slice(0, 4)} />
       </section>
 
+      <section className="ag-container loja-club-links"><div className="loja-section-heading"><div><span className="loja-kicker">SEU CLUBE, SUA COLEÇÃO</span><h2>Encontre a sua história.</h2></div><p>Explore as coleções criadas para quem vive futebol.</p></div><div><Link href="/loja/clubes/palmeiras">Palmeiras <span>↗</span></Link><Link href="/loja/clubes/corinthians">Corinthians <span>↗</span></Link></div></section>
+
       <section className="loja-intro ag-container">
         <div><span className="loja-kicker">A COLEÇÃO ESTÁ CHEGANDO</span><h2>O apito inicial<br /><em>está perto.</em></h2></div>
         <div className="loja-intro-copy"><p>Estamos preparando uma seleção de colecionáveis para quem carrega o futebol nos detalhes.</p><p>A seleção acima é uma prévia. Os preços são sugeridos pelo fornecedor; estoque e compra são apenas simulações.</p><Link href="/loja/iconyx" className="loja-text-link">Conheça a coleção ICONYX <span aria-hidden="true">↗</span></Link></div>

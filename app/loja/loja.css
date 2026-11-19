@@ -67,3 +67,6 @@
 .loja-club-crest img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
 .loja-product-art > .loja-product-badge { max-width: calc(100% - 75px); }
 @media (max-width: 768px) { .loja-club-crest { width: 38px; height: 38px; padding: 5px; } .loja-product-art > .loja-product-badge { max-width: calc(100% - 64px); } }
+
+.loja-club-links { padding-bottom: 100px; }.loja-club-links > div:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }.loja-club-links > div:last-child a { display: flex; justify-content: space-between; color: #151515; text-decoration: none; font-size: 22px; font-weight: 700; letter-spacing: -.04em; border-radius: 16px; background: #e4ebe2; padding: 32px; }.loja-club-links > div:last-child a:last-child { background: #e9e9e7; }.loja-club-links > div:last-child a:hover { color: #550fed; }
+@media (max-width: 768px) { .loja-club-links { padding-bottom: 70px; }.loja-club-links > div:last-child { grid-template-columns: 1fr; }.loja-club-links > div:last-child a { padding: 24px; } }
