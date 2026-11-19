@@ -146,6 +146,7 @@ export default function Navbar() {
     return () => window.removeEventListener('aguante:abrir-busca-mobile', abrirBuscaMobile)
   }, [])
 
+  const naLoja = pathname === '/loja' || pathname.startsWith('/loja/')
   const inicioAtivo = pathname === '/'
   const ofertasNetshoesAtivo = pathname === '/ofertas-netshoes'
 
@@ -161,8 +162,9 @@ export default function Navbar() {
         justifyContent: 'space-between',
         zIndex: 100,
       }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          <img src={imgLogo} alt="Aguante" style={{ width: 136, height: 55, display: 'block' }} />
+        <Link href="/" aria-label={naLoja ? 'Aguante Shop — início da Aguante' : 'Aguante — início'} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <img src={imgLogo} alt="" style={{ width: 136, height: 55, display: 'block' }} />
+          {naLoja && <span className="ag-nav-shop-label">shop</span>}
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="ag-nav-links">
@@ -397,6 +399,7 @@ export default function Navbar() {
       )}
 
       <style>{`
+        .ag-nav-shop-label { color: #550fed; font-size: 13px; font-weight: 700; letter-spacing: -0.03em; margin: 13px 0 0 4px; }
         .ag-mobile-bottom-nav { display: none; }
         @media (max-width: 768px) {
           .ag-main-nav {
